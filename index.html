@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Application — What Job Will YOU Get?</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎣</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="home">
+  <header id="site-header" hidden></header>
+  <main>
+    <div class="home-hero">
+      <div class="flag">What Job<br>Will <u>YOU</u><br>Get?</div>
+
+      <h1 class="logo">
+        <span class="logo-line" data-spiky>JOB</span>
+        <span class="logo-badge hex hex-gold"><span>🏰</span></span>
+        <span class="logo-line logo-line2" data-spiky>APPLICATION</span>
+      </h1>
+      <div class="byline">By Jing &amp; Ash Games <span id="home-mythical" class="mythical-badge" hidden title="Owner of the Rainbow Black Diamond Mythical Chest">🌈👑</span></div>
+
+      <a class="play-btn" href="levels.html" data-nav="levels" aria-label="Play">
+        <span class="play-tri"></span>
+      </a>
+      <div class="play-label" data-spiky>PLAY</div>
+
+      <nav class="home-nav">
+        <a class="hex-nav" href="paths.html" data-nav="paths">
+          <span class="hex"><span>💲</span></span><b>PATHS</b>
+        </a>
+        <a class="hex-nav" href="levels.html" data-nav="levels">
+          <span class="hex"><span>📈</span></span><b>LEVELS</b>
+        </a>
+        <a class="hex-nav" href="applications.html" data-nav="applications">
+          <span class="hex"><span>💼</span></span><b>APPLICATIONS</b>
+        </a>
+      </nav>
+
+      <footer class="home-footer">
+        <span id="home-day">Day 1</span> · 💰 <b id="home-wealth">$0</b> · <button class="linkish" id="home-reset">start over</button>
+      </footer>
+    </div>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/games/fishing.js"></script>
+  <script src="js/games/workshift.js"></script>
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/paths.js"></script>
+  <script src="js/pages/applications.js"></script>
+  <script src="js/pages/levels.js"></script>
+  <script>Boot();</script>
+</body>
+</html>

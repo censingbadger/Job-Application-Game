@@ -1,0 +1,2713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎣</text></svg>">
+<title>Job Application — What Job Will YOU Get?</title>
+<style>
+/* ============================================================
+   JOB APPLICATION — the look.
+   A pencil sketch that came to life: warm paper, graphite ink,
+   marker-blue sea, coin gold. Hexagons everywhere (Asher's
+   signature shape) and every border a little bit wobbly,
+   like it was drawn by hand.
+   ============================================================ */
+
+:root {
+  --paper: #faf6ec;
+  --paper-2: #f3edde;
+  --paper-shadow: #d9d2c0;
+  --ink: #2b2b33;
+  --pencil: #6f6f7c;
+  --sea: #1e7fbf;
+  --sea-light: #cde9f6;
+  --money: #e8b830;
+  --money-light: #f7e3a1;
+  --go: #3fa555;
+  --go-light: #cdeccf;
+  --danger: #d9534f;
+  --danger-light: #f6cccb;
+
+  --font-display: 'Impact', 'Arial Black', 'Franklin Gothic Bold', sans-serif;
+  --font-body: 'Trebuchet MS', 'Comic Sans MS', 'Segoe UI', system-ui, sans-serif;
+
+  /* the hand-drawn wobble */
+  --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --wobble-2: 15px 225px 15px 255px / 255px 15px 225px 15px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(43, 43, 51, 0.05) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.45;
+  min-height: 100vh;
+}
+
+main { max-width: 1100px; margin: 0 auto; padding: 18px 18px 60px; }
+
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 7vw, 72px);
+  letter-spacing: 2px;
+  margin: 10px 0 18px;
+  text-shadow: 4px 4px 0 var(--paper-shadow);
+}
+
+h2 { font-family: var(--font-display); letter-spacing: 1px; }
+
+/* spiky hand-lettering: each letter gets its own tilt (set by JS) */
+.spiky span { display: inline-block; }
+
+u { text-decoration-thickness: 3px; }
+
+/* ---- hand-drawn cards & buttons ------------------------------ */
+.card {
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  box-shadow: 4px 4px 0 var(--paper-shadow);
+  padding: 16px 18px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pencil);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: bold;
+  font-size: 17px;
+  color: var(--ink);
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 10px 20px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  touch-action: manipulation;
+}
+
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn-go { background: var(--go-light); }
+.btn-danger { background: var(--danger-light); }
+.btn-money { background: var(--money-light); }
+.btn-wait { background: var(--paper-2); }
+
+.btn:focus-visible, a:focus-visible {
+  outline: 3px dashed var(--sea);
+  outline-offset: 3px;
+}
+
+.linkish {
+  background: none; border: none; padding: 0;
+  font: inherit; color: var(--sea);
+  text-decoration: underline wavy 1.5px;
+  cursor: pointer;
+}
+
+.shake { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px) rotate(-2deg); }
+  75% { transform: translateX(6px) rotate(2deg); }
+}
+
+.hint { color: var(--pencil); font-size: 14px; }
+
+.danger-text { color: var(--danger); }
+
+/* ---- hexagons (Asher's favorite shape) ----------------------- */
+.hex {
+  --hex-size: 64px;
+  width: var(--hex-size);
+  height: calc(var(--hex-size) * 1.05);
+  clip-path: polygon(50% 0%, 96% 26%, 96% 74%, 50% 100%, 4% 74%, 4% 26%);
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.hex > span {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  clip-path: polygon(50% 0%, 96% 26%, 96% 74%, 50% 100%, 4% 74%, 4% 26%);
+  background: #fffdf6;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--hex-size) * 0.42);
+  font-weight: bold;
+}
+
+.hex-small { --hex-size: 38px; margin-left: auto; }
+.hex-gold > span { background: var(--money-light); }
+
+/* ---- top bar -------------------------------------------------- */
+#site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--paper);
+  border-bottom: 3px solid var(--ink);
+}
+
+#site-header[hidden] { display: none; }
+
+.home-hex {
+  font-size: 22px;
+  text-decoration: none;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  background: #fffdf6;
+  padding: 4px 10px;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+#site-header nav { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#site-header nav a {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 7px 13px;
+  border: 3px solid transparent;
+  border-radius: var(--wobble-2);
+}
+
+#site-header nav a:hover { border-color: var(--ink); }
+#site-header nav a.active {
+  border-color: var(--ink);
+  background: var(--money-light);
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+.wealth-pill {
+  margin-left: auto;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--money-light);
+  padding: 6px 14px;
+  font-size: 16px;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+.wealth-pill b { font-variant-numeric: tabular-nums; }
+
+/* ---- HOME ------------------------------------------------------ */
+.home-hero {
+  min-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: 30px 8px;
+}
+
+.flag {
+  position: absolute;
+  top: 4%;
+  left: 4%;
+  width: 200px;
+  transform: rotate(-7deg);
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  box-shadow: 4px 4px 0 var(--paper-shadow);
+  padding: 14px 16px;
+  font-size: 21px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.flag::before {
+  content: '📌';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%) rotate(10deg);
+  font-size: 22px;
+}
+
+.logo { margin: 0; position: relative; line-height: 0.95; }
+
+.logo-line {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(72px, 15vw, 150px);
+  letter-spacing: 4px;
+  text-shadow: 5px 5px 0 var(--paper-shadow);
+}
+
+.logo-line2 {
+  font-size: clamp(38px, 8vw, 82px);
+  letter-spacing: 3px;
+  color: var(--sea);
+  text-shadow: 4px 4px 0 var(--paper-shadow);
+}
+
+.logo-badge {
+  --hex-size: 58px;
+  position: absolute;
+  top: -20px;
+  right: -14px;
+  transform: rotate(12deg);
+}
+
+.byline {
+  margin-top: 14px;
+  color: var(--pencil);
+  font-size: 16px;
+  text-decoration: underline wavy 1.5px;
+}
+
+.mythical-badge { text-decoration: none; font-size: 18px; }
+
+.play-btn {
+  margin-top: 38px;
+  width: 118px;
+  height: 118px;
+  border: 7px solid var(--ink);
+  border-radius: 50%;
+  background: #fffdf6;
+  display: grid;
+  place-items: center;
+  box-shadow: 5px 5px 0 var(--paper-shadow);
+  transition: transform 0.12s ease;
+}
+
+.play-btn:hover { transform: scale(1.07) rotate(-3deg); }
+.play-btn:active { transform: scale(0.96); }
+
+.play-tri {
+  width: 0;
+  height: 0;
+  border-left: 46px solid var(--ink);
+  border-top: 29px solid transparent;
+  border-bottom: 29px solid transparent;
+  margin-left: 12px;
+}
+
+.play-label {
+  margin-top: 10px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: 6px;
+}
+
+.home-nav {
+  display: flex;
+  gap: clamp(18px, 5vw, 48px);
+  margin-top: 44px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hex-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.hex-nav .hex { --hex-size: 86px; transition: transform 0.12s ease; }
+.hex-nav:hover .hex { transform: rotate(-6deg) scale(1.08); }
+.hex-nav b { font-family: var(--font-display); letter-spacing: 2px; font-size: 16px; }
+
+.home-footer { margin-top: 46px; color: var(--pencil); font-size: 14px; }
+
+/* ---- PATHS ------------------------------------------------------ */
+.paths-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.paths-side { display: grid; gap: 16px; }
+
+.your-path-card { text-align: center; }
+.path-name { font-family: var(--font-display); font-size: 34px; letter-spacing: 1px; }
+.path-emoji { font-size: 44px; margin-top: 6px; }
+
+.change-card { transform: rotate(-1deg); }
+
+.trail {
+  position: relative;
+  min-height: 580px;
+  overflow: hidden;
+  border-radius: var(--wobble-2);
+}
+
+.trail svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.trail-watermark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(54px, 10vw, 110px);
+  letter-spacing: 6px;
+  color: rgba(43, 43, 51, 0.07);
+  -webkit-text-stroke: 2px rgba(43, 43, 51, 0.14);
+  transform: rotate(-9deg);
+  pointer-events: none;
+  user-select: none;
+}
+
+.trail-nodes { position: absolute; inset: 0; }
+
+.trail-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trail-node .hex { --hex-size: 72px; }
+
+.trail-node.boss .hex { --hex-size: 96px; }
+
+.trail-node.locked .hex > span { background: #4a4a55; font-size: 30px; }
+.trail-node.boss.locked .hex { background: #1c1c22; }
+.trail-node.boss.locked .hex > span { background: #33333d; }
+
+.trail-node.current .hex { background: var(--money); animation: node-pulse 1.6s ease infinite; }
+.trail-node.current .hex > span { background: var(--money-light); }
+
+.trail-node.done .hex { background: var(--go); }
+.trail-node.done .hex > span { background: var(--go-light); color: var(--go); font-size: 34px; }
+
+@keyframes node-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06) rotate(2deg); }
+}
+
+.node-label {
+  background: #fffdf6;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  padding: 3px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+.trail-node.locked .node-label { color: var(--pencil); background: var(--paper-2); }
+
+/* ---- APPLICATIONS ------------------------------------------------ */
+.apps-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 5fr) 7fr;
+  gap: 26px;
+  align-items: start;
+}
+
+.script-label {
+  font-family: 'Comic Sans MS', 'Segoe Print', 'Bradley Hand', cursive;
+  font-size: 30px;
+  margin: 0 0 12px;
+  transform: rotate(-2deg);
+}
+
+.offer-card { margin-bottom: 16px; }
+.empty-card { color: var(--pencil); text-align: center; }
+
+.job-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.job-card-name { font-size: 22px; }
+
+.rarity-chip {
+  border: 2.5px solid var(--chip, var(--pencil));
+  color: var(--chip, var(--pencil));
+  border-radius: var(--wobble);
+  padding: 1px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  background: #fffdf6;
+}
+
+.job-card-stats { margin-top: 10px; display: grid; gap: 3px; font-size: 15px; }
+
+.offer-actions { display: flex; gap: 12px; margin-top: 14px; }
+
+/* the shop */
+.shop { position: relative; }
+
+.shop-sign-post { text-align: center; margin-bottom: 14px; }
+
+.shop-sign {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 34px;
+  letter-spacing: 5px;
+  background: #fffdf6;
+  border: 3.5px solid var(--ink);
+  border-radius: var(--wobble);
+  box-shadow: 4px 4px 0 var(--paper-shadow);
+  padding: 8px 34px;
+  transform: rotate(-2deg);
+  position: relative;
+}
+
+.shop-sign::before {
+  content: '';
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  width: 3px;
+  height: 26px;
+  background: var(--ink);
+}
+
+.shop-head-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+.shop-section {
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 3px;
+  margin: 18px 0 10px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  display: inline-block;
+  padding: 3px 16px;
+  background: var(--sea-light);
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+
+.luck-pill {
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--go-light);
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 14px;
+}
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-align: center;
+  padding: 14px 10px;
+}
+
+.shop-item.owned { background: var(--paper-2); border-style: dashed; }
+.shop-emoji { font-size: 42px; line-height: 1; }
+.shop-name { font-size: 15px; }
+.shop-blurb { font-size: 13px; color: var(--pencil); flex: 1; }
+
+.owned-badge {
+  border: 2.5px solid var(--money);
+  color: #9a7714;
+  background: var(--money-light);
+  border-radius: var(--wobble);
+  font-weight: bold;
+  font-size: 13px;
+  padding: 3px 12px;
+}
+
+.mythical {
+  margin-top: 20px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 4px solid transparent;
+  border-image: linear-gradient(60deg, #e74c3c, #e8b830, #3fa555, #1e7fbf, #8d5bd4, #e74c3c) 1;
+  box-shadow: 5px 5px 0 var(--paper-shadow);
+}
+
+.mythical-inner { text-align: center; display: grid; gap: 8px; justify-items: center; }
+.mythical .shop-name { font-size: 18px; }
+.mythical .shop-blurb { color: #cfcfd8; }
+.mythical-emoji { font-size: 56px; animation: myth-glow 2.4s ease infinite; }
+.mythical-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+@keyframes myth-glow {
+  0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 2px #fff); }
+  50% { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 0 12px #ffe9a8); }
+}
+
+/* ---- LEVELS: fishing & work days ---------------------------------- */
+.fishing-layout, .work-layout {
+  display: grid;
+  grid-template-columns: 265px 1fr;
+  gap: 18px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.fishing-side { display: grid; gap: 14px; }
+
+.hud-card .hud-job { font-family: var(--font-display); font-size: 24px; letter-spacing: 1px; }
+.hud-line { font-size: 15px; margin: 3px 0; color: var(--ink); }
+
+.collection { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+.collection li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 2px;
+  border-bottom: 2px dashed var(--paper-shadow);
+  font-size: 15px;
+}
+.collection li b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.collection li.empty { color: var(--pencil); border: none; }
+.collection-total { margin-top: 8px; font-size: 16px; }
+.collection-total b { color: #9a7714; }
+
+.fishing-main { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+.shift-bar {
+  position: relative;
+  width: 100%;
+  height: 30px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  background: #fffdf6;
+  overflow: hidden;
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+
+.shift-bar.small { height: 22px; box-shadow: none; }
+
+.shift-fill {
+  height: 100%;
+  width: 100%;
+  background: repeating-linear-gradient(-45deg, var(--money-light), var(--money-light) 12px, var(--money) 12px, var(--money) 24px);
+  transition: width 0.2s linear;
+}
+
+.shift-bar span {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.canvas-frame {
+  position: relative;
+  width: 100%;
+  padding: 6px;
+  border-radius: var(--wobble-2);
+}
+
+.canvas-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.action-btn { font-size: 24px; padding: 14px 42px; min-width: 240px; }
+
+/* the CATCH! banner */
+.catch-banner {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  animation: banner-pop 0.25s ease;
+  width: max-content;
+  max-width: 90%;
+}
+
+@keyframes banner-pop {
+  from { transform: translateX(-50%) scale(0.4); opacity: 0; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.catch-word {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 7vw, 64px);
+  letter-spacing: 3px;
+  transform: rotate(-4deg);
+  text-shadow:
+    -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff,
+    5px 5px 0 var(--paper-shadow);
+  position: relative;
+  display: inline-block;
+}
+
+.catch-word::before, .catch-word::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 6px;
+  background: var(--ink);
+  border-radius: 3px;
+}
+
+.catch-word::before { left: -56px; transform: rotate(-24deg); }
+.catch-word::after { right: -56px; transform: rotate(24deg); }
+
+.catch-fish { font-size: 24px; font-weight: bold; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; }
+
+.catch-value {
+  display: inline-block;
+  margin-top: 8px;
+  background: var(--money-light);
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  padding: 4px 16px;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 3px 3px 0 rgba(43, 43, 51, 0.25);
+}
+
+.catch-banner.legendary .catch-word { color: #9a7714; }
+.catch-banner.stolen .catch-word { color: var(--danger); font-size: 44px; }
+
+/* work day */
+.work-scene {
+  width: 100%;
+  min-height: 340px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.work-emoji { font-size: 110px; line-height: 1; transition: transform 0.09s ease; }
+.work-title { font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; }
+.work-taps { min-height: 26px; font-size: 18px; }
+
+.danger-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(250, 240, 214, 0.96);
+  border: 6px solid var(--danger);
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 5;
+}
+
+.danger-word {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 5vw, 44px);
+  color: var(--danger);
+  letter-spacing: 2px;
+  animation: danger-flash 0.35s steps(2) infinite;
+}
+
+@keyframes danger-flash { 50% { opacity: 0.35; } }
+
+.danger-tap { font-size: 24px; padding: 16px 40px; }
+
+.danger-timer {
+  width: 60%;
+  height: 14px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  overflow: hidden;
+  background: #fffdf6;
+}
+
+.danger-timer-fill { height: 100%; width: 100%; background: var(--danger); }
+
+/* ---- popups: modal, toast, confetti, money ------------------------ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 43, 51, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+  padding: 16px;
+}
+
+.modal {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 24px;
+  animation: banner-pop 0.22s ease;
+  transform-origin: center;
+}
+
+@keyframes modal-pop { from { transform: scale(0.6); opacity: 0; } }
+
+.modal-x {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 2.5px solid var(--ink);
+  background: #fffdf6;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.day-summary { text-align: center; }
+.day-summary h2 { font-size: clamp(30px, 5vw, 42px); margin: 4px 0 12px; text-shadow: 3px 3px 0 var(--paper-shadow); }
+.day-summary .collection { max-height: 200px; text-align: left; margin: 10px auto; max-width: 360px; }
+.day-summary .job-card { text-align: left; margin: 10px 0; }
+
+.promo-banner {
+  background: var(--money-light);
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  padding: 10px 14px;
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+
+.summary-salary { font-size: 20px; margin: 12px 0; }
+.summary-salary b { color: #9a7714; }
+
+.summary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translate(-50%, 20px);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--wobble);
+  padding: 12px 22px;
+  font-weight: bold;
+  font-size: 16px;
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  z-index: 80;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+.confetti {
+  position: fixed;
+  top: -6vh;
+  z-index: 70;
+  pointer-events: none;
+  animation: confetti-fall 2.2s linear forwards;
+}
+
+@keyframes confetti-fall {
+  to { transform: translateY(112vh) rotate(540deg); }
+}
+
+.money-pop {
+  position: fixed;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: 20px;
+  color: #2f7d3f;
+  text-shadow: 1px 1px 0 #fff;
+  z-index: 75;
+  pointer-events: none;
+  animation: pop-rise 1.3s ease forwards;
+}
+
+.money-pop.down { color: var(--danger); }
+
+@keyframes pop-rise {
+  from { opacity: 0; margin-top: 0; }
+  15% { opacity: 1; }
+  to { opacity: 0; margin-top: 46px; }
+}
+
+/* chest opening */
+.chest-emoji { font-size: 84px; margin: 10px 0; }
+.chest-emoji.shaking { animation: chest-shake 0.9s ease; }
+
+@keyframes chest-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg) scale(1.05); }
+  40% { transform: rotate(10deg) scale(1.1); }
+  60% { transform: rotate(-8deg) scale(1.15); }
+  80% { transform: rotate(6deg) scale(1.2); }
+}
+
+/* ---- THE WHEEL ----------------------------------------------------- */
+.wheel-wrap { text-align: center; }
+
+.wheel-title { font-size: clamp(24px, 4vw, 34px); margin: 0 0 12px; text-shadow: 3px 3px 0 var(--paper-shadow); }
+
+.wheel-stage {
+  position: relative;
+  width: min(74vw, 400px);
+  margin: 0 auto;
+}
+
+.wheel-stage canvas { width: 100%; height: auto; display: block; }
+
+.wheel-pointer {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  color: var(--danger);
+  text-shadow: -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff;
+  z-index: 2;
+}
+
+.wheel-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  background: #fffdf6;
+  border: 4px solid var(--ink);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+
+.wheel-spin-btn { margin-top: 16px; font-size: 20px; padding: 12px 34px; }
+.wheel-note { color: var(--pencil); font-size: 14px; margin-bottom: 0; }
+
+/* ---- small screens -------------------------------------------------- */
+@media (max-width: 900px) {
+  .paths-layout, .apps-layout, .fishing-layout, .work-layout { grid-template-columns: 1fr; }
+  .fishing-side { order: 2; }
+  .trail { min-height: 460px; }
+  .flag {
+    position: static;
+    transform: rotate(-3deg);
+    width: auto;
+    max-width: 300px;
+    margin-bottom: 18px;
+  }
+  .logo-badge { right: 2px; top: -16px; --hex-size: 44px; }
+  .collection { max-height: 150px; }
+}
+
+/* ---- calm mode ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+</style>
+</head>
+<body data-page="home">
+<header id="site-header" hidden></header>
+<section class="page" data-page="home">
+<main>
+    <div class="home-hero">
+      <div class="flag">What Job<br>Will <u>YOU</u><br>Get?</div>
+
+      <h1 class="logo">
+        <span class="logo-line" data-spiky>JOB</span>
+        <span class="logo-badge hex hex-gold"><span>🏰</span></span>
+        <span class="logo-line logo-line2" data-spiky>APPLICATION</span>
+      </h1>
+      <div class="byline">By Jing &amp; Ash Games <span id="home-mythical" class="mythical-badge" hidden title="Owner of the Rainbow Black Diamond Mythical Chest">🌈👑</span></div>
+
+      <a class="play-btn" href="levels.html" data-nav="levels" aria-label="Play">
+        <span class="play-tri"></span>
+      </a>
+      <div class="play-label" data-spiky>PLAY</div>
+
+      <nav class="home-nav">
+        <a class="hex-nav" href="paths.html" data-nav="paths">
+          <span class="hex"><span>💲</span></span><b>PATHS</b>
+        </a>
+        <a class="hex-nav" href="levels.html" data-nav="levels">
+          <span class="hex"><span>📈</span></span><b>LEVELS</b>
+        </a>
+        <a class="hex-nav" href="applications.html" data-nav="applications">
+          <span class="hex"><span>💼</span></span><b>APPLICATIONS</b>
+        </a>
+      </nav>
+
+      <footer class="home-footer">
+        <span id="home-day">Day 1</span> · 💰 <b id="home-wealth">$0</b> · <button class="linkish" id="home-reset">start over</button>
+      </footer>
+    </div>
+  </main>
+</section>
+<section class="page" data-page="paths" hidden>
+<main>
+    <h1 data-spiky>PATHS</h1>
+    <div class="paths-layout">
+      <aside class="paths-side">
+        <div class="card your-path-card">
+          <h3>Your Path:</h3>
+          <div class="path-name" id="pt-name">Fishing</div>
+          <div class="path-emoji" id="pt-emoji">🎣</div>
+        </div>
+        <div class="card">
+          <h3>NEXT PROMOTION</h3>
+          <p id="pt-progress-text" class="hud-line"></p>
+          <div class="shift-bar small"><div class="shift-fill" id="pt-progress"></div></div>
+        </div>
+        <div class="card change-card">
+          <h3>Change your path?</h3>
+          <p class="hud-line">Spin the wheel of jobs. You get what you get!</p>
+          <button class="btn btn-money" id="pt-change">change · 45 M 💰</button>
+        </div>
+      </aside>
+      <div class="trail card" id="pt-trail">
+        <div class="trail-watermark" id="pt-watermark">FISHING</div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path id="pt-line" d="M 46 90 Q 18 78 26 66 Q 34 56 46 52 Q 60 47 56 42 Q 50 34 44 26 Q 38 18 40 12"
+                fill="none" stroke="#2b2b33" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="0.2 3.4" opacity="0.55"></path>
+        </svg>
+        <div class="trail-nodes" id="pt-nodes"></div>
+      </div>
+    </div>
+  </main>
+</section>
+<section class="page" data-page="levels" hidden>
+<main>
+    <div id="game-root"></div>
+  </main>
+</section>
+<section class="page" data-page="applications" hidden>
+<main>
+    <h1 data-spiky>APPLICATIONS</h1>
+    <div class="apps-layout">
+      <section class="daily">
+        <h2 class="script-label">Daily</h2>
+        <div id="apps-offers"></div>
+        <p class="hint">New offers arrive after each day of work.</p>
+      </section>
+      <section class="shop">
+        <div class="shop-sign-post"><div class="shop-sign" data-spiky>SHOP</div></div>
+        <div class="shop-head-row">
+          <h3 class="shop-section" data-spiky>LUCKY</h3>
+          <span class="luck-pill">Your luck: <b id="shop-luck">+0%</b></span>
+        </div>
+        <div class="shop-grid" id="shop-lucky"></div>
+        <h3 class="shop-section" data-spiky>Applications</h3>
+        <div class="shop-grid" id="shop-apps"></div>
+        <div class="card mythical" id="shop-mythical"></div>
+      </section>
+    </div>
+  </main>
+</section>
+<script>
+window.SINGLE_FILE = true;
+/* ============================================================
+   JOB APPLICATION — GAME DATA
+   Designed by Asher (Ash Games). Built by Jing & Ash.
+
+   ASHER: THIS FILE IS YOURS!
+   Change any number or name, save, and reload the game.
+   - Add a fish to FISH and it can be caught.
+   - Add a job to JOBS and it appears on the wheel + applications.
+   ============================================================ */
+
+// Big settings for the whole game
+const CONFIG = {
+  startWealth: 0,            // what a brand-new player starts with
+  pathChangeCost: 45e6,      // the "change" button on the Paths page: 45 M
+  fishingShiftSeconds: 75,   // how long one fishing day lasts
+  workShiftSeconds: 45,      // how long one work day lasts (other jobs)
+  offersPerDay: 3,           // job offers waiting on the Applications page
+  hospitalBillPercent: 10,   // % of your wealth you pay if you get knocked out
+};
+
+// ------------------------------------------------------------
+// FISH — weight = how common it is (bigger number = more common)
+// ------------------------------------------------------------
+const FISH = [
+  { name: 'Minnow',     value: 50,    weight: 42,  emoji: '🐟', size: 30 },
+  { name: 'Carp',       value: 300,   weight: 22,  emoji: '🐟', size: 38 },
+  { name: 'Pike',       value: 350,   weight: 14,  emoji: '🐟', size: 46 },
+  { name: 'Char',       value: 1000,  weight: 10,  emoji: '🐠', size: 46, rare: true },
+  { name: 'Large Fish', value: 800e3, weight: 8,   emoji: '🐡', size: 68, rare: true },
+  { name: 'Jingfish',   value: 20e6,  weight: 0.6, emoji: '🐠', size: 80, rare: true, legendary: true },
+];
+
+// ------------------------------------------------------------
+// JOB RARITY — how often each rarity shows up in daily offers.
+// Luck makes the rarer ones more likely.
+// ------------------------------------------------------------
+const RARITY = {
+  common:    { label: 'common',    color: '#8a8a94', weight: 100 },
+  uncommon:  { label: 'uncommon',  color: '#3fa555', weight: 40 },
+  rare:      { label: 'rare',      color: '#1e7fbf', weight: 14 },
+  epic:      { label: 'epic',      color: '#8d5bd4', weight: 4 },
+  legendary: { label: 'LEGENDARY', color: '#c98a00', weight: 1 },
+};
+
+// ------------------------------------------------------------
+// JOBS — every job in the game.
+//   power    = how good you are at the job (%)
+//   salary   = pay for ONE day of work
+//   fatality = how dangerous one day of work is (%)
+//   danger   = the thing that jumps out at you while you work
+//   special: 'fishing' = has its own real minigame
+// ------------------------------------------------------------
+const JOBS = {
+  fisherman:    { name: 'Fisherman',      emoji: '🎣', rarity: 'common',    power: 20, salary: 0,     fatality: 0,  danger: 'Shark!',              special: 'fishing', path: 'Fishing' },
+  peasant:      { name: 'Peasant',        emoji: '🌾', rarity: 'common',    power: 3,  salary: 100,   fatality: 0,  danger: 'Runaway goat!' },
+  prisoner:     { name: 'Prisoner',       emoji: '⛓️', rarity: 'common',    power: 1,  salary: 3,     fatality: 46, danger: 'Jailbreak!' },
+  teacher:      { name: 'Teacher',        emoji: '📚', rarity: 'common',    power: 5,  salary: 900,   fatality: 2,  danger: 'Pop quiz riot!' },
+  chef:         { name: 'Chef',           emoji: '🍳', rarity: 'common',    power: 8,  salary: 2500,  fatality: 9,  danger: 'Grease fire!' },
+  nomad:        { name: 'Nomad',          emoji: '🐪', rarity: 'common',    power: 4,  salary: 250,   fatality: 6,  danger: 'Sandstorm!' },
+  gamer:        { name: 'Gamer',          emoji: '🎮', rarity: 'uncommon',  power: 7,  salary: 1200,  fatality: 1,  danger: 'Lag spike!' },
+  beekeeper:    { name: 'Beekeeper',      emoji: '🐝', rarity: 'uncommon',  power: 10, salary: 7500,  fatality: 13, danger: 'Bee swarm!' },
+  soldier:      { name: 'Soldier',        emoji: '🪖', rarity: 'uncommon',  power: 18, salary: 45e3,  fatality: 52, danger: 'Incoming!' },
+  criminal:     { name: 'Criminal',       emoji: '🕶️', rarity: 'uncommon',  power: 12, salary: 90e3,  fatality: 38, danger: 'The cops!' },
+  miner:        { name: 'Miner',          emoji: '⛏️', rarity: 'uncommon',  power: 20, salary: 3e6,   fatality: 69, danger: 'Cave-in!' },
+  bodyguard:    { name: 'Bodyguard',      emoji: '🕴️', rarity: 'rare',      power: 22, salary: 250e3, fatality: 33, danger: 'Ambush!' },
+  engineer:     { name: 'Engineer',       emoji: '🛠️', rarity: 'rare',      power: 25, salary: 500e3, fatality: 11, danger: 'Bridge wobble!' },
+  executioner:  { name: 'Executioner',    emoji: '🪓', rarity: 'rare',      power: 24, salary: 800e3, fatality: 21, danger: 'Axe slipped!' },
+  bountyhunter: { name: 'Bounty Hunter',  emoji: '🤠', rarity: 'rare',      power: 28, salary: 2e6,   fatality: 55, danger: 'Target fights back!' },
+  dungeoneer:   { name: 'Dungeoneer',     emoji: '🗝️', rarity: 'epic',      power: 32, salary: 5e6,   fatality: 57, danger: 'A dragon!' },
+  deadshot:     { name: 'Deadshot',       emoji: '🎯', rarity: 'epic',      power: 35, salary: 8e6,   fatality: 60, danger: 'Return fire!' },
+  jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
+  frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
+  king:         { name: 'King',           emoji: '👑', rarity: 'legendary', power: 50, salary: 50e6,  fatality: 15, danger: 'A coup!' },
+};
+
+// ------------------------------------------------------------
+// PATHS — your career ladder. You climb by earning money at
+// your job ("career earnings"). The mystery ranks (???) get
+// revealed as you reach them.
+// ASHER: rename the fishing ranks! These are placeholders.
+// ------------------------------------------------------------
+const RANKS = {
+  fishing: ['Lowly Fisherman', 'Fisherman', 'Boat Captain', 'FISH KING'],
+  generic: ['Lowly {job}', '{job}', 'Expert {job}', 'LEGENDARY {job}'],
+};
+const RANK_UP_AT       = [0, 100e3, 5e6, 250e6]; // career earnings needed for each rank
+const RANK_SALARY_MULT = [1, 3, 8, 20];          // salary multiplier at each rank
+const RANK_POWER_BONUS = [0, 15, 35, 70];        // extra power at each rank
+
+// ------------------------------------------------------------
+// SHOP — LUCKY section. Luck makes rare fish, rare job offers
+// and better chest loot more likely.
+// ------------------------------------------------------------
+const LUCK_ITEMS = {
+  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 500e3, luck: 25 },
+  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 1.5e6, luck: 60 },
+  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 100e6, luck: 200 },
+  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 1e9,   luck: 1000 },
+};
+
+// SHOP — APPLICATIONS section
+const SHOP_EXTRAS = {
+  avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 700e3, blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
+  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 40e6,  blurb: 'Wealth, a lucky item, or a rare job offer.' },
+  anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 10e6,  blurb: 'Could be ANYTHING.' },
+  frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 100e6, blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
+  mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 300e9, blurb: 'The rarest chest ever made.' },
+};
+
+;
+/* ============================================================
+   STATE — saving, loading, money, jobs, luck, offers.
+   Your game saves itself in the browser (localStorage).
+   ============================================================ */
+
+const SAVE_KEY = 'jobApplicationGame.v1';
+
+const State = {
+  data: null,
+
+  fresh() {
+    return {
+      wealth: CONFIG.startWealth,
+      day: 1,
+      path: { jobId: 'fisherman', rank: 0, career: 0 },
+      luckItems: [],            // ids from LUCK_ITEMS you own
+      offers: [],               // today's job offers: [{ jobId }]
+      offersDay: 0,             // which day the offers were made for
+      pendingPromotion: null,   // rank name to celebrate next time you look
+      mythicalOwned: false,
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1 },
+    };
+  },
+
+  load() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { /* no save yet */ }
+    this.data = Object.assign(this.fresh(), saved || {});
+    if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
+    this.ensureOffers();
+    return this.data;
+  },
+
+  save() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) { /* private mode */ }
+  },
+
+  reset() {
+    this.data = this.fresh();
+    this.save();
+  },
+
+  // ---- money ------------------------------------------------
+  addWealth(n) {
+    this.data.wealth = Math.max(0, Math.floor(this.data.wealth + n));
+    this.save();
+  },
+
+  spend(n) {
+    if (this.data.wealth < n) return false;
+    this.data.wealth -= n;
+    this.save();
+    return true;
+  },
+
+  // ---- your job & path ---------------------------------------
+  job() { return JOBS[this.data.path.jobId]; },
+
+  rankName(rank = this.data.path.rank, jobId = this.data.path.jobId) {
+    const job = JOBS[jobId];
+    const ladder = job.special === 'fishing' ? RANKS.fishing : RANKS.generic;
+    return ladder[rank].replace('{job}', job.name);
+  },
+
+  power() { return this.job().power + RANK_POWER_BONUS[this.data.path.rank]; },
+
+  salary() { return Math.floor(this.job().salary * RANK_SALARY_MULT[this.data.path.rank]); },
+
+  luck() {
+    return this.data.luckItems.reduce((sum, id) => sum + (LUCK_ITEMS[id] ? LUCK_ITEMS[id].luck : 0), 0);
+  },
+
+  // Earnings at your job push you up the career ladder.
+  addCareerEarnings(n) {
+    const p = this.data.path;
+    p.career += n;
+    while (p.rank < RANK_UP_AT.length - 1 && p.career >= RANK_UP_AT[p.rank + 1]) {
+      p.rank += 1;
+      this.data.pendingPromotion = this.rankName();
+    }
+    this.save();
+  },
+
+  switchJob(jobId) {
+    this.data.path = { jobId, rank: 0, career: 0 };
+    this.data.stats.jobsHeld += 1;
+    this.save();
+  },
+
+  // A day of work is done: the calendar moves forward.
+  nextDay() {
+    this.data.day += 1;
+    this.data.stats.daysWorked += 1;
+    this.ensureOffers();
+    this.save();
+  },
+
+  // ---- daily job offers --------------------------------------
+  ensureOffers() {
+    if (this.data.offersDay === this.data.day && this.data.offers.length) return;
+    this.data.offersDay = this.data.day;
+    this.data.offers = [];
+    for (let i = 0; i < CONFIG.offersPerDay; i++) this.data.offers.push({ jobId: this.rollOfferJob() });
+    this.save();
+  },
+
+  // Pick a rarity (luck helps the rare ones), then a job of that rarity.
+  rollOfferJob() {
+    const luckBoost = 1 + this.luck() / 100;
+    const entries = Object.entries(RARITY).map(([id, r]) => {
+      const w = id === 'common' ? r.weight : r.weight * luckBoost;
+      return [id, w];
+    });
+    const rarity = weightedPick(entries);
+    const pool = Object.keys(JOBS).filter(id => JOBS[id].rarity === rarity && !JOBS[id].shopOnly);
+    return pool[Math.floor(Math.random() * pool.length)] || 'peasant';
+  },
+
+  addOffer(jobId) {
+    this.data.offers.push({ jobId });
+    this.save();
+  },
+
+  removeOffer(index) {
+    this.data.offers.splice(index, 1);
+    this.save();
+  },
+};
+
+// Pick from [[value, weight], ...] at random, respecting weights.
+function weightedPick(entries) {
+  const total = entries.reduce((s, [, w]) => s + w, 0);
+  let roll = Math.random() * total;
+  for (const [value, w] of entries) {
+    roll -= w;
+    if (roll <= 0) return value;
+  }
+  return entries[entries.length - 1][0];
+}
+
+// $50 → "$50",  $1,000 → "$1,000",  800000 → "$800K",  20000000 → "$20M"
+function fmtMoney(n) {
+  n = Math.floor(Math.max(0, n));
+  if (n < 100e3) return '$' + n.toLocaleString('en-US');
+  const units = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+  for (const [size, letter] of units) {
+    if (n >= size) {
+      const x = n / size;
+      let str = x >= 100 ? String(Math.round(x)) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
+      str = str.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
+      return '$' + str + letter;
+    }
+  }
+  return '$' + n.toLocaleString('en-US');
+}
+
+;
+/* ============================================================
+   UI — shared pieces: the top bar, the spinner wheel, popups,
+   the spiky hand-lettered titles, and page switching.
+   ============================================================ */
+
+const PAGES = {}; // each page script registers itself here: PAGES.home = { init(root), leave() }
+
+const REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- tiny DOM helpers ---------------------------------------
+function el(tag, className, html) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (html !== undefined) node.innerHTML = html;
+  return node;
+}
+
+function esc(text) {
+  return String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// ---- page boot & navigation ----------------------------------
+// The game works two ways:
+//  - as separate .html pages (links navigate normally)
+//  - bundled into ONE file (play.html) where links switch sections
+let currentPage = null;
+
+function Boot() {
+  State.load();
+  if (window.SINGLE_FILE) {
+    document.addEventListener('click', e => {
+      const link = e.target.closest('a[data-nav]');
+      if (!link) return;
+      e.preventDefault();
+      showPage(link.dataset.nav);
+    });
+    showPage('home');
+  } else {
+    const page = document.body.dataset.page;
+    UI.renderHeader(page);
+    currentPage = page;
+    if (PAGES[page]) PAGES[page].init(document.querySelector('main'));
+  }
+}
+
+function showPage(page) {
+  if (currentPage && PAGES[currentPage] && PAGES[currentPage].leave) PAGES[currentPage].leave();
+  document.querySelectorAll('section.page').forEach(s => { s.hidden = s.dataset.page !== page; });
+  document.body.dataset.page = page;
+  UI.renderHeader(page);
+  currentPage = page;
+  window.scrollTo(0, 0);
+  const root = document.querySelector(`section.page[data-page="${page}"] main`);
+  if (PAGES[page]) PAGES[page].init(root);
+}
+
+// ---- shared UI -----------------------------------------------
+const UI = {
+
+  // The top bar on every page except home.
+  renderHeader(activePage) {
+    const header = document.getElementById('site-header');
+    if (!header) return;
+    if (activePage === 'home') { header.innerHTML = ''; header.hidden = true; return; }
+    header.hidden = false;
+    const links = [
+      ['paths', 'PATHS', 'paths.html'],
+      ['levels', 'LEVELS', 'levels.html'],
+      ['applications', 'APPLICATIONS', 'applications.html'],
+    ];
+    header.innerHTML = `
+      <a class="home-hex" href="index.html" data-nav="home" aria-label="Home">🏠</a>
+      <nav>${links.map(([id, label, href]) =>
+        `<a href="${href}" data-nav="${id}" class="${id === activePage ? 'active' : ''}">${label}</a>`).join('')}
+      </nav>
+      <span class="wealth-pill" title="Your wealth">💰 <b id="wealth-pill">${fmtMoney(State.data.wealth)}</b></span>`;
+  },
+
+  refreshWealth() {
+    const pill = document.getElementById('wealth-pill');
+    if (pill) pill.textContent = fmtMoney(State.data.wealth);
+    document.querySelectorAll('[data-wealth]').forEach(n => { n.textContent = fmtMoney(State.data.wealth); });
+  },
+
+  // A floating "+$500" that drifts up from the wealth pill.
+  moneyPop(amount) {
+    const pill = document.getElementById('wealth-pill');
+    const pop = el('div', 'money-pop', (amount >= 0 ? '+' : '−') + fmtMoney(Math.abs(amount)));
+    if (amount < 0) pop.classList.add('down');
+    document.body.appendChild(pop);
+    if (pill) {
+      const r = pill.getBoundingClientRect();
+      pop.style.left = (r.left + r.width / 2) + 'px';
+      pop.style.top = (r.bottom + 6) + 'px';
+    } else {
+      pop.style.left = '50%'; pop.style.top = '70px';
+    }
+    setTimeout(() => pop.remove(), 1400);
+    this.refreshWealth();
+  },
+
+  // Hand-lettered titles: every letter gets its own little tilt.
+  spiky(node) {
+    const text = node.textContent;
+    node.textContent = '';
+    node.classList.add('spiky');
+    [...text].forEach((ch, i) => {
+      if (ch === ' ') {
+        node.appendChild(document.createTextNode(' ')); // keep real spaces between words
+        return;
+      }
+      const span = el('span');
+      span.textContent = ch;
+      const tilt = ((i * 37) % 9) - 4;                  // deterministic wobble
+      const lift = ((i * 23) % 5) - 2;
+      span.style.transform = `rotate(${tilt}deg) translateY(${lift}px)`;
+      node.appendChild(span);
+    });
+  },
+
+  spikyAll(root) { (root || document).querySelectorAll('[data-spiky]').forEach(n => UI.spiky(n)); },
+
+  // ---- modal --------------------------------------------------
+  openModal(content, opts = {}) {
+    const overlay = el('div', 'overlay');
+    const box = el('div', 'modal card');
+    if (typeof content === 'string') box.innerHTML = content; else box.appendChild(content);
+    if (!opts.locked) {
+      const x = el('button', 'modal-x', '✕');
+      x.addEventListener('click', close);
+      box.appendChild(x);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    }
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); if (opts.onClose) opts.onClose(); }
+    return { close, box };
+  },
+
+  toast(message, emoji = '') {
+    const t = el('div', 'toast', `${emoji} ${esc(message)}`.trim());
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 2600);
+  },
+
+  confetti(count = 26) {
+    if (REDUCED_MOTION) return;
+    const bits = ['🎉', '⭐', '💰', '🎊', '✨'];
+    for (let i = 0; i < count; i++) {
+      const bit = el('span', 'confetti', bits[i % bits.length]);
+      bit.style.left = (5 + Math.random() * 90) + 'vw';
+      bit.style.animationDelay = (Math.random() * 0.5) + 's';
+      bit.style.fontSize = (14 + Math.random() * 22) + 'px';
+      document.body.appendChild(bit);
+      setTimeout(() => bit.remove(), 2600);
+    }
+  },
+
+  // ---- THE WHEEL ----------------------------------------------
+  // segments: [{ label, color, value }]  → onDone(segment) after the spin.
+  // Segments with value 'again' automatically respin for free.
+  spinWheel({ title = 'SPIN!', segments, onDone }) {
+    const wrap = el('div', 'wheel-wrap');
+    wrap.innerHTML = `
+      <h2 class="wheel-title" data-spiky>${esc(title)}</h2>
+      <div class="wheel-stage">
+        <canvas width="640" height="640"></canvas>
+        <div class="wheel-pointer">▼</div>
+        <div class="wheel-hub">🎯</div>
+      </div>
+      <button class="btn btn-go wheel-spin-btn">SPIN THE WHEEL</button>
+      <p class="wheel-note">No take-backs. What job will <u>YOU</u> get?</p>`;
+    const modal = UI.openModal(wrap, { locked: true });
+    UI.spikyAll(wrap);
+
+    const canvas = wrap.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const n = segments.length;
+    const slice = (Math.PI * 2) / n;
+    let rotation = -Math.PI / 2 - slice / 2; // slice 0 starts centered at the top
+
+    function draw() {
+      const r = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(r, r);
+      segments.forEach((seg, i) => {
+        const a0 = rotation + i * slice;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, r - 6, a0, a0 + slice);
+        ctx.closePath();
+        ctx.fillStyle = seg.color;
+        ctx.fill();
+        ctx.strokeStyle = '#2b2b33';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // label along the slice
+        ctx.save();
+        ctx.rotate(a0 + slice / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#2b2b33';
+        ctx.font = 'bold 22px "Trebuchet MS", sans-serif';
+        ctx.fillText(seg.label.slice(0, 14), r - 22, 8);
+        ctx.restore();
+      });
+      ctx.restore();
+      // outer ring
+      ctx.beginPath();
+      ctx.arc(r, r, r - 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#2b2b33';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+    }
+    draw();
+
+    const btn = wrap.querySelector('.wheel-spin-btn');
+    btn.addEventListener('click', () => spin());
+
+    function spin() {
+      btn.disabled = true;
+      btn.textContent = '...';
+      const winner = Math.floor(Math.random() * n);
+      // rotate so the winner's center lands under the top pointer
+      const target = -Math.PI / 2 - (winner + 0.5) * slice;
+      const current = ((rotation % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const extraSpins = REDUCED_MOTION ? 1 : 5 + Math.floor(Math.random() * 3);
+      const finalRotation = rotation + (extraSpins * Math.PI * 2) + (target - current);
+      const startRotation = rotation;
+      const duration = REDUCED_MOTION ? 700 : 3800;
+      const startTime = performance.now();
+
+      (function tick(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out
+        rotation = startRotation + (finalRotation - startRotation) * ease;
+        draw();
+        if (t < 1) { requestAnimationFrame(tick); return; }
+        const seg = segments[winner];
+        if (seg.value === 'again') {
+          UI.toast('SPIN AGAIN! Free spin!', '🔁');
+          btn.disabled = false;
+          btn.textContent = 'SPIN AGAIN!';
+          return;
+        }
+        setTimeout(() => { modal.close(); onDone(seg); }, 650);
+      })(performance.now());
+    }
+  },
+
+  // Wheel segments for jobs, colored like markers.
+  jobWheelSegments(jobIds, spinAgainCount = 2) {
+    const markers = ['#79b4d9', '#8fca8f', '#e6c86e', '#d98f79', '#b79bd9', '#e69ac0', '#7fcdc3'];
+    const segs = jobIds.map((id, i) => ({
+      label: JOBS[id].name,
+      color: markers[i % markers.length],
+      value: id,
+    }));
+    for (let i = 0; i < spinAgainCount; i++) {
+      const at = Math.floor(((i + 1) * segs.length) / (spinAgainCount + 1));
+      segs.splice(at, 0, { label: 'Spin again', color: '#f3e19a', value: 'again' });
+    }
+    return segs;
+  },
+
+  // A little job card used in offers, wheel results, chests.
+  jobCardHTML(jobId, { rank = 0 } = {}) {
+    const job = JOBS[jobId];
+    const rarity = RARITY[job.rarity];
+    const salary = job.special === 'fishing'
+      ? 'Depends on fish caught'
+      : fmtMoney(job.salary * RANK_SALARY_MULT[rank]) + ' / day';
+    return `
+      <div class="job-card-head">
+        <b class="job-card-name">${esc(job.name)}</b>
+        <span class="rarity-chip" style="--chip:${rarity.color}">${rarity.label}</span>
+        <span class="hex hex-small"><span>${job.emoji}</span></span>
+      </div>
+      <div class="job-card-stats">
+        <div>Power: <b>${job.power}%</b></div>
+        <div>Salary: <b>${salary}</b></div>
+        <div>Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+      </div>`;
+  },
+};
+
+;
+/* ============================================================
+   FISHING — the Lowly Fisherman's day at sea.
+   Cast → wait for the "!" → REEL! Watch out for the shark.
+   Salary: depends on fish caught.
+   ============================================================ */
+
+// Tiny sound effects (no files needed — we sing the notes ourselves)
+const Sound = {
+  ctx: null,
+  play(notes) {
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      let t = this.ctx.currentTime;
+      notes.forEach(([freq, dur]) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain).connect(this.ctx.destination);
+        osc.start(t); osc.stop(t + dur);
+        t += dur * 0.9;
+      });
+    } catch (e) { /* sound is a bonus, never a problem */ }
+  },
+  catchFish() { this.play([[520, 0.09], [660, 0.09], [880, 0.16]]); },
+  jackpot()   { this.play([[520, 0.1], [660, 0.1], [880, 0.1], [1100, 0.22], [1320, 0.3]]); },
+  danger()    { this.play([[220, 0.12], [180, 0.16]]); },
+  splash()    { this.play([[300, 0.08], [200, 0.12]]); },
+  ding()      { this.play([[780, 0.12]]); },
+};
+
+const Fishing = {
+  running: false,
+
+  start(root) {
+    this.root = root;
+    this.running = true;
+    this.collection = [];        // today's catches
+    this.timeLeft = CONFIG.fishingShiftSeconds;
+    this.phase = 'idle';         // idle → casting → waiting → bite → (catch/escape) → idle
+    this.phaseT = 0;
+    this.bobber = { x: 0, y: 0 };
+    this.shark = null;
+    this.jump = null;            // the caught-fish jump animation
+    this.lastTime = performance.now();
+
+    root.innerHTML = `
+      <div class="fishing-layout">
+        <aside class="fishing-side">
+          <div class="card hud-card">
+            <h3>CURRENT JOB</h3>
+            <div class="hud-job">${State.rankName()}</div>
+            <div class="hud-line">Salary: <b>depends on fish caught</b></div>
+            <div class="hud-line">Power: <b>${State.power()}%</b></div>
+            <div class="hud-line">Luck: <b>+${State.luck()}%</b></div>
+          </div>
+          <div class="card hud-card">
+            <h3>COLLECTION</h3>
+            <ul class="collection" id="lv-collection"><li class="empty">Nothing yet... cast away!</li></ul>
+            <div class="collection-total">Today: <b id="lv-total">$0</b></div>
+          </div>
+        </aside>
+        <div class="fishing-main">
+          <div class="shift-bar"><div class="shift-fill" id="lv-timer"></div><span id="lv-clock"></span></div>
+          <div class="canvas-frame card">
+            <canvas id="lv-canvas" width="900" height="540"></canvas>
+            <div class="catch-banner" id="lv-banner" hidden></div>
+          </div>
+          <button class="btn btn-go action-btn" id="lv-action">CAST!</button>
+          <p class="hint">Tap the water (or press space). Wait for the <b>!</b> ... then reel FAST before the shark gets it!</p>
+        </div>
+      </div>`;
+
+    this.canvas = root.querySelector('#lv-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.banner = root.querySelector('#lv-banner');
+    this.actionBtn = root.querySelector('#lv-action');
+
+    this.onAction = this.onAction.bind(this);
+    this.onKey = e => { if (e.code === 'Space') { e.preventDefault(); this.onAction(); } };
+    this.canvas.addEventListener('pointerdown', this.onAction);
+    this.actionBtn.addEventListener('click', this.onAction);
+    window.addEventListener('keydown', this.onKey);
+
+    requestAnimationFrame(t => this.loop(t));
+  },
+
+  stop() {
+    this.running = false;
+    window.removeEventListener('keydown', this.onKey);
+  },
+
+  // ---- player input ------------------------------------------
+  onAction() {
+    if (!this.running || this.timeLeft <= 0) return;
+    if (this.phase === 'idle') {
+      this.phase = 'casting';
+      this.phaseT = 0;
+      this.castFrom = { x: 480, y: 275 };
+      this.castTo = { x: 120 + Math.random() * 300, y: 380 + Math.random() * 120 };
+      Sound.splash();
+    } else if (this.phase === 'waiting') {
+      this.phase = 'idle';
+      this.setAction('CAST!');
+      UI.toast('Too soon! The fish swam off.', '💨');
+    } else if (this.phase === 'bite') {
+      this.resolveCatch();
+    }
+  },
+
+  setAction(label, cls) {
+    this.actionBtn.textContent = label;
+    this.actionBtn.className = 'btn action-btn ' + (cls || 'btn-go');
+  },
+
+  // ---- fish luck math -----------------------------------------
+  pickFish() {
+    const luck = State.luck();
+    const entries = FISH.map(f => [f, f.rare ? f.weight * (1 + luck / 100) : f.weight]);
+    return weightedPick(entries);
+  },
+
+  resolveCatch() {
+    const fish = this.pickFish();
+    const value = Math.floor(fish.value * (1 + State.power() / 100));
+    this.collection.push({ fish, value });
+    State.addWealth(value);
+    State.addCareerEarnings(value);
+    State.data.stats.fishCaught += 1;
+    if (value > State.data.stats.biggestCatch) State.data.stats.biggestCatch = value;
+    State.save();
+
+    this.phase = 'catch';
+    this.phaseT = 0;
+    this.shark = null;
+    this.jump = { x: this.bobber.x, y: this.bobber.y, fish };
+    this.setAction('nice!', 'btn-wait');
+
+    this.banner.hidden = false;
+    this.banner.className = 'catch-banner' + (fish.legendary ? ' legendary' : '');
+    this.banner.innerHTML = `
+      <div class="catch-word" data-spiky>CATCH!</div>
+      <div class="catch-fish">${fish.legendary ? '🌟 ' : ''}${esc(fish.name)}${fish.legendary ? ' 🌟' : ''}</div>
+      <div class="catch-value">Value: ${fmtMoney(value)}</div>`;
+    UI.spikyAll(this.banner);
+
+    if (fish.legendary) { Sound.jackpot(); UI.confetti(40); }
+    else Sound.catchFish();
+    UI.moneyPop(value);
+    this.renderCollection();
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, 1700);
+  },
+
+  renderCollection() {
+    const list = this.root.querySelector('#lv-collection');
+    list.innerHTML = this.collection.map(c =>
+      `<li>${c.fish.emoji} ${esc(c.fish.name)} <b>${fmtMoney(c.value)}</b></li>`).join('');
+    const total = this.collection.reduce((s, c) => s + c.value, 0);
+    this.root.querySelector('#lv-total').textContent = fmtMoney(total);
+  },
+
+  // ---- the game loop ------------------------------------------
+  loop(now) {
+    if (!this.running) return;
+    const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+    this.phaseT += dt;
+
+    if (this.timeLeft > 0) {
+      this.timeLeft -= dt;
+      if (this.timeLeft <= 0) { this.timeLeft = 0; this.endDay(); }
+    }
+
+    this.update(dt);
+    this.draw(now / 1000);
+
+    const pct = (this.timeLeft / CONFIG.fishingShiftSeconds) * 100;
+    const timer = this.root.querySelector('#lv-timer');
+    if (timer) timer.style.width = pct + '%';
+    const clock = this.root.querySelector('#lv-clock');
+    if (clock) clock.textContent = `Day ${State.data.day} · ${Math.ceil(this.timeLeft)}s`;
+
+    requestAnimationFrame(t => this.loop(t));
+  },
+
+  update(dt) {
+    if (this.phase === 'casting') {
+      if (this.phaseT >= 0.5) {
+        this.bobber = { ...this.castTo };
+        this.phase = 'waiting';
+        this.phaseT = 0;
+        // stronger fishermen get bites sooner
+        this.waitFor = (1.2 + Math.random() * 2.8) / (1 + State.power() / 150);
+        this.setAction('wait for it...', 'btn-wait');
+      }
+    } else if (this.phase === 'waiting') {
+      if (this.phaseT >= this.waitFor) {
+        this.phase = 'bite';
+        this.phaseT = 0;
+        this.biteWindow = 0.9 + Math.min(0.5, State.luck() / 1000);
+        this.setAction('REEL!!!', 'btn-danger');
+        Sound.ding();
+        // the shark smells a catch...
+        if (Math.random() < 0.35) {
+          const arrive = (0.7 + Math.random() * 0.5) * (1 + State.power() / 200);
+          this.shark = { x: -40, y: Math.min(500, this.bobber.y + 10), speed: (this.bobber.x + 40) / arrive };
+          Sound.danger();
+        }
+      }
+    } else if (this.phase === 'bite') {
+      if (this.shark) {
+        this.shark.x += this.shark.speed * dt;
+        if (this.shark.x >= this.bobber.x - 6) {
+          this.phase = 'stolen';
+          this.phaseT = 0;
+          Sound.danger();
+          this.banner.hidden = false;
+          this.banner.className = 'catch-banner stolen';
+          this.banner.innerHTML = `<div class="catch-word">🦈 CHOMP!</div><div class="catch-fish">The shark ate your fish!</div>`;
+          setTimeout(() => { if (this.running) this.banner.hidden = true; }, 1400);
+        }
+      }
+      if (this.phase === 'bite' && this.phaseT >= this.biteWindow) {
+        this.phase = 'escaped';
+        this.phaseT = 0;
+        UI.toast('Too slow! It got away...', '🫧');
+      }
+    } else if (this.phase === 'catch' || this.phase === 'stolen' || this.phase === 'escaped') {
+      if (this.jump) this.jump.t = this.phaseT;
+      const wait = this.phase === 'catch' ? 1.5 : 0.9;
+      if (this.phaseT >= wait) {
+        this.phase = 'idle';
+        this.jump = null;
+        this.shark = null;
+        this.setAction('CAST!');
+      }
+    }
+  },
+
+  // ---- drawing the sea, the boat, and the day ------------------
+  draw(t) {
+    const ctx = this.ctx;
+    const W = 900, H = 540, SEA = 330;
+
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, SEA);
+    sky.addColorStop(0, '#cde9f6');
+    sky.addColorStop(1, '#eef7fb');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, SEA);
+
+    // sun
+    ctx.fillStyle = '#f7d774';
+    ctx.beginPath(); ctx.arc(80, 70, 34, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.stroke();
+
+    // mountains (like Asher's horizon)
+    ctx.fillStyle = '#b9c4c9';
+    ctx.beginPath(); ctx.moveTo(0, SEA); ctx.lineTo(140, 210); ctx.lineTo(300, SEA); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(200, SEA); ctx.lineTo(390, 180); ctx.lineTo(600, SEA); ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // sea
+    const sea = ctx.createLinearGradient(0, SEA, 0, H);
+    sea.addColorStop(0, '#7fb8dc');
+    sea.addColorStop(1, '#4a90c2');
+    ctx.fillStyle = sea;
+    ctx.fillRect(0, SEA, W, H - SEA);
+
+    // waves
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 2.5;
+    for (let row = 0; row < 4; row++) {
+      const y = SEA + 40 + row * 48;
+      for (let x = ((t * 22 + row * 40) % 90) - 90; x < W; x += 90) {
+        ctx.beginPath(); ctx.arc(x, y, 13, Math.PI * 0.15, Math.PI * 0.85, true); ctx.stroke();
+      }
+    }
+
+    this.drawBoat(ctx, t);
+
+    // fishing line + bobber
+    if (this.phase === 'casting') {
+      const p = Math.min(1, this.phaseT / 0.5);
+      const x = this.castFrom.x + (this.castTo.x - this.castFrom.x) * p;
+      const y = this.castFrom.y + (this.castTo.y - this.castFrom.y) * p - Math.sin(p * Math.PI) * 120;
+      this.drawLine(ctx, x, y);
+      this.drawBobber(ctx, x, y);
+    } else if (this.phase === 'waiting' || this.phase === 'bite') {
+      const dip = this.phase === 'bite' ? 6 + Math.sin(t * 30) * 3 : Math.sin(t * 3) * 3;
+      this.drawLine(ctx, this.bobber.x, this.bobber.y + dip);
+      this.drawBobber(ctx, this.bobber.x, this.bobber.y + dip);
+      if (this.phase === 'bite') {
+        ctx.font = 'bold 54px "Trebuchet MS", sans-serif';
+        ctx.fillStyle = '#d9534f';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 6;
+        ctx.strokeText('!', this.bobber.x - 8, this.bobber.y - 34);
+        ctx.fillText('!', this.bobber.x - 8, this.bobber.y - 34);
+      }
+    }
+
+    // the caught fish jumps for joy
+    if (this.jump) {
+      const p = Math.min(1, (this.jump.t || 0) / 0.9);
+      const y = this.jump.y - Math.sin(p * Math.PI) * 170;
+      ctx.font = `${this.jump.fish.size * 1.6}px serif`;
+      ctx.save();
+      ctx.translate(this.jump.x, y);
+      ctx.rotate(Math.sin(p * Math.PI * 2) * 0.4);
+      ctx.textAlign = 'center';
+      ctx.fillText(this.jump.fish.emoji, 0, 0);
+      ctx.restore();
+      // splash
+      ctx.strokeStyle = 'rgba(255,255,255,.9)';
+      for (let i = 0; i < 5; i++) {
+        const a = Math.PI * (0.15 + 0.175 * i);
+        const r1 = 12 + p * 26;
+        ctx.beginPath();
+        ctx.moveTo(this.jump.x + Math.cos(a) * r1, this.jump.y - Math.sin(a) * r1 * 0.6);
+        ctx.lineTo(this.jump.x + Math.cos(a) * (r1 + 10), this.jump.y - Math.sin(a) * (r1 + 10) * 0.6);
+        ctx.stroke();
+      }
+    }
+
+    // the shark!
+    if (this.shark) {
+      ctx.fillStyle = '#5b6770';
+      ctx.beginPath();
+      ctx.moveTo(this.shark.x - 26, this.shark.y);
+      ctx.quadraticCurveTo(this.shark.x, this.shark.y - 42, this.shark.x + 10, this.shark.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.stroke();
+      // wake
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.beginPath(); ctx.moveTo(this.shark.x - 30, this.shark.y + 3); ctx.lineTo(this.shark.x - 58, this.shark.y + 3); ctx.stroke();
+      // warning
+      ctx.font = 'bold 34px "Trebuchet MS", sans-serif';
+      ctx.fillStyle = '#d9534f';
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 5;
+      ctx.strokeText('⚠', this.shark.x - 12, this.shark.y - 48);
+      ctx.fillText('⚠', this.shark.x - 12, this.shark.y - 48);
+    }
+  },
+
+  drawBoat(ctx, t) {
+    const bob = Math.sin(t * 1.4) * 4;
+    ctx.save();
+    ctx.translate(0, bob);
+    // hull
+    ctx.fillStyle = '#c98a5b';
+    ctx.beginPath();
+    ctx.moveTo(545, 360);
+    ctx.lineTo(880, 360);
+    ctx.quadraticCurveTo(872, 432, 800, 438);
+    ctx.lineTo(620, 438);
+    ctx.quadraticCurveTo(556, 428, 545, 360);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3.5; ctx.stroke();
+    // deck rail (like the plank lines in the drawing)
+    ctx.beginPath(); ctx.moveTo(545, 378); ctx.lineTo(880, 378); ctx.stroke();
+    for (let x = 570; x < 880; x += 28) { ctx.beginPath(); ctx.moveTo(x, 360); ctx.lineTo(x, 378); ctx.stroke(); }
+    // portholes
+    ctx.fillStyle = '#eef7fb';
+    [640, 712, 784].forEach(x => {
+      ctx.beginPath(); ctx.arc(x, 408, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    });
+    // cabin
+    ctx.fillStyle = '#e8dcc8';
+    ctx.fillRect(730, 286, 118, 74);
+    ctx.strokeRect(730, 286, 118, 74);
+    ctx.fillStyle = '#cde9f6';
+    ctx.fillRect(752, 302, 52, 34);
+    ctx.strokeRect(752, 302, 52, 34);
+    // the fisherman (stick figure with a hat, just like the sketch)
+    ctx.strokeStyle = '#2b2b33';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.arc(600, 302, 11, 0, Math.PI * 2); ctx.stroke();       // head
+    ctx.beginPath(); ctx.moveTo(586, 296); ctx.lineTo(614, 296); ctx.stroke();  // hat brim
+    ctx.beginPath(); ctx.moveTo(591, 296); ctx.quadraticCurveTo(600, 280, 609, 296); ctx.stroke(); // hat top
+    ctx.beginPath(); ctx.moveTo(600, 313); ctx.lineTo(600, 344); ctx.stroke();  // body
+    ctx.beginPath(); ctx.moveTo(600, 344); ctx.lineTo(590, 360); ctx.moveTo(600, 344); ctx.lineTo(610, 360); ctx.stroke(); // legs
+    ctx.beginPath(); ctx.moveTo(600, 322); ctx.lineTo(576, 312); ctx.stroke();  // arm to rod
+    // rod
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(576, 314); ctx.lineTo(480, 275); ctx.stroke();
+    ctx.restore();
+  },
+
+  drawLine(ctx, x, y) {
+    ctx.strokeStyle = '#2b2b33';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(480, 275 + Math.sin(performance.now() / 700) * 4);
+    ctx.quadraticCurveTo((480 + x) / 2, Math.min(y, 275) - 30, x, y);
+    ctx.stroke();
+  },
+
+  drawBobber(ctx, x, y) {
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = '#d9534f'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 9, Math.PI, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.stroke();
+  },
+
+  // ---- end of the day ------------------------------------------
+  endDay() {
+    this.phase = 'done';
+    this.setAction('DAY OVER', 'btn-wait');
+    this.actionBtn.disabled = true;
+    const total = this.collection.reduce((s, c) => s + c.value, 0);
+    const promo = State.data.pendingPromotion;
+    State.data.pendingPromotion = null;
+    State.nextDay();
+
+    const rows = this.collection.length
+      ? this.collection.map(c => `<li>${c.fish.emoji} ${esc(c.fish.name)} <b>${fmtMoney(c.value)}</b></li>`).join('')
+      : '<li class="empty">No fish today. The sea is a mystery.</li>';
+
+    const content = el('div', 'day-summary');
+    content.innerHTML = `
+      <h2 data-spiky>DAY ${State.data.day - 1} DONE!</h2>
+      ${promo ? `<div class="promo-banner">🎉 PROMOTED! You are now <b>${esc(promo)}</b>!</div>` : ''}
+      <ul class="collection">${rows}</ul>
+      <div class="summary-salary">Salary today: <b>${fmtMoney(total)}</b></div>
+      <div class="summary-actions">
+        <button class="btn btn-go" id="sum-again">🎣 Fish again</button>
+        <a class="btn" href="applications.html" data-nav="applications">📋 Applications</a>
+        <a class="btn" href="index.html" data-nav="home">🏠 Home</a>
+      </div>`;
+    const modal = UI.openModal(content, { locked: true });
+    UI.spikyAll(content);
+    if (promo) { UI.confetti(30); Sound.jackpot(); }
+    content.querySelector('#sum-again').addEventListener('click', () => {
+      modal.close();
+      this.stop();
+      Fishing.start(this.root);
+    });
+    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+  },
+};
+
+;
+/* ============================================================
+   WORK SHIFT — a day at any job that isn't fishing.
+   The bar fills while you work. Mash WORK! to go faster.
+   When danger jumps out (that's the fatality rate!), TAP fast
+   or you're knocked out: hospital bill, no pay, and you're
+   fired back to the fishing boat.
+   ============================================================ */
+
+const WorkShift = {
+  running: false,
+
+  start(root) {
+    this.root = root;
+    this.running = true;
+    this.progress = 0;                       // 0 → 100
+    this.speed = 100 / CONFIG.workShiftSeconds;
+    this.dangerActive = null;
+    this.survived = true;
+    this.lastTime = performance.now();
+
+    const job = State.job();
+    this.salary = Math.floor(State.salary() * (1 + State.power() / 100));
+
+    // How many dangers today? More fatality = more danger.
+    const expected = job.fatality / 35;
+    this.dangersLeft = Math.floor(expected) + (Math.random() < expected % 1 ? 1 : 0);
+    this.nextDangerAt = this.scheduleDanger();
+
+    root.innerHTML = `
+      <div class="work-layout">
+        <aside class="fishing-side">
+          <div class="card hud-card">
+            <h3>CURRENT JOB</h3>
+            <div class="hud-job">${State.rankName()}</div>
+            <div class="hud-line">Salary: <b>${fmtMoney(this.salary)} / day</b></div>
+            <div class="hud-line">Power: <b>${State.power()}%</b></div>
+            <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+          </div>
+          <div class="card hud-card">
+            <h3>HOW TO WORK</h3>
+            <p class="hud-line">Mash <b>WORK!</b> to finish the day faster. If danger pops up — <b>TAP IT</b> before it gets you!</p>
+          </div>
+        </aside>
+        <div class="fishing-main">
+          <div class="shift-bar"><div class="shift-fill" id="ws-fill"></div><span id="ws-clock">Day ${State.data.day}</span></div>
+          <div class="card work-scene" id="ws-scene">
+            <div class="work-emoji" id="ws-emoji">${job.emoji}</div>
+            <div class="work-title">${esc(State.rankName())} at work...</div>
+            <div class="work-taps" id="ws-taps"></div>
+          </div>
+          <button class="btn btn-go action-btn" id="ws-work">WORK!</button>
+          <p class="hint">Watch out: <b>${esc(job.danger)}</b> happens around here.</p>
+        </div>
+      </div>`;
+
+    this.fill = root.querySelector('#ws-fill');
+    this.scene = root.querySelector('#ws-scene');
+    this.workBtn = root.querySelector('#ws-work');
+    this.taps = 0;
+
+    this.workBtn.addEventListener('click', () => {
+      if (!this.running || this.dangerActive) return;
+      this.progress = Math.min(100, this.progress + 0.6);   // every tap helps
+      this.taps += 1;
+      this.root.querySelector('#ws-taps').textContent = '💪'.repeat(Math.min(10, Math.ceil(this.taps / 8)));
+      const emoji = this.root.querySelector('#ws-emoji');
+      emoji.style.transform = `scale(${1 + Math.random() * 0.15}) rotate(${(Math.random() * 8 - 4)}deg)`;
+    });
+
+    requestAnimationFrame(t => this.loop(t));
+  },
+
+  stop() { this.running = false; },
+
+  scheduleDanger() {
+    if (this.dangersLeft <= 0) return Infinity;
+    // somewhere in the middle of the remaining day
+    return this.progress + 15 + Math.random() * (70 - this.progress > 15 ? 55 : 10);
+  },
+
+  loop(now) {
+    if (!this.running) return;
+    const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+
+    if (!this.dangerActive) {
+      this.progress += this.speed * dt;
+      if (this.progress >= this.nextDangerAt && this.progress < 96) this.startDanger();
+      if (this.progress >= 100) { this.progress = 100; this.endDay(); return; }
+    } else {
+      this.dangerActive.timeLeft -= dt;
+      const ring = this.scene.querySelector('.danger-timer-fill');
+      if (ring) ring.style.width = Math.max(0, (this.dangerActive.timeLeft / this.dangerActive.total) * 100) + '%';
+      if (this.dangerActive.timeLeft <= 0) { this.knockout(); return; }
+    }
+
+    this.fill.style.width = this.progress + '%';
+    requestAnimationFrame(t => this.loop(t));
+  },
+
+  startDanger() {
+    const job = State.job();
+    this.dangersLeft -= 1;
+    this.nextDangerAt = this.scheduleDanger();
+    const total = 1.4;
+    this.dangerActive = { timeLeft: total, total };
+    Sound.danger();
+
+    const overlay = el('div', 'danger-overlay');
+    overlay.innerHTML = `
+      <div class="danger-word">⚠️ ${esc(job.danger)}</div>
+      <button class="btn btn-danger danger-tap">TAP TO DODGE!</button>
+      <div class="danger-timer"><div class="danger-timer-fill"></div></div>`;
+    this.scene.appendChild(overlay);
+    overlay.querySelector('.danger-tap').addEventListener('click', () => {
+      this.dangerActive = null;
+      overlay.remove();
+      Sound.ding();
+      UI.toast('Phew! Dodged it.', '😅');
+    });
+  },
+
+  knockout() {
+    this.running = false;
+    this.survived = false;
+    Sound.danger();
+    const bill = Math.max(5, Math.floor(State.data.wealth * CONFIG.hospitalBillPercent / 100));
+    State.addWealth(-bill);
+    State.data.stats.knockouts += 1;
+    const oldJob = State.rankName();
+    const danger = State.job().danger;
+    State.switchJob('fisherman');
+    State.nextDay();
+
+    const content = el('div', 'day-summary');
+    content.innerHTML = `
+      <h2 data-spiky>💥 KNOCKED OUT!</h2>
+      <p><b>${esc(danger)}</b> got you. The hospital patched you up.</p>
+      <ul class="collection">
+        <li>🏥 Hospital bill <b>−${fmtMoney(bill)}</b></li>
+        <li>📄 No pay today <b>$0</b></li>
+        <li>😢 You lost your job as <b>${esc(oldJob)}</b></li>
+      </ul>
+      <p>Back to the fishing boat with you...</p>
+      <div class="summary-actions">
+        <a class="btn btn-go" href="levels.html" data-nav="levels" id="ko-fish">🎣 Go fishing</a>
+        <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>
+      </div>`;
+    const modal = UI.openModal(content, { locked: true });
+    UI.spikyAll(content);
+    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    // in multi-page mode "Go fishing" reloads levels.html, which now shows fishing
+    if (!window.SINGLE_FILE) content.querySelector('#ko-fish').addEventListener('click', () => modal.close());
+  },
+
+  endDay() {
+    this.running = false;
+    State.addWealth(this.salary);
+    State.addCareerEarnings(this.salary);
+    const promo = State.data.pendingPromotion;
+    State.data.pendingPromotion = null;
+    State.nextDay();
+    UI.moneyPop(this.salary);
+    Sound.catchFish();
+
+    const content = el('div', 'day-summary');
+    content.innerHTML = `
+      <h2 data-spiky>PAYDAY!</h2>
+      ${promo ? `<div class="promo-banner">🎉 PROMOTED! You are now <b>${esc(promo)}</b>!</div>` : ''}
+      <ul class="collection">
+        <li>💼 A full day of work <b>+${fmtMoney(this.salary)}</b></li>
+        <li>💪 Work taps: <b>${this.taps}</b></li>
+      </ul>
+      <div class="summary-actions">
+        <button class="btn btn-go" id="ws-again">💼 Work again</button>
+        <a class="btn" href="applications.html" data-nav="applications">📋 Applications</a>
+        <a class="btn" href="index.html" data-nav="home">🏠 Home</a>
+      </div>`;
+    const modal = UI.openModal(content, { locked: true });
+    UI.spikyAll(content);
+    if (promo) { UI.confetti(30); Sound.jackpot(); }
+    content.querySelector('#ws-again').addEventListener('click', () => {
+      modal.close();
+      WorkShift.start(this.root);
+    });
+    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+  },
+};
+
+;
+/* ============================================================
+   HOME — the title screen. JOB APPLICATION: what job will
+   YOU get? By Jing & Ash Games.
+   ============================================================ */
+
+PAGES.home = {
+  init(root) {
+    UI.spikyAll(root);
+    const day = root.querySelector('#home-day');
+    if (day) day.textContent = `Day ${State.data.day}`;
+    const wealth = root.querySelector('#home-wealth');
+    if (wealth) wealth.textContent = fmtMoney(State.data.wealth);
+    const badge = root.querySelector('#home-mythical');
+    if (badge) badge.hidden = !State.data.mythicalOwned;
+
+    const reset = root.querySelector('#home-reset');
+    if (reset && !reset.dataset.wired) {
+      reset.dataset.wired = '1';
+      reset.addEventListener('click', () => {
+        const content = el('div', 'day-summary');
+        content.innerHTML = `
+          <h2 data-spiky>START OVER?</h2>
+          <p>This erases your save: wealth, path, luck... everything. Forever!</p>
+          <div class="summary-actions">
+            <button class="btn btn-danger" id="reset-yes">Yes, wipe it</button>
+            <button class="btn" id="reset-no">No! Keep my stuff</button>
+          </div>`;
+        const modal = UI.openModal(content);
+        UI.spikyAll(content);
+        content.querySelector('#reset-yes').addEventListener('click', () => {
+          State.reset();
+          modal.close();
+          UI.toast('Fresh start. Good luck out there!', '🌅');
+          PAGES.home.init(root);
+          UI.refreshWealth();
+        });
+        content.querySelector('#reset-no').addEventListener('click', () => modal.close());
+      });
+    }
+  },
+};
+
+;
+/* ============================================================
+   PATHS — your journey up the career ladder, one mystery
+   rank at a time. Or pay 45M and spin the wheel for a whole
+   new life.
+   ============================================================ */
+
+PAGES.paths = {
+  init(root) {
+    this.root = root;
+    UI.spikyAll(root);
+    this.render();
+
+    const changeBtn = root.querySelector('#pt-change');
+    if (!changeBtn.dataset.wired) {
+      changeBtn.dataset.wired = '1';
+      changeBtn.addEventListener('click', () => this.tryChangePath());
+    }
+
+    // celebrate a promotion earned while you were away
+    if (State.data.pendingPromotion) {
+      UI.toast(`PROMOTED! You are now ${State.data.pendingPromotion}!`, '🎉');
+      UI.confetti(24);
+      State.data.pendingPromotion = null;
+      State.save();
+    }
+  },
+
+  render() {
+    const root = this.root;
+    const job = State.job();
+    const path = State.data.path;
+    const pathLabel = job.path || job.name;
+
+    root.querySelector('#pt-name').textContent = pathLabel;
+    root.querySelector('#pt-emoji').textContent = job.emoji;
+    root.querySelector('#pt-watermark').textContent = pathLabel.toUpperCase();
+
+    // promotion progress
+    const progressText = root.querySelector('#pt-progress-text');
+    const bar = root.querySelector('#pt-progress');
+    if (path.rank >= RANK_UP_AT.length - 1) {
+      progressText.innerHTML = `<b>MAX RANK!</b> You are ${esc(State.rankName())}. Legends fish on.`;
+      bar.style.width = '100%';
+    } else {
+      const need = RANK_UP_AT[path.rank + 1];
+      progressText.innerHTML = `Career earnings: <b>${fmtMoney(path.career)}</b><br>Next promotion at <b>${fmtMoney(need)}</b>`;
+      bar.style.width = Math.min(100, (path.career / need) * 100) + '%';
+    }
+
+    // the trail: 4 hexagon stops, bottom to top
+    const positions = [[46, 90], [26, 66], [56, 42], [40, 12]];
+    const mystery = ['???', '???', '???', '????'];
+    const nodesBox = root.querySelector('#pt-nodes');
+    nodesBox.innerHTML = '';
+    positions.forEach(([x, y], i) => {
+      const node = el('div', 'trail-node');
+      node.style.left = x + '%';
+      node.style.top = y + '%';
+      const state = i < path.rank ? 'done' : i === path.rank ? 'current' : 'locked';
+      node.classList.add(state);
+      if (i === positions.length - 1) node.classList.add('boss');
+      const face = state === 'locked' ? (i === positions.length - 1 ? '☁️' : '❓') : (state === 'done' ? '✓' : job.emoji);
+      const label = state === 'locked' ? mystery[i] : State.rankName(i);
+      node.innerHTML = `<span class="hex hex-node"><span>${face}</span></span><b class="node-label">${esc(label)}</b>`;
+      nodesBox.appendChild(node);
+    });
+
+    const cost = root.querySelector('#pt-change');
+    cost.innerHTML = `change · ${fmtMoney(CONFIG.pathChangeCost)} 💰`;
+  },
+
+  tryChangePath() {
+    if (State.data.wealth < CONFIG.pathChangeCost) {
+      UI.toast(`You need ${fmtMoney(CONFIG.pathChangeCost)} to change your path!`, '🚫');
+      const btn = this.root.querySelector('#pt-change');
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 500);
+      return;
+    }
+    State.spend(CONFIG.pathChangeCost);
+    UI.refreshWealth();
+
+    const jobIds = Object.keys(JOBS).filter(id => !JOBS[id].shopOnly);
+    UI.spinWheel({
+      title: 'WHAT JOB WILL YOU GET?',
+      segments: UI.jobWheelSegments(jobIds),
+      onDone: seg => {
+        State.switchJob(seg.value);
+        UI.confetti(30);
+        Sound.jackpot();
+        const content = el('div', 'day-summary');
+        content.innerHTML = `
+          <h2 data-spiky>YOUR NEW PATH!</h2>
+          <div class="card job-card">${UI.jobCardHTML(seg.value)}</div>
+          <p>You start at the bottom: <b>${esc(State.rankName())}</b>. Climb!</p>
+          <div class="summary-actions">
+            <a class="btn btn-go" href="levels.html" data-nav="levels">▶ Get to work</a>
+            <button class="btn" id="pt-stay">Look around first</button>
+          </div>`;
+        const modal = UI.openModal(content, { locked: true });
+        UI.spikyAll(content);
+        content.querySelector('#pt-stay').addEventListener('click', () => { modal.close(); this.render(); });
+        content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+        this.render();
+      },
+    });
+  },
+};
+
+;
+/* ============================================================
+   APPLICATIONS — today's job offers (accept or decline!) and
+   the SHOP: lucky items, chests, and one very mythical chest.
+   ============================================================ */
+
+PAGES.applications = {
+  init(root) {
+    this.root = root;
+    UI.spikyAll(root);
+    State.ensureOffers();
+    this.renderOffers();
+    this.renderShop();
+  },
+
+  // ---- daily offers -------------------------------------------
+  renderOffers() {
+    const box = this.root.querySelector('#apps-offers');
+    if (!State.data.offers.length) {
+      box.innerHTML = `<div class="card offer-card empty-card">No offers left today.<br>Work a day — new applications arrive tomorrow!</div>`;
+      return;
+    }
+    box.innerHTML = '';
+    State.data.offers.forEach((offer, i) => {
+      const card = el('div', 'card offer-card job-card');
+      card.innerHTML = `
+        ${UI.jobCardHTML(offer.jobId)}
+        <div class="offer-actions">
+          <button class="btn btn-go" data-accept="${i}">Accept</button>
+          <button class="btn btn-danger" data-decline="${i}">Decline</button>
+        </div>`;
+      box.appendChild(card);
+    });
+    box.querySelectorAll('[data-accept]').forEach(b => b.addEventListener('click', () => this.accept(+b.dataset.accept)));
+    box.querySelectorAll('[data-decline]').forEach(b => b.addEventListener('click', () => this.decline(+b.dataset.decline)));
+  },
+
+  accept(index) {
+    const offer = State.data.offers[index];
+    if (!offer) return;
+    if (offer.jobId === State.data.path.jobId) {
+      UI.toast(`You are already a ${JOBS[offer.jobId].name}!`, '🤨');
+      return;
+    }
+    const job = JOBS[offer.jobId];
+    State.removeOffer(index);
+    State.switchJob(offer.jobId);
+    UI.confetti(24);
+    Sound.jackpot();
+
+    const content = el('div', 'day-summary');
+    content.innerHTML = `
+      <h2 data-spiky>YOU GOT THE JOB!</h2>
+      <div class="card job-card">${UI.jobCardHTML(offer.jobId)}</div>
+      <p>You start as <b>${esc(State.rankName())}</b>.${job.fatality >= 40 ? ' Try not to die.' : ''}</p>
+      <div class="summary-actions">
+        <a class="btn btn-go" href="levels.html" data-nav="levels">▶ Start working</a>
+        <button class="btn" id="apps-stay">Keep browsing</button>
+      </div>`;
+    const modal = UI.openModal(content, { locked: true });
+    UI.spikyAll(content);
+    content.querySelector('#apps-stay').addEventListener('click', () => { modal.close(); this.renderOffers(); });
+    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    this.renderOffers();
+  },
+
+  decline(index) {
+    const offer = State.data.offers[index];
+    if (!offer) return;
+    State.removeOffer(index);
+    UI.toast(`Declined ${JOBS[offer.jobId].name}. Their loss!`, '🗑️');
+    this.renderOffers();
+  },
+
+  // ---- the shop ------------------------------------------------
+  renderShop() {
+    const root = this.root;
+    root.querySelector('#shop-luck').textContent = '+' + State.luck() + '%';
+
+    // LUCKY items
+    const lucky = root.querySelector('#shop-lucky');
+    lucky.innerHTML = '';
+    Object.entries(LUCK_ITEMS).forEach(([id, item]) => {
+      const owned = State.data.luckItems.includes(id);
+      const card = el('div', 'card shop-item' + (owned ? ' owned' : ''));
+      card.innerHTML = `
+        <div class="shop-emoji">${item.emoji}</div>
+        <b class="shop-name">${esc(item.name)}</b>
+        <div class="shop-blurb">+${item.luck}% Luck</div>
+        ${owned
+          ? '<span class="owned-badge">OWNED</span>'
+          : `<button class="btn btn-money" data-luck="${id}">${fmtMoney(item.cost)}</button>`}`;
+      lucky.appendChild(card);
+    });
+    lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
+
+    // APPLICATIONS section
+    const apps = root.querySelector('#shop-apps');
+    apps.innerHTML = '';
+    ['avgwheel', 'epicchest', 'anything', 'frogcard'].forEach(id => {
+      const item = SHOP_EXTRAS[id];
+      const card = el('div', 'card shop-item');
+      card.innerHTML = `
+        <div class="shop-emoji">${item.emoji}</div>
+        <b class="shop-name">${esc(item.name)}</b>
+        <div class="shop-blurb">${esc(item.blurb)}</div>
+        <button class="btn btn-money" data-extra="${id}">${fmtMoney(item.cost)}</button>`;
+      apps.appendChild(card);
+    });
+    apps.querySelectorAll('[data-extra]').forEach(b => b.addEventListener('click', () => this.buyExtra(b.dataset.extra)));
+
+    // THE MYTHICAL CHEST
+    const myth = root.querySelector('#shop-mythical');
+    const item = SHOP_EXTRAS.mythical;
+    myth.innerHTML = `
+      <div class="mythical-inner">
+        <div class="shop-emoji mythical-emoji">${State.data.mythicalOwned ? '👑' : item.emoji}</div>
+        <b class="shop-name">${esc(item.name)}</b>
+        ${State.data.mythicalOwned
+          ? '<div class="shop-blurb">You own the rarest chest ever made. Show-off.</div>'
+          : `<div class="shop-blurb">Only <b>${fmtMoney(item.cost)}</b> — or —</div>
+             <div class="mythical-actions">
+               <button class="btn btn-money" id="myth-buy">${fmtMoney(item.cost)}</button>
+               <button class="btn" id="myth-real">$99 real dollars!</button>
+             </div>`}
+      </div>`;
+    if (!State.data.mythicalOwned) {
+      myth.querySelector('#myth-buy').addEventListener('click', () => this.buyMythical());
+      myth.querySelector('#myth-real').addEventListener('click', () => {
+        UI.openModal(`
+          <div class="day-summary">
+            <h2>🛑 NICE TRY!</h2>
+            <p>This game <b>never ever</b> takes real money.<br>(That part is just Asher being funny.)</p>
+            <p>Go catch a Jingfish instead — it's worth $20M!</p>
+          </div>`);
+      });
+    }
+  },
+
+  buyLuck(id) {
+    const item = LUCK_ITEMS[id];
+    if (!State.spend(item.cost)) return this.cantAfford(item.cost);
+    State.data.luckItems.push(id);
+    State.save();
+    UI.moneyPop(-item.cost);
+    UI.confetti(14);
+    Sound.jackpot();
+    UI.toast(`${item.name}! Your luck is now +${State.luck()}%`, item.emoji);
+    this.renderShop();
+  },
+
+  buyExtra(id) {
+    const item = SHOP_EXTRAS[id];
+    if (State.data.wealth < item.cost) return this.cantAfford(item.cost);
+
+    if (id === 'avgwheel') {
+      State.spend(item.cost);
+      UI.moneyPop(-item.cost);
+      const commons = Object.keys(JOBS).filter(jid => JOBS[jid].rarity === 'common' && !JOBS[jid].shopOnly);
+      UI.spinWheel({
+        title: 'THE AVERAGE WHEEL',
+        segments: UI.jobWheelSegments(commons, 1),
+        onDone: seg => {
+          State.addOffer(seg.value);
+          UI.toast(`${JOBS[seg.value].name} application added to your offers!`, '📋');
+          this.renderOffers();
+        },
+      });
+    } else if (id === 'epicchest') {
+      State.spend(item.cost);
+      UI.moneyPop(-item.cost);
+      this.openChest('EPIC CHEST', '🎁', () => this.rollEpicLoot());
+    } else if (id === 'anything') {
+      State.spend(item.cost);
+      UI.moneyPop(-item.cost);
+      this.openChest('COULD-BE-ANYTHING BOX', '❓', () => this.rollAnythingLoot());
+    } else if (id === 'frogcard') {
+      State.spend(item.cost);
+      UI.moneyPop(-item.cost);
+      State.addOffer('frogkeeper');
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>RIBBIT.</h2>
+        <div class="card job-card">${UI.jobCardHTML('frogkeeper')}</div>
+        <p>The Frog Keeper application is waiting in your Daily offers.</p>`;
+      UI.openModal(content);
+      UI.spikyAll(content);
+      this.renderOffers();
+    }
+  },
+
+  buyMythical() {
+    const item = SHOP_EXTRAS.mythical;
+    if (!State.spend(item.cost)) return this.cantAfford(item.cost);
+    UI.moneyPop(-item.cost);
+    State.data.mythicalOwned = true;
+    State.save();
+    this.openChest('THE MYTHICAL CHEST', '🌈', () => {
+      const prize = 500e9 + Math.floor(Math.random() * 500e9);
+      State.addWealth(prize);
+      State.addOffer('king');
+      const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
+      missing.forEach(id => State.data.luckItems.push(id));
+      State.save();
+      UI.confetti(80);
+      return [
+        `💰 <b>${fmtMoney(prize)}</b> in rainbow black diamonds`,
+        `👑 A <b>KING</b> job application`,
+        missing.length ? `🍀 Every lucky item you were missing` : `🍀 (You already had every lucky item)`,
+      ];
+    });
+  },
+
+  openChest(title, emoji, lootFn) {
+    const content = el('div', 'day-summary chest-box');
+    content.innerHTML = `
+      <h2 data-spiky>${esc(title)}</h2>
+      <div class="chest-emoji" id="chest-emoji">${emoji}</div>
+      <div class="summary-actions"><button class="btn btn-go" id="chest-open">OPEN IT!</button></div>
+      <ul class="collection" id="chest-loot" hidden></ul>`;
+    const modal = UI.openModal(content, { locked: true });
+    UI.spikyAll(content);
+    content.querySelector('#chest-open').addEventListener('click', () => {
+      const chestEl = content.querySelector('#chest-emoji');
+      chestEl.classList.add('shaking');
+      content.querySelector('#chest-open').disabled = true;
+      setTimeout(() => {
+        chestEl.classList.remove('shaking');
+        chestEl.textContent = '✨';
+        const loot = lootFn();
+        const list = content.querySelector('#chest-loot');
+        list.hidden = false;
+        list.innerHTML = loot.map(l => `<li>${l}</li>`).join('');
+        Sound.jackpot();
+        UI.refreshWealth();
+        const done = el('div', 'summary-actions', '<button class="btn btn-go">Take it!</button>');
+        content.appendChild(done);
+        done.querySelector('button').addEventListener('click', () => { modal.close(); this.renderOffers(); this.renderShop(); });
+      }, REDUCED_MOTION ? 100 : 900);
+    });
+  },
+
+  rollEpicLoot() {
+    const roll = Math.random();
+    const luckBoost = State.luck() / 100;
+    if (roll < 0.45) {
+      const prize = Math.floor((15e6 + Math.random() * 45e6) * (1 + luckBoost / 4));
+      State.addWealth(prize);
+      return [`💰 A pile of wealth: <b>${fmtMoney(prize)}</b>`];
+    }
+    if (roll < 0.8) {
+      const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
+      if (missing.length) {
+        const id = missing[Math.floor(Math.random() * missing.length)];
+        State.data.luckItems.push(id);
+        State.save();
+        return [`${LUCK_ITEMS[id].emoji} <b>${esc(LUCK_ITEMS[id].name)}</b> (+${LUCK_ITEMS[id].luck}% luck!)`];
+      }
+      const prize = 30e6;
+      State.addWealth(prize);
+      return [`💰 You had every lucky item, so: <b>${fmtMoney(prize)}</b>`];
+    }
+    const pool = Object.keys(JOBS).filter(id => ['rare', 'epic'].includes(JOBS[id].rarity) && !JOBS[id].shopOnly);
+    const jobId = pool[Math.floor(Math.random() * pool.length)];
+    State.addOffer(jobId);
+    return [`📋 A <b>${esc(JOBS[jobId].name)}</b> job application (check your offers!)`];
+  },
+
+  rollAnythingLoot() {
+    const outcomes = [
+      () => { State.addWealth(5); return ['💵 Five dollars. <b>$5</b>. That is all.']; },
+      () => { const p = 77e3; State.addWealth(p); return [`💰 A briefcase with <b>${fmtMoney(p)}</b>`]; },
+      () => { const p = Math.floor(1e6 + Math.random() * 149e6); State.addWealth(p); return [`💰 WHOA: <b>${fmtMoney(p)}</b>!`]; },
+      () => { State.addWealth(1000); return ['🐠 A Char?! In a box?! Sold for <b>$1,000</b>']; },
+      () => { const jobId = State.rollOfferJob(); State.addOffer(jobId); return [`📋 A <b>${esc(JOBS[jobId].name)}</b> job application`]; },
+      () => { State.addOffer(State.rollOfferJob()); State.addOffer(State.rollOfferJob()); return ['📋📋 TWO extra job applications']; },
+      () => ['🕳️ It\'s empty. Classic.'],
+      () => { const p = 10e6; State.addWealth(p); return [`💰 Your money back... doubled: <b>${fmtMoney(p * 2 - 10e6)}</b>... wait, no, just <b>${fmtMoney(p)}</b>`]; },
+    ];
+    return outcomes[Math.floor(Math.random() * outcomes.length)]();
+  },
+
+  cantAfford(cost) {
+    UI.toast(`You need ${fmtMoney(cost)} for that!`, '🚫');
+    Sound.danger();
+  },
+};
+
+;
+/* ============================================================
+   LEVELS — where you actually DO the job.
+   Fishermen get the sea. Everyone else gets a work day
+   (and their fatality rate...).
+   ============================================================ */
+
+PAGES.levels = {
+  engine: null,
+
+  init(root) {
+    UI.spikyAll(root);
+    const gameRoot = root.querySelector('#game-root');
+    this.engine = State.job().special === 'fishing' ? Fishing : WorkShift;
+    this.engine.start(gameRoot);
+  },
+
+  leave() {
+    if (this.engine) this.engine.stop();
+    this.engine = null;
+  },
+};
+
+;Boot();
+</script>
+</body>
+</html>
