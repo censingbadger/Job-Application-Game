@@ -95,6 +95,21 @@ const FISH = [
 ];
 
 // ------------------------------------------------------------
+// FISHING RODS — your fishing equipment. A bigger fish PULLS
+// harder; if its value is more than the rod's `strength`, the
+// line can SNAP and the fish gets away. Better rods = land the
+// big ones. `strength` = the value of fish it safely lands.
+// ASHER: change a name, emoji, cost, or strength and reload!
+// ------------------------------------------------------------
+const RODS = [
+  { id: 'wood',     name: 'Wooden Rod',   emoji: '🪵', strength: 800,      cost: 0 },
+  { id: 'bamboo',   name: 'Bamboo Rod',   emoji: '🎋', strength: 120e3,    cost: 2500 },
+  { id: 'metal',    name: 'Metal Rod',    emoji: '🔩', strength: 30e6,     cost: 150e3 },
+  { id: 'titanium', name: 'Titanium Rod', emoji: '🛡️', strength: 3e9,      cost: 25e6 },
+  { id: 'diamond',  name: 'Diamond Rod',  emoji: '💎', strength: Infinity, cost: 2e9 },
+];
+
+// ------------------------------------------------------------
 // JOB RARITY — how often each rarity shows up in daily offers.
 // Luck makes the rarer ones more likely.
 // ------------------------------------------------------------

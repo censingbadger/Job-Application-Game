@@ -622,6 +622,16 @@ u { text-decoration-thickness: 3px; }
 .collection-total { margin-top: 8px; font-size: 16px; }
 .collection-total b { color: #9a7714; }
 
+/* the fishing ROD card + upgrade */
+.rod-name { font-size: 18px; margin-bottom: 2px; }
+.rod-emoji { font-size: 22px; }
+.rod-buy { width: 100%; margin-top: 8px; font-size: 14px; }
+.rod-hint { margin: 6px 0 0; font-size: 13px; text-align: center; }
+.rod-max {
+  margin-top: 8px; text-align: center; font-family: var(--font-display);
+  letter-spacing: 1px; color: #9a7714;
+}
+
 .fishing-main { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
 .shift-bar {

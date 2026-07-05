@@ -184,6 +184,7 @@ const State = {
       offersAt: 0,              // real-time (ms) the current offers were rolled
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
+      gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1 },
     };
@@ -199,6 +200,7 @@ const State = {
     // needs the real "as stored" value to compare against.
     Profiles._loadedLP = this.data.lastPlayed || 0;
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
+    if (!this.data.gear) this.data.gear = { rod: 0 };   // older saves had no equipment
     this.ensureOffers();
     return this.data;
   },
@@ -235,6 +237,21 @@ const State = {
   },
 
   avatar() { return (this.data && this.data.avatar) || AVATARS[0]; },
+
+  // ---- fishing equipment (rods) ------------------------------
+  rodLevel() { return (this.data && this.data.gear && this.data.gear.rod) || 0; },
+  rod() { return RODS[this.rodLevel()] || RODS[0]; },
+  nextRod() { return RODS[this.rodLevel() + 1] || null; },
+
+  // Buy the next rod up (if you can afford it). Returns true on success.
+  buyRod() {
+    const next = this.nextRod();
+    if (!next || !this.spend(next.cost)) return false;
+    if (!this.data.gear) this.data.gear = {};
+    this.data.gear.rod = this.rodLevel() + 1;
+    this.save();
+    return true;
+  },
 
   // ---- your job & path ---------------------------------------
   job() { return JOBS[this.data.path.jobId]; },
