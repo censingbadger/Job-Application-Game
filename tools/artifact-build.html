@@ -382,7 +382,7 @@ u { text-decoration-thickness: 3px; }
 
 .trail {
   position: relative;
-  min-height: 580px;
+  min-height: 720px;
   overflow: hidden;
   border-radius: var(--wobble-2);
 }
@@ -459,6 +459,19 @@ u { text-decoration-thickness: 3px; }
   font-size: 30px;
   margin: 0 0 12px;
   transform: rotate(-2deg);
+}
+
+.offer-timer {
+  display: inline-block;
+  margin-bottom: 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--sea-light);
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
 }
 
 .offer-card { margin-bottom: 16px; }
@@ -1156,8 +1169,8 @@ u { text-decoration-thickness: 3px; }
     <div class="apps-layout">
       <section class="daily">
         <h2 class="script-label">Daily</h2>
+        <div class="offer-timer" id="apps-timer"></div>
         <div id="apps-offers"></div>
-        <p class="hint">New offers arrive after each day of work.</p>
       </section>
       <section class="shop">
         <div class="shop-sign-post"><div class="shop-sign" data-spiky>SHOP</div></div>
@@ -1191,7 +1204,8 @@ const CONFIG = {
   pathChangeCost: 45e6,      // the "change" button on the Paths page: 45 M
   fishingShiftSeconds: 75,   // how long one fishing day lasts
   workShiftSeconds: 45,      // how long one work day lasts (other jobs)
-  offersPerDay: 3,           // job offers waiting on the Applications page
+  offersPerDay: 3,           // how many job offers appear in a batch
+  offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
   hospitalBillPercent: 10,   // % of your wealth you pay if you get knocked out
 };
 
@@ -1299,12 +1313,14 @@ const JOBS = {
 // ASHER: rename the fishing ranks! These are placeholders.
 // ------------------------------------------------------------
 const RANKS = {
-  fishing: ['Lowly Fisherman', 'Fisherman', 'Boat Captain', 'FISH KING'],
-  generic: ['Lowly {job}', '{job}', 'Expert {job}', 'LEGENDARY {job}'],
+  fishing: ['Lowly Fisherman', 'Deckhand', 'Fisherman', 'First Mate', 'Boat Captain', 'Fleet Admiral', 'FISH KING'],
+  generic: ['Lowly {job}', 'Junior {job}', '{job}', 'Senior {job}', 'Expert {job}', 'Master {job}', 'LEGENDARY {job}'],
 };
-const RANK_UP_AT       = [0, 100e3, 5e6, 250e6]; // career earnings needed for each rank
-const RANK_SALARY_MULT = [1, 3, 8, 20];          // salary multiplier at each rank
-const RANK_POWER_BONUS = [0, 15, 35, 70];        // extra power at each rank
+// Career earnings needed to reach each rank — a real climb, with the
+// milestones getting bigger each time (rank up at 1M, then +2M, +4M, ...).
+const RANK_UP_AT       = [0, 1e6, 3e6, 7e6, 15e6, 35e6, 80e6];
+const RANK_SALARY_MULT = [1, 1.5, 2.5, 4, 7, 12, 25];   // salary multiplier at each rank
+const RANK_POWER_BONUS = [0, 8, 18, 30, 45, 65, 100];   // extra power at each rank
 
 // ------------------------------------------------------------
 // SHOP — LUCKY section. Luck makes rare fish, rare job offers
@@ -1506,8 +1522,8 @@ const State = {
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
       luckItems: [],            // ids from LUCK_ITEMS you own
-      offers: [],               // today's job offers: [{ jobId }]
-      offersDay: 0,             // which day the offers were made for
+      offers: [],               // current job offers: [{ jobId }]
+      offersAt: 0,              // real-time (ms) the current offers were rolled
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
       lastPlayed: 0,            // when this character last played (for sorting)
@@ -1595,20 +1611,31 @@ const State = {
   },
 
   // A day of work is done: the calendar moves forward.
+  // (Offers do NOT refresh here — that's on a real 10-minute timer, so you
+  // can't re-roll them for free by working or hopping between pages.)
   nextDay() {
     this.data.day += 1;
     this.data.stats.daysWorked += 1;
-    this.ensureOffers();
     this.save();
   },
 
-  // ---- daily job offers --------------------------------------
+  // ---- job offers: a fresh batch every 10 real minutes -------
   ensureOffers() {
-    if (this.data.offersDay === this.data.day && this.data.offers.length) return;
-    this.data.offersDay = this.data.day;
+    const now = Date.now();
+    if (!this.data.offersAt) { this._rollOffers(now); return; }               // first batch ever
+    if (now - this.data.offersAt >= CONFIG.offerRefreshMinutes * 60000) this._rollOffers(now);
+  },
+
+  _rollOffers(now) {
+    this.data.offersAt = now;
     this.data.offers = [];
     for (let i = 0; i < CONFIG.offersPerDay; i++) this.data.offers.push({ jobId: this.rollOfferJob() });
     this.save();
+  },
+
+  // milliseconds until the next fresh batch of applications arrives
+  msUntilOffers() {
+    return Math.max(0, CONFIG.offerRefreshMinutes * 60000 - (Date.now() - (this.data.offersAt || 0)));
   },
 
   // Pick a rarity (luck helps the rare ones), then a job of that rarity.
@@ -3419,10 +3446,10 @@ GAMES.prisoner = defineShift({
       Draw.emoji(ctx, e, th.x, th.y, 46);
     });
 
-    // the prisoner
+    // the prisoner (flipped to face right, toward the fence)
     const px = 150;
     if (g.stun > 0) ctx.globalAlpha = 0.4 + Math.sin(t * 40) * 0.3;
-    Draw.emoji(ctx, '🏃', px, g.py, 56);
+    ctx.save(); ctx.translate(px, g.py); ctx.scale(-1, 1); Draw.emoji(ctx, '🏃', 0, 0, 56); ctx.restore();
     ctx.globalAlpha = 1;
 
     Draw.bigText(ctx, `Money bags: ${g.grabbed}`, GW / 2, GH - 18, 22, '#e8b830');
@@ -3789,10 +3816,10 @@ GAMES.nomad = defineShift({
     // obstacles & water
     g.things.forEach(th => Draw.emoji(ctx, th.emoji, th.x, th.y, th.r * 2));
 
-    // the nomad on a camel
+    // the nomad on a camel (flipped to face right, the way it's travelling)
     if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
     const bounce = g.onGround ? Math.sin(t * 12) * 3 : 0;
-    Draw.emoji(ctx, '🐪', g.px, g.py + bounce, 60);
+    ctx.save(); ctx.translate(g.px, g.py + bounce); ctx.scale(-1, 1); Draw.emoji(ctx, '🐪', 0, 0, 60); ctx.restore();
     ctx.globalAlpha = 1;
 
     Draw.bigText(ctx, `Water jugs: ${g.got}`, GW / 2, GH - 14, 22, '#9a6a1f');
@@ -4881,9 +4908,18 @@ PAGES.paths = {
       bar.style.width = Math.min(100, (path.career / need) * 100) + '%';
     }
 
-    // the trail: 4 hexagon stops, bottom to top
-    const positions = [[46, 90], [26, 66], [56, 42], [40, 12]];
-    const mystery = ['???', '???', '???', '????'];
+    // the trail: one hexagon stop per rank, zig-zagging bottom to top
+    const N = RANK_UP_AT.length;
+    const positions = [];
+    for (let i = 0; i < N; i++) {
+      const x = i % 2 === 0 ? 34 : 64;               // zig-zag left / right
+      const y = 91 - (i / (N - 1)) * 83;             // bottom (91%) up to top (8%)
+      positions.push([x, y]);
+    }
+    // draw the dotted connecting line through the nodes
+    const line = root.querySelector('#pt-line');
+    if (line) line.setAttribute('d', positions.map(([x, y], i) => `${i ? 'L' : 'M'} ${x} ${y}`).join(' '));
+
     const nodesBox = root.querySelector('#pt-nodes');
     nodesBox.innerHTML = '';
     positions.forEach(([x, y], i) => {
@@ -4892,9 +4928,9 @@ PAGES.paths = {
       node.style.top = y + '%';
       const state = i < path.rank ? 'done' : i === path.rank ? 'current' : 'locked';
       node.classList.add(state);
-      if (i === positions.length - 1) node.classList.add('boss');
-      const face = state === 'locked' ? (i === positions.length - 1 ? '☁️' : '❓') : (state === 'done' ? '✓' : job.emoji);
-      const label = state === 'locked' ? mystery[i] : State.rankName(i);
+      if (i === N - 1) node.classList.add('boss');
+      const face = state === 'locked' ? (i === N - 1 ? '☁️' : '❓') : (state === 'done' ? '✓' : job.emoji);
+      const label = state === 'locked' ? (i === N - 1 ? '????' : '???') : State.rankName(i);
       node.innerHTML = `<span class="hex hex-node"><span>${face}</span></span><b class="node-label">${esc(label)}</b>`;
       nodesBox.appendChild(node);
     });
@@ -4954,13 +4990,40 @@ PAGES.applications = {
     State.ensureOffers();
     this.renderOffers();
     this.renderShop();
+    this.startOfferTimer();
   },
 
-  // ---- daily offers -------------------------------------------
+  // clean up the countdown when leaving the page
+  leave() {
+    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+  },
+
+  // Tick the "next batch in m:ss" countdown; refresh the offers when it's due.
+  startOfferTimer() {
+    if (this._timer) clearInterval(this._timer);
+    const tick = () => {
+      const ms = State.msUntilOffers();
+      const el = this.root.querySelector('#apps-timer');
+      if (ms <= 0) {
+        State.ensureOffers();       // rolls a fresh batch (10 minutes have passed)
+        this.renderOffers();
+        return;
+      }
+      if (el) {
+        const s = Math.ceil(ms / 1000);
+        el.textContent = `🕒 New applications in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      }
+    };
+    tick();
+    this._timer = setInterval(tick, 1000);
+  },
+
+  // ---- job offers ---------------------------------------------
   renderOffers() {
     const box = this.root.querySelector('#apps-offers');
     if (!State.data.offers.length) {
-      box.innerHTML = `<div class="card offer-card empty-card">No offers left today.<br>Work a day — new applications arrive tomorrow!</div>`;
+      const s = Math.ceil(State.msUntilOffers() / 1000);
+      box.innerHTML = `<div class="card offer-card empty-card">No applications left right now.<br>A fresh batch arrives in <b>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</b>.</div>`;
       return;
     }
     box.innerHTML = '';

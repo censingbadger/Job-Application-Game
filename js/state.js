@@ -177,8 +177,8 @@ const State = {
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
       luckItems: [],            // ids from LUCK_ITEMS you own
-      offers: [],               // today's job offers: [{ jobId }]
-      offersDay: 0,             // which day the offers were made for
+      offers: [],               // current job offers: [{ jobId }]
+      offersAt: 0,              // real-time (ms) the current offers were rolled
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
       lastPlayed: 0,            // when this character last played (for sorting)
@@ -266,20 +266,31 @@ const State = {
   },
 
   // A day of work is done: the calendar moves forward.
+  // (Offers do NOT refresh here — that's on a real 10-minute timer, so you
+  // can't re-roll them for free by working or hopping between pages.)
   nextDay() {
     this.data.day += 1;
     this.data.stats.daysWorked += 1;
-    this.ensureOffers();
     this.save();
   },
 
-  // ---- daily job offers --------------------------------------
+  // ---- job offers: a fresh batch every 10 real minutes -------
   ensureOffers() {
-    if (this.data.offersDay === this.data.day && this.data.offers.length) return;
-    this.data.offersDay = this.data.day;
+    const now = Date.now();
+    if (!this.data.offersAt) { this._rollOffers(now); return; }               // first batch ever
+    if (now - this.data.offersAt >= CONFIG.offerRefreshMinutes * 60000) this._rollOffers(now);
+  },
+
+  _rollOffers(now) {
+    this.data.offersAt = now;
     this.data.offers = [];
     for (let i = 0; i < CONFIG.offersPerDay; i++) this.data.offers.push({ jobId: this.rollOfferJob() });
     this.save();
+  },
+
+  // milliseconds until the next fresh batch of applications arrives
+  msUntilOffers() {
+    return Math.max(0, CONFIG.offerRefreshMinutes * 60000 - (Date.now() - (this.data.offersAt || 0)));
   },
 
   // Pick a rarity (luck helps the rare ones), then a job of that rarity.

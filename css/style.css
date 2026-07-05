@@ -380,7 +380,7 @@ u { text-decoration-thickness: 3px; }
 
 .trail {
   position: relative;
-  min-height: 580px;
+  min-height: 720px;
   overflow: hidden;
   border-radius: var(--wobble-2);
 }
@@ -457,6 +457,19 @@ u { text-decoration-thickness: 3px; }
   font-size: 30px;
   margin: 0 0 12px;
   transform: rotate(-2deg);
+}
+
+.offer-timer {
+  display: inline-block;
+  margin-bottom: 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--sea-light);
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
 }
 
 .offer-card { margin-bottom: 16px; }

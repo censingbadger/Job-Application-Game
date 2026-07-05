@@ -14,7 +14,8 @@ const CONFIG = {
   pathChangeCost: 45e6,      // the "change" button on the Paths page: 45 M
   fishingShiftSeconds: 75,   // how long one fishing day lasts
   workShiftSeconds: 45,      // how long one work day lasts (other jobs)
-  offersPerDay: 3,           // job offers waiting on the Applications page
+  offersPerDay: 3,           // how many job offers appear in a batch
+  offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
   hospitalBillPercent: 10,   // % of your wealth you pay if you get knocked out
 };
 
@@ -122,12 +123,14 @@ const JOBS = {
 // ASHER: rename the fishing ranks! These are placeholders.
 // ------------------------------------------------------------
 const RANKS = {
-  fishing: ['Lowly Fisherman', 'Fisherman', 'Boat Captain', 'FISH KING'],
-  generic: ['Lowly {job}', '{job}', 'Expert {job}', 'LEGENDARY {job}'],
+  fishing: ['Lowly Fisherman', 'Deckhand', 'Fisherman', 'First Mate', 'Boat Captain', 'Fleet Admiral', 'FISH KING'],
+  generic: ['Lowly {job}', 'Junior {job}', '{job}', 'Senior {job}', 'Expert {job}', 'Master {job}', 'LEGENDARY {job}'],
 };
-const RANK_UP_AT       = [0, 100e3, 5e6, 250e6]; // career earnings needed for each rank
-const RANK_SALARY_MULT = [1, 3, 8, 20];          // salary multiplier at each rank
-const RANK_POWER_BONUS = [0, 15, 35, 70];        // extra power at each rank
+// Career earnings needed to reach each rank — a real climb, with the
+// milestones getting bigger each time (rank up at 1M, then +2M, +4M, ...).
+const RANK_UP_AT       = [0, 1e6, 3e6, 7e6, 15e6, 35e6, 80e6];
+const RANK_SALARY_MULT = [1, 1.5, 2.5, 4, 7, 12, 25];   // salary multiplier at each rank
+const RANK_POWER_BONUS = [0, 8, 18, 30, 45, 65, 100];   // extra power at each rank
 
 // ------------------------------------------------------------
 // SHOP — LUCKY section. Luck makes rare fish, rare job offers
