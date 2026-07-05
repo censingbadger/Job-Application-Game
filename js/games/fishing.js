@@ -31,6 +31,11 @@ const Fishing = {
             <div class="hud-line">Power: <b>${State.power()}%</b></div>
             <div class="hud-line">Luck: <b>+${State.luck()}%</b></div>
           </div>
+          <div class="card hud-card rod-card">
+            <h3>YOUR ROD</h3>
+            <div class="rod-now" id="lv-rod"></div>
+            <div id="lv-rod-up"></div>
+          </div>
           <div class="card hud-card">
             <h3>COLLECTION</h3>
             <ul class="collection" id="lv-collection"><li class="empty">Nothing yet... cast away!</li></ul>
@@ -59,6 +64,7 @@ const Fishing = {
     this.actionBtn.addEventListener('click', this.onAction);
     window.addEventListener('keydown', this.onKey);
 
+    this.renderRod();
     requestAnimationFrame(t => this.loop(t));
   },
 
@@ -103,6 +109,12 @@ const Fishing = {
 
   resolveCatch() {
     const fish = this.pickFish();
+    // The bigger the fish, the harder it pulls. If it's worth more than
+    // your rod can handle, the line might SNAP and the fish gets away.
+    const rod = State.rod();
+    const breakChance = fish.value <= rod.strength ? 0 : Math.min(0.85, 1 - rod.strength / fish.value);
+    if (breakChance > 0 && Math.random() < breakChance) { this.lineBreak(fish); return; }
+
     const value = Math.floor(fish.value * (1 + State.power() / 100));
     this.collection.push({ fish, value });
     State.addWealth(value);
@@ -136,8 +148,51 @@ const Fishing = {
     else if (fish.rarity === 'divine') UI.toast(`A DIVINE catch — the ${fish.name}!`, '✨');
     UI.moneyPop(value);
     this.renderCollection();
+    this.renderRod();            // you may now afford the next rod
     const showMs = fish.rarity === 'transcendent' ? 2900 : (big ? 2100 : 1700);
     setTimeout(() => { if (this.running) this.banner.hidden = true; }, showMs);
+  },
+
+  // The line snapped — a fish too big for your rod got away.
+  lineBreak(fish) {
+    this.phase = 'escaped';   // recover back to idle like a miss
+    this.phaseT = 0;
+    this.shark = null;
+    this.jump = null;
+    Sound.danger();
+    this.setAction('SNAP!', 'btn-danger');
+    this.banner.hidden = false;
+    this.banner.className = 'catch-banner stolen';
+    this.banner.innerHTML = `
+      <div class="catch-word">💥 SNAP!</div>
+      <div class="catch-fish">A ${esc(fish.name)} broke your line!</div>
+      <div class="catch-value">Upgrade your rod to land bigger fish.</div>`;
+    UI.toast('Your line snapped! You need a stronger rod.', '💥');
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, 1600);
+  },
+
+  // The ROD card: what you're using + the next upgrade to buy.
+  renderRod() {
+    const rod = State.rod();
+    const now = this.root.querySelector('#lv-rod');
+    if (now) now.innerHTML = `
+      <div class="rod-name"><span class="rod-emoji">${rod.emoji}</span> <b>${esc(rod.name)}</b></div>
+      <div class="hud-line">Safely lands fish up to <b>${rod.strength === Infinity ? 'ANY size' : fmtMoney(rod.strength)}</b></div>`;
+    const up = this.root.querySelector('#lv-rod-up');
+    if (!up) return;
+    const next = State.nextRod();
+    if (!next) { up.innerHTML = '<div class="rod-max">✦ Best rod there is! ✦</div>'; return; }
+    const canAfford = State.data.wealth >= next.cost;
+    up.innerHTML = `<button class="btn btn-money rod-buy" ${canAfford ? '' : 'disabled'}>Upgrade → ${next.emoji} ${esc(next.name)} · ${fmtMoney(next.cost)}</button>
+      ${canAfford ? '' : '<p class="hint rod-hint">Catch more fish to afford it!</p>'}`;
+    const btn = up.querySelector('.rod-buy');
+    if (btn) btn.addEventListener('click', () => {
+      if (!State.buyRod()) return;
+      Sound.jackpot(); UI.confetti(16);
+      UI.moneyPop(-next.cost); UI.refreshWealth();
+      UI.toast(`Upgraded to the ${next.name}!`, next.emoji);
+      this.renderRod();
+    });
   },
 
   renderCollection() {
