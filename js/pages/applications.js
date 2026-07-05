@@ -91,22 +91,33 @@ PAGES.applications = {
     const root = this.root;
     root.querySelector('#shop-luck').textContent = '+' + State.luck() + '%';
 
-    // LUCKY items
+    // LUCKY items — show the cheapest charms you don't own yet; buying one
+    // makes the next one appear (the shop restocks). Collect them all!
     const lucky = root.querySelector('#shop-lucky');
     lucky.innerHTML = '';
-    Object.entries(LUCK_ITEMS).forEach(([id, item]) => {
-      const owned = State.data.luckItems.includes(id);
-      const card = el('div', 'card shop-item' + (owned ? ' owned' : ''));
-      card.innerHTML = `
-        <div class="shop-emoji">${item.emoji}</div>
-        <b class="shop-name">${esc(item.name)}</b>
-        <div class="shop-blurb">+${item.luck}% Luck</div>
-        ${owned
-          ? '<span class="owned-badge">OWNED</span>'
-          : `<button class="btn btn-money" data-luck="${id}">${fmtMoney(item.cost)}</button>`}`;
-      lucky.appendChild(card);
-    });
-    lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
+    const total = Object.keys(LUCK_ITEMS).length;
+    const ownedCount = State.data.luckItems.filter(id => LUCK_ITEMS[id]).length;
+    const unowned = Object.entries(LUCK_ITEMS)
+      .filter(([id]) => !State.data.luckItems.includes(id))
+      .sort((a, b) => a[1].cost - b[1].cost);
+    if (unowned.length === 0) {
+      lucky.innerHTML = `<div class="card shop-item lucky-complete">
+        <div class="shop-emoji">✨</div>
+        <b class="shop-name">Every charm collected!</b>
+        <div class="shop-blurb">All ${total} lucky charms are yours. Luck maxed at <b>+${State.luck()}%</b>!</div></div>`;
+    } else {
+      unowned.slice(0, 4).forEach(([id, item]) => {
+        const card = el('div', 'card shop-item');
+        card.innerHTML = `
+          <div class="shop-emoji">${item.emoji}</div>
+          <b class="shop-name">${esc(item.name)}</b>
+          <div class="shop-blurb">+${item.luck}% Luck</div>
+          <button class="btn btn-money" data-luck="${id}">${fmtMoney(item.cost)}</button>
+          <div class="shop-stock">${ownedCount}/${total} charms owned</div>`;
+        lucky.appendChild(card);
+      });
+      lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
+    }
 
     // APPLICATIONS section
     const apps = root.querySelector('#shop-apps');
@@ -159,7 +170,8 @@ PAGES.applications = {
     UI.moneyPop(-item.cost);
     UI.confetti(14);
     Sound.jackpot();
-    UI.toast(`${item.name}! Your luck is now +${State.luck()}%`, item.emoji);
+    const moreLeft = Object.keys(LUCK_ITEMS).some(k => !State.data.luckItems.includes(k));
+    UI.toast(`${item.name}! Luck +${State.luck()}%.${moreLeft ? ' A new charm is in stock!' : ' Every charm collected!'}`, item.emoji);
     this.renderShop();
   },
 

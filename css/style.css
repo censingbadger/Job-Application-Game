@@ -563,6 +563,8 @@ u { text-decoration-thickness: 3px; }
 .shop-emoji { font-size: 42px; line-height: 1; }
 .shop-name { font-size: 15px; }
 .shop-blurb { font-size: 13px; color: var(--pencil); flex: 1; }
+.shop-stock { font-size: 11px; color: var(--pencil); letter-spacing: .3px; }
+.lucky-complete { grid-column: 1 / -1; background: var(--money-light); }
 
 .owned-badge {
   border: 2.5px solid var(--money);

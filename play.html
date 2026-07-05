@@ -571,6 +571,8 @@ u { text-decoration-thickness: 3px; }
 .shop-emoji { font-size: 42px; line-height: 1; }
 .shop-name { font-size: 15px; }
 .shop-blurb { font-size: 13px; color: var(--pencil); flex: 1; }
+.shop-stock { font-size: 11px; color: var(--pencil); letter-spacing: .3px; }
+.lucky-complete { grid-column: 1 / -1; background: var(--money-light); }
 
 .owned-badge {
   border: 2.5px solid var(--money);
@@ -1487,13 +1489,20 @@ const RANK_POWER_BONUS = [0, 8, 18, 30, 45, 65, 100];   // extra power at each r
 
 // ------------------------------------------------------------
 // SHOP — LUCKY section. Luck makes rare fish, rare job offers
-// and better chest loot more likely.
+// and better chest loot more likely. The shop shows the cheapest
+// charms you don't own yet and RESTOCKS a fresh one each time you
+// buy — collect all of them for maximum luck!
+// ASHER: add a charm here and it shows up in the shop to buy.
 // ------------------------------------------------------------
 const LUCK_ITEMS = {
-  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
-  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
-  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
-  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
+  clover:    { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
+  dice:      { name: 'Lucky Dice',         emoji: '🎲', cost: 12e6,  luck: 45 },
+  goblet:    { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
+  coin:      { name: 'Lucky Coin',         emoji: '🪙', cost: 120e6, luck: 130 },
+  paste:     { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
+  rabbitfoot:{ name: "Rabbit's Foot",      emoji: '🐰', cost: 4e9,   luck: 450 },
+  crystal:   { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
+  star:      { name: 'Shooting Star',      emoji: '🌟', cost: 200e9, luck: 2500 },
 };
 
 // SHOP — APPLICATIONS section
@@ -5726,22 +5735,33 @@ PAGES.applications = {
     const root = this.root;
     root.querySelector('#shop-luck').textContent = '+' + State.luck() + '%';
 
-    // LUCKY items
+    // LUCKY items — show the cheapest charms you don't own yet; buying one
+    // makes the next one appear (the shop restocks). Collect them all!
     const lucky = root.querySelector('#shop-lucky');
     lucky.innerHTML = '';
-    Object.entries(LUCK_ITEMS).forEach(([id, item]) => {
-      const owned = State.data.luckItems.includes(id);
-      const card = el('div', 'card shop-item' + (owned ? ' owned' : ''));
-      card.innerHTML = `
-        <div class="shop-emoji">${item.emoji}</div>
-        <b class="shop-name">${esc(item.name)}</b>
-        <div class="shop-blurb">+${item.luck}% Luck</div>
-        ${owned
-          ? '<span class="owned-badge">OWNED</span>'
-          : `<button class="btn btn-money" data-luck="${id}">${fmtMoney(item.cost)}</button>`}`;
-      lucky.appendChild(card);
-    });
-    lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
+    const total = Object.keys(LUCK_ITEMS).length;
+    const ownedCount = State.data.luckItems.filter(id => LUCK_ITEMS[id]).length;
+    const unowned = Object.entries(LUCK_ITEMS)
+      .filter(([id]) => !State.data.luckItems.includes(id))
+      .sort((a, b) => a[1].cost - b[1].cost);
+    if (unowned.length === 0) {
+      lucky.innerHTML = `<div class="card shop-item lucky-complete">
+        <div class="shop-emoji">✨</div>
+        <b class="shop-name">Every charm collected!</b>
+        <div class="shop-blurb">All ${total} lucky charms are yours. Luck maxed at <b>+${State.luck()}%</b>!</div></div>`;
+    } else {
+      unowned.slice(0, 4).forEach(([id, item]) => {
+        const card = el('div', 'card shop-item');
+        card.innerHTML = `
+          <div class="shop-emoji">${item.emoji}</div>
+          <b class="shop-name">${esc(item.name)}</b>
+          <div class="shop-blurb">+${item.luck}% Luck</div>
+          <button class="btn btn-money" data-luck="${id}">${fmtMoney(item.cost)}</button>
+          <div class="shop-stock">${ownedCount}/${total} charms owned</div>`;
+        lucky.appendChild(card);
+      });
+      lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
+    }
 
     // APPLICATIONS section
     const apps = root.querySelector('#shop-apps');
@@ -5794,7 +5814,8 @@ PAGES.applications = {
     UI.moneyPop(-item.cost);
     UI.confetti(14);
     Sound.jackpot();
-    UI.toast(`${item.name}! Your luck is now +${State.luck()}%`, item.emoji);
+    const moreLeft = Object.keys(LUCK_ITEMS).some(k => !State.data.luckItems.includes(k));
+    UI.toast(`${item.name}! Luck +${State.luck()}%.${moreLeft ? ' A new charm is in stock!' : ' Every charm collected!'}`, item.emoji);
     this.renderShop();
   },
 
