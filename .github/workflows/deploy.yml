@@ -1,0 +1,47 @@
+# Publishes the game to GitHub Pages automatically.
+# Every time the game changes on the main branch, this rebuilds the
+# one-file play.html and puts the whole site live. No manual steps.
+name: Deploy game to GitHub Pages
+
+on:
+  # Run whenever the game changes on main (e.g. a merged pull request)
+  push:
+    branches: [main]
+  # ...or start it by hand from the repo's "Actions" tab
+  workflow_dispatch:
+
+# Give the job permission to publish to Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time. A newer change cancels an older, in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Get the game files
+        uses: actions/checkout@v4
+
+      - name: Rebuild the one-file version (play.html)
+        run: python3 tools/build_single.py
+
+      - name: Set up GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Package the whole site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Publish it live
+        id: deployment
+        uses: actions/deploy-pages@v4

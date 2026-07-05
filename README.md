@@ -6,6 +6,16 @@ A game designed on paper by Asher and brought to life as a website.
 Start as a Lowly Fisherman, earn your wealth one catch at a time, climb the
 mystery ranks of your path... or risk it all on a job with a 69% fatality rate.
 
+## Play it live 🌐
+
+Once GitHub Pages is turned on (Settings → Pages → Source → **GitHub Actions**),
+the game is live on the web and updates itself every time a change reaches `main`:
+
+### 🔗 https://censingbadger.github.io/Job-Application-Game/
+
+The `.github/workflows/deploy.yml` workflow does the publishing automatically —
+you never have to upload anything by hand.
+
 ## How to play
 
 **Easiest:** open `play.html` — the whole game in a single file. Double-click it,
