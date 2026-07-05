@@ -1061,6 +1061,75 @@ u { text-decoration-thickness: 3px; }
 .signin-go { flex: none; }
 .signin-note { color: var(--pencil); font-size: 13px; margin: 14px 0 0; }
 
+/* ---- sign-in avatar picker ------------------------------------------ */
+.signin-avatars {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin: 4px 0 14px;
+}
+.signin-pick {
+  font-size: 26px; width: 48px; height: 48px; line-height: 1;
+  border: 3px solid var(--ink); border-radius: 50%;
+  background: #fffdf6; cursor: pointer; padding: 0;
+}
+.signin-pick.picked { background: var(--money-light); box-shadow: 0 0 0 3px var(--money); }
+
+/* ---- THE JOB APPLICATION -------------------------------------------- */
+.apply { text-align: center; display: grid; gap: 12px; }
+
+.apply-head { display: flex; align-items: center; gap: 14px; justify-content: center; }
+.apply-avatar {
+  font-size: 46px; width: 66px; height: 66px; flex: none;
+  display: grid; place-items: center;
+  border: 3px solid var(--ink); border-radius: 50%;
+  background: var(--sea-light); box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+.apply-title { text-align: left; }
+.apply-title h2 { margin: 0; font-size: clamp(26px, 5vw, 36px); text-shadow: 3px 3px 0 var(--paper-shadow); }
+.apply-job { font-size: 18px; font-weight: bold; margin-top: 2px; }
+
+.apply-form { text-align: left; display: grid; gap: 6px; }
+.apply-row { font-size: 15px; }
+.apply-q { margin-top: 8px; font-weight: bold; }
+.apply-reasons { display: grid; gap: 8px; margin-top: 4px; }
+.apply-reason { justify-content: flex-start; text-align: left; font-weight: normal; font-size: 15px; }
+.apply-reason.picked { background: var(--money-light); box-shadow: 3px 3px 0 var(--money); }
+
+.apply-gauntlet {
+  font-size: 13px; color: var(--pencil);
+  border: 2px dashed var(--paper-shadow); border-radius: var(--wobble);
+  padding: 6px 10px; display: inline-block; justify-self: center;
+}
+
+/* the APPROVED / DENIED rubber stamp */
+.stamp {
+  justify-self: center;
+  font-family: var(--font-display); font-size: 34px; letter-spacing: 3px;
+  padding: 4px 20px; border: 5px solid; border-radius: 8px;
+  transform: rotate(-11deg); opacity: 0.92;
+  animation: stamp-slam 0.4s cubic-bezier(.2,1.6,.4,1);
+}
+.stamp-approved { color: #2f7d3f; border-color: #2f7d3f; }
+.stamp-denied { color: var(--danger); border-color: var(--danger); }
+@keyframes stamp-slam { from { transform: rotate(-11deg) scale(2.4); opacity: 0; } }
+
+/* the luck wheel */
+.luck-stage { position: relative; width: min(70vw, 300px); margin: 4px auto 0; }
+.luck-stage canvas { width: 100%; height: auto; display: block; }
+.luck-stage .wheel-pointer {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 36px; color: var(--ink);
+  text-shadow: -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff;
+}
+
+/* the full-screen skill-trial stage */
+.trial-overlay { padding: 12px; }
+.trial-stage {
+  width: min(1120px, 97vw); max-height: 94vh; overflow-y: auto;
+  background: var(--paper); border: 3px solid var(--ink);
+  border-radius: var(--wobble-2); box-shadow: 5px 5px 0 rgba(0,0,0,.3);
+  padding: 14px;
+}
+
 /* ---- small screens -------------------------------------------------- */
 @media (max-width: 900px) {
   .paths-layout, .apps-layout, .fishing-layout, .work-layout { grid-template-columns: 1fr; }

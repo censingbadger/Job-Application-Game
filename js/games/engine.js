@@ -70,22 +70,30 @@ function defineShift(spec) {
     spec,
     running: false,
 
-    start(root) {
+    // opts.trial = { seconds, goal, onResult } runs a short SKILL TRIAL
+    // (for a job application): no danger, no real pay — just hit the goal.
+    start(root, opts = {}) {
       this.root = root;
       this.running = true;
+      this.trial = opts.trial || null;
       this.job = State.job();
       this.rank = State.data.path.rank;
       this.diff = 1 + this.rank * 0.4;                 // 1.0, 1.4, 1.8, 2.2 — harder as you rank up
-      this.duration = spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds;
+      this.duration = this.trial ? this.trial.seconds : (spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds);
       this.timeLeft = this.duration;
       this.earned = 0;
       this.flashT = 0;
       this.flashColor = null;
       this.dangerActive = null;
 
-      // How many danger moments today? More fatality = more danger.
-      const expected = this.job.fatality / 35;
-      this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+      // No danger during a trial (it's an audition). Otherwise: more
+      // fatality = more danger moments.
+      if (this.trial) {
+        this.dangersLeft = 0;
+      } else {
+        const expected = this.job.fatality / 35;
+        this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+      }
       this.nextDangerAt = 0.18 + Math.random() * 0.4;  // as a fraction of the day (0..1)
 
       this._renderShell();
@@ -127,32 +135,43 @@ function defineShift(spec) {
       window.removeEventListener('keydown', this._key);
     },
 
-    // Bank money mid-game, with a floating "+$" and a running total.
+    // Earn money mid-game (a trial doesn't bank real money — it only
+    // counts toward the goal), with a floating "+$" and a running total.
     earn(n) {
       n = Math.floor(n);
       if (n <= 0) return;
       this.earned += n;
-      State.addWealth(n);
-      State.addCareerEarnings(n);
+      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); }
       UI.moneyPop(n);
       const t = this.root.querySelector('#g-earned');
-      if (t) t.textContent = fmtMoney(this.earned);
+      if (t) t.textContent = this.trial ? `${fmtMoney(this.earned)} / ${fmtMoney(this.trial.goal)}` : fmtMoney(this.earned);
+      if (this.trial) {
+        const fill = this.root.querySelector('#g-goal-fill');
+        if (fill) fill.style.width = Math.min(100, this.earned / this.trial.goal * 100) + '%';
+      }
     },
 
     flash(color) { this.flashColor = color; this.flashT = 0.25; },
 
     _renderShell() {
       const job = this.job;
+      const trial = this.trial;
+      const topCard = trial
+        ? `<h3>🧪 SKILL TRIAL</h3>
+           <div class="hud-job">${esc(job.name)}</div>
+           <div class="hud-line">Power: <b>${State.power()}%</b></div>
+           <div class="hud-line">GOAL: earn <b>${fmtMoney(trial.goal)}</b></div>
+           <div class="hud-line">So far: <b id="g-earned">$0</b></div>
+           <div class="shift-bar small"><div class="shift-fill" id="g-goal-fill" style="width:0%"></div></div>`
+        : `<h3>CURRENT JOB</h3>
+           <div class="hud-job">${esc(State.rankName())}</div>
+           <div class="hud-line">Power: <b>${State.power()}%</b></div>
+           <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+           <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>`;
       this.root.innerHTML = `
         <div class="work-layout">
           <aside class="fishing-side">
-            <div class="card hud-card">
-              <h3>CURRENT JOB</h3>
-              <div class="hud-job">${esc(State.rankName())}</div>
-              <div class="hud-line">Power: <b>${State.power()}%</b></div>
-              <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
-              <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>
-            </div>
+            <div class="card hud-card">${topCard}</div>
             <div class="card hud-card">
               <h3>HOW TO PLAY</h3>
               <p class="hud-line">${spec.hint || 'Do your job before the day ends!'}</p>
@@ -163,7 +182,7 @@ function defineShift(spec) {
             <div class="canvas-frame card" id="g-frame">
               <canvas id="g-canvas" width="${GW}" height="${GH}"></canvas>
             </div>
-            <p class="hint">Watch out for: <b>${esc(job.danger)}</b> — tap fast to dodge it!</p>
+            <p class="hint">${trial ? 'Hit the goal before time runs out to <b>pass the trial</b>!' : `Watch out for: <b>${esc(job.danger)}</b> — tap fast to dodge it!`}</p>
           </div>
         </div>`;
     },
@@ -199,7 +218,7 @@ function defineShift(spec) {
       const timer = this.root.querySelector('#g-timer');
       if (timer) timer.style.width = (this.timeLeft / this.duration * 100) + '%';
       const clock = this.root.querySelector('#g-clock');
-      if (clock) clock.textContent = `Day ${State.data.day} · ${Math.ceil(this.timeLeft)}s`;
+      if (clock) clock.textContent = (this.trial ? 'TRIAL' : `Day ${State.data.day}`) + ` · ${Math.ceil(this.timeLeft)}s`;
 
       requestAnimationFrame(t => this._loop(t));
     },
@@ -254,6 +273,13 @@ function defineShift(spec) {
 
     _endDay() {
       this.running = false;
+      // A trial ends by reporting pass/fail to the application — no
+      // payday, no new day, no real money changed hands.
+      if (this.trial) {
+        const t = this.trial; this.trial = null;
+        t.onResult(this.earned >= t.goal, this.earned);
+        return;
+      }
       const total = this.earned;
       const promo = State.data.pendingPromotion;
       State.data.pendingPromotion = null;
