@@ -118,9 +118,10 @@ const Fishing = {
     this.setAction('nice!', 'btn-wait');
 
     const rar = FISH_RARITY[fish.rarity] || FISH_RARITY.common;
-    const big = fish.rarity === 'epic' || fish.rarity === 'legendary';
+    const bigTiers = ['epic', 'legendary', 'divine', 'transcendent'];
+    const big = bigTiers.includes(fish.rarity);
     this.banner.hidden = false;
-    this.banner.className = 'catch-banner' + (fish.rarity === 'legendary' ? ' legendary' : (fish.rarity === 'epic' ? ' epic' : ''));
+    this.banner.className = 'catch-banner' + (bigTiers.includes(fish.rarity) || fish.rarity === 'epic' ? ' ' + fish.rarity : '');
     this.banner.innerHTML = `
       <div class="catch-word" data-spiky>CATCH!</div>
       <div class="catch-fish">${big ? '🌟 ' : ''}${esc(fish.name)}${big ? ' 🌟' : ''}</div>
@@ -128,12 +129,15 @@ const Fishing = {
       <div class="catch-value">Value: ${fmtMoney(value)}</div>`;
     UI.spikyAll(this.banner);
 
-    if (fish.rarity === 'legendary') { Sound.jackpot(); UI.confetti(55); }
-    else if (fish.rarity === 'epic') { Sound.jackpot(); UI.confetti(24); }
+    const parties = { epic: 24, legendary: 55, divine: 80, transcendent: 130 };
+    if (parties[fish.rarity]) { Sound.jackpot(); UI.confetti(parties[fish.rarity]); }
     else Sound.catchFish();
+    if (fish.rarity === 'transcendent') UI.toast(`THE ${fish.name.toUpperCase()}!! The rarest catch of all!`, '🖤💎');
+    else if (fish.rarity === 'divine') UI.toast(`A DIVINE catch — the ${fish.name}!`, '✨');
     UI.moneyPop(value);
     this.renderCollection();
-    setTimeout(() => { if (this.running) this.banner.hidden = true; }, big ? 2100 : 1700);
+    const showMs = fish.rarity === 'transcendent' ? 2900 : (big ? 2100 : 1700);
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, showMs);
   },
 
   renderCollection() {

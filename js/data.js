@@ -23,10 +23,12 @@ const CONFIG = {
 // Luck makes the rarer tiers more likely (just like jobs!).
 // ------------------------------------------------------------
 const FISH_RARITY = {
-  common:    { label: 'common',    color: '#8a8a94', weight: 100 },
-  rare:      { label: 'rare',      color: '#1e7fbf', weight: 26 },
-  epic:      { label: 'epic',      color: '#8d5bd4', weight: 6 },
-  legendary: { label: 'LEGENDARY', color: '#c98a00', weight: 0.8 },
+  common:       { label: 'common',       color: '#8a8a94', weight: 100 },
+  rare:         { label: 'rare',         color: '#1e7fbf', weight: 26 },
+  epic:         { label: 'epic',         color: '#8d5bd4', weight: 6 },
+  legendary:    { label: 'LEGENDARY',    color: '#c98a00', weight: 0.8 },
+  divine:       { label: 'DIVINE',       color: '#e0459e', weight: 0.15 },
+  transcendent: { label: 'TRANSCENDENT', color: '#7c3aed', weight: 0.02 },
 };
 
 // ------------------------------------------------------------
@@ -62,6 +64,12 @@ const FISH = [
   { name: 'Platinum Arowana',  rarity: 'legendary', value: 350e6, emoji: '🐉', size: 88 },
   { name: 'Sapphire Jingfish', rarity: 'legendary', value: 800e6, emoji: '🐠', size: 90 },
   { name: 'Emerald Jingfish',  rarity: 'legendary', value: 2e9,   emoji: '🐠', size: 92 },
+  // --- divine ---
+  { name: 'Rainbow Swordfish',       rarity: 'divine', value: 6e9,  emoji: '🐟', size: 92 },
+  { name: 'Black Sapphire Jingfish', rarity: 'divine', value: 15e9, emoji: '🐠', size: 94 },
+  { name: 'Ultra Kingfish',          rarity: 'divine', value: 40e9, emoji: '🐡', size: 98 },
+  // --- transcendent (the rarest fish of all) ---
+  { name: 'Black Diamond Jingfish',  rarity: 'transcendent', value: 250e9, emoji: '🐠', size: 104 },
 ];
 
 // ------------------------------------------------------------

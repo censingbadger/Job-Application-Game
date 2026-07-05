@@ -720,7 +720,25 @@ u { text-decoration-thickness: 3px; }
 
 .catch-banner.legendary .catch-word { color: #9a7714; }
 .catch-banner.epic .catch-word { color: #7a4fb0; }
+.catch-banner.divine .catch-word { color: #c0398a; }
 .catch-banner.stolen .catch-word { color: var(--danger); font-size: 44px; }
+
+/* the rarest tier: a shimmering rainbow "CATCH!" for the Black Diamond Jingfish */
+.catch-banner.transcendent .catch-word {
+  background: linear-gradient(90deg, #e74c3c, #e8b830, #3fa555, #1e7fbf, #8d5bd4, #e74c3c);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  text-shadow: none;
+  -webkit-text-stroke: 2.5px rgba(43, 43, 51, 0.7);
+  animation: rainbow-shift 2s linear infinite;
+}
+@keyframes rainbow-shift { to { background-position: 200% 0; } }
+
+.catch-banner.transcendent .fish-rarity {
+  color: #7c3aed;
+  border-image: linear-gradient(90deg, #e74c3c, #e8b830, #3fa555, #1e7fbf, #8d5bd4, #e74c3c) 1;
+}
 
 /* the rarity chip on a fish catch (common has none) */
 .fish-rarity {
@@ -1182,10 +1200,12 @@ const CONFIG = {
 // Luck makes the rarer tiers more likely (just like jobs!).
 // ------------------------------------------------------------
 const FISH_RARITY = {
-  common:    { label: 'common',    color: '#8a8a94', weight: 100 },
-  rare:      { label: 'rare',      color: '#1e7fbf', weight: 26 },
-  epic:      { label: 'epic',      color: '#8d5bd4', weight: 6 },
-  legendary: { label: 'LEGENDARY', color: '#c98a00', weight: 0.8 },
+  common:       { label: 'common',       color: '#8a8a94', weight: 100 },
+  rare:         { label: 'rare',         color: '#1e7fbf', weight: 26 },
+  epic:         { label: 'epic',         color: '#8d5bd4', weight: 6 },
+  legendary:    { label: 'LEGENDARY',    color: '#c98a00', weight: 0.8 },
+  divine:       { label: 'DIVINE',       color: '#e0459e', weight: 0.15 },
+  transcendent: { label: 'TRANSCENDENT', color: '#7c3aed', weight: 0.02 },
 };
 
 // ------------------------------------------------------------
@@ -1221,6 +1241,12 @@ const FISH = [
   { name: 'Platinum Arowana',  rarity: 'legendary', value: 350e6, emoji: '🐉', size: 88 },
   { name: 'Sapphire Jingfish', rarity: 'legendary', value: 800e6, emoji: '🐠', size: 90 },
   { name: 'Emerald Jingfish',  rarity: 'legendary', value: 2e9,   emoji: '🐠', size: 92 },
+  // --- divine ---
+  { name: 'Rainbow Swordfish',       rarity: 'divine', value: 6e9,  emoji: '🐟', size: 92 },
+  { name: 'Black Sapphire Jingfish', rarity: 'divine', value: 15e9, emoji: '🐠', size: 94 },
+  { name: 'Ultra Kingfish',          rarity: 'divine', value: 40e9, emoji: '🐡', size: 98 },
+  // --- transcendent (the rarest fish of all) ---
+  { name: 'Black Diamond Jingfish',  rarity: 'transcendent', value: 250e9, emoji: '🐠', size: 104 },
 ];
 
 // ------------------------------------------------------------
@@ -2564,9 +2590,10 @@ const Fishing = {
     this.setAction('nice!', 'btn-wait');
 
     const rar = FISH_RARITY[fish.rarity] || FISH_RARITY.common;
-    const big = fish.rarity === 'epic' || fish.rarity === 'legendary';
+    const bigTiers = ['epic', 'legendary', 'divine', 'transcendent'];
+    const big = bigTiers.includes(fish.rarity);
     this.banner.hidden = false;
-    this.banner.className = 'catch-banner' + (fish.rarity === 'legendary' ? ' legendary' : (fish.rarity === 'epic' ? ' epic' : ''));
+    this.banner.className = 'catch-banner' + (bigTiers.includes(fish.rarity) || fish.rarity === 'epic' ? ' ' + fish.rarity : '');
     this.banner.innerHTML = `
       <div class="catch-word" data-spiky>CATCH!</div>
       <div class="catch-fish">${big ? '🌟 ' : ''}${esc(fish.name)}${big ? ' 🌟' : ''}</div>
@@ -2574,12 +2601,15 @@ const Fishing = {
       <div class="catch-value">Value: ${fmtMoney(value)}</div>`;
     UI.spikyAll(this.banner);
 
-    if (fish.rarity === 'legendary') { Sound.jackpot(); UI.confetti(55); }
-    else if (fish.rarity === 'epic') { Sound.jackpot(); UI.confetti(24); }
+    const parties = { epic: 24, legendary: 55, divine: 80, transcendent: 130 };
+    if (parties[fish.rarity]) { Sound.jackpot(); UI.confetti(parties[fish.rarity]); }
     else Sound.catchFish();
+    if (fish.rarity === 'transcendent') UI.toast(`THE ${fish.name.toUpperCase()}!! The rarest catch of all!`, '🖤💎');
+    else if (fish.rarity === 'divine') UI.toast(`A DIVINE catch — the ${fish.name}!`, '✨');
     UI.moneyPop(value);
     this.renderCollection();
-    setTimeout(() => { if (this.running) this.banner.hidden = true; }, big ? 2100 : 1700);
+    const showMs = fish.rarity === 'transcendent' ? 2900 : (big ? 2100 : 1700);
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, showMs);
   },
 
   renderCollection() {
