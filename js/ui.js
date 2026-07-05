@@ -40,6 +40,17 @@ function Boot() {
     UI.signInGate(() => { State.load(); renderCurrentPage(); });
   } else {
     renderCurrentPage();
+    // Already signed in on this device — pull a newer cloud save if one exists.
+    if (Cloud.on()) {
+      Cloud.start();
+      Profiles.reconcileCurrent().then(changed => {
+        if (changed) {
+          UI.refreshWealth();
+          const page = window.SINGLE_FILE ? currentPage : document.body.dataset.page;
+          if (page === 'home') renderCurrentPage();
+        }
+      });
+    }
   }
 }
 
@@ -124,13 +135,21 @@ const UI = {
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
-    const finish = name => {
-      const { isNew } = Profiles.signIn(name);
+    const finish = async name => {
+      // brief "loading" state while we check the cloud for this character
+      const loading = el('div', 'signin');
+      loading.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
+        <p class="signin-note">Finding <b>${esc(name)}</b>'s character...</p>`;
+      box.innerHTML = '';
+      box.appendChild(loading);
+      UI.spikyAll(box);
+      const res = await Profiles.signInAsync(name);
       modal.close();
       const who = Profiles.currentName();
-      UI.toast(isNew ? `New character created — good luck, ${who}!` : `Welcome back, ${who}!`,
-               isNew ? '🌟' : '👋');
-      if (!isNew) UI.confetti(14);
+      const msg = res.isNew ? `New character — good luck, ${who}!`
+        : (res.source === 'cloud' ? `Welcome back, ${who}! Progress synced.` : `Welcome back, ${who}!`);
+      UI.toast(msg, res.isNew ? '🌟' : '👋');
+      if (!res.isNew) UI.confetti(14);
       onDone();
     };
 

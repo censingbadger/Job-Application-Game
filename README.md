@@ -70,8 +70,21 @@ to start a character. Come back later, type the **same name**, and you pick up
 right where you left off — your wealth, path, and luck are all still there.
 
 Lots of people can share one device: each name is its own separate character.
-Tap **switch player** any time to hop between them. It all saves in this browser
-(so a character made on the iPad lives on the iPad).
+Tap **switch player** any time to hop between them.
+
+### Play across devices ☁️ (optional)
+
+By default a character saves **in that browser** (a character made on the iPad
+lives on the iPad). If you want a character to follow you **across devices** —
+start on the iPad, keep going on a laptop — turn on cloud sync:
+
+1. Open **`js/cloud.js`** and follow the short comment at the top to create a
+   free Firebase Realtime Database (~3 minutes).
+2. Paste your database URL into the `CLOUD_URL` line and commit.
+
+Once it's set, typing the same name on any device loads that character from the
+cloud and keeps it in sync. Until then, everything works exactly as before,
+saved per-device. (No passwords, so friends should each pick a **unique name**.)
 
 ## The rules of the world
 
