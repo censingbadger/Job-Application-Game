@@ -209,13 +209,20 @@ const RANK_POWER_BONUS = [0, 8, 18, 30, 45, 65, 100];   // extra power at each r
 
 // ------------------------------------------------------------
 // SHOP — LUCKY section. Luck makes rare fish, rare job offers
-// and better chest loot more likely.
+// and better chest loot more likely. The shop shows the cheapest
+// charms you don't own yet and RESTOCKS a fresh one each time you
+// buy — collect all of them for maximum luck!
+// ASHER: add a charm here and it shows up in the shop to buy.
 // ------------------------------------------------------------
 const LUCK_ITEMS = {
-  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
-  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
-  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
-  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
+  clover:    { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
+  dice:      { name: 'Lucky Dice',         emoji: '🎲', cost: 12e6,  luck: 45 },
+  goblet:    { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
+  coin:      { name: 'Lucky Coin',         emoji: '🪙', cost: 120e6, luck: 130 },
+  paste:     { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
+  rabbitfoot:{ name: "Rabbit's Foot",      emoji: '🐰', cost: 4e9,   luck: 450 },
+  crystal:   { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
+  star:      { name: 'Shooting Star',      emoji: '🌟', cost: 200e9, luck: 2500 },
 };
 
 // SHOP — APPLICATIONS section
