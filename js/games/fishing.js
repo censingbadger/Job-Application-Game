@@ -91,10 +91,14 @@ const Fishing = {
   },
 
   // ---- fish luck math -----------------------------------------
+  // Pick a rarity tier (luck helps the rarer ones), then a fish in it.
   pickFish() {
-    const luck = State.luck();
-    const entries = FISH.map(f => [f, f.rare ? f.weight * (1 + luck / 100) : f.weight]);
-    return weightedPick(entries);
+    const boost = 1 + State.luck() / 100;
+    const entries = Object.entries(FISH_RARITY).map(([id, r]) =>
+      [id, id === 'common' ? r.weight : r.weight * boost]);
+    const tier = weightedPick(entries);
+    const pool = FISH.filter(f => f.rarity === tier);
+    return pool[Math.floor(Math.random() * pool.length)] || FISH[0];
   },
 
   resolveCatch() {
@@ -113,19 +117,23 @@ const Fishing = {
     this.jump = { x: this.bobber.x, y: this.bobber.y, fish };
     this.setAction('nice!', 'btn-wait');
 
+    const rar = FISH_RARITY[fish.rarity] || FISH_RARITY.common;
+    const big = fish.rarity === 'epic' || fish.rarity === 'legendary';
     this.banner.hidden = false;
-    this.banner.className = 'catch-banner' + (fish.legendary ? ' legendary' : '');
+    this.banner.className = 'catch-banner' + (fish.rarity === 'legendary' ? ' legendary' : (fish.rarity === 'epic' ? ' epic' : ''));
     this.banner.innerHTML = `
       <div class="catch-word" data-spiky>CATCH!</div>
-      <div class="catch-fish">${fish.legendary ? '🌟 ' : ''}${esc(fish.name)}${fish.legendary ? ' 🌟' : ''}</div>
+      <div class="catch-fish">${big ? '🌟 ' : ''}${esc(fish.name)}${big ? ' 🌟' : ''}</div>
+      ${fish.rarity !== 'common' ? `<div class="fish-rarity" style="--chip:${rar.color}">${rar.label}</div>` : ''}
       <div class="catch-value">Value: ${fmtMoney(value)}</div>`;
     UI.spikyAll(this.banner);
 
-    if (fish.legendary) { Sound.jackpot(); UI.confetti(40); }
+    if (fish.rarity === 'legendary') { Sound.jackpot(); UI.confetti(55); }
+    else if (fish.rarity === 'epic') { Sound.jackpot(); UI.confetti(24); }
     else Sound.catchFish();
     UI.moneyPop(value);
     this.renderCollection();
-    setTimeout(() => { if (this.running) this.banner.hidden = true; }, 1700);
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, big ? 2100 : 1700);
   },
 
   renderCollection() {
@@ -280,6 +288,15 @@ const Fishing = {
     if (this.jump) {
       const p = Math.min(1, (this.jump.t || 0) / 0.9);
       const y = this.jump.y - Math.sin(p * Math.PI) * 170;
+      // a colored halo for rarer catches
+      const rar = FISH_RARITY[this.jump.fish.rarity];
+      if (rar && this.jump.fish.rarity !== 'common') {
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = rar.color;
+        ctx.beginPath(); ctx.arc(this.jump.x, y, this.jump.fish.size * 1.15, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
       ctx.font = `${this.jump.fish.size * 1.6}px serif`;
       ctx.save();
       ctx.translate(this.jump.x, y);
