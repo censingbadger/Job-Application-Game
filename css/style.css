@@ -607,6 +607,7 @@ u { text-decoration-thickness: 3px; }
 
 .hud-card .hud-job { font-family: var(--font-display); font-size: 24px; letter-spacing: 1px; }
 .hud-line { font-size: 15px; margin: 3px 0; color: var(--ink); }
+.hp-line .hearts { font-size: 16px; letter-spacing: 2px; vertical-align: middle; }
 
 .collection { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
 .collection li {
