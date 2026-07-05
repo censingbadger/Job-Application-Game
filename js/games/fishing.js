@@ -4,32 +4,7 @@
    Salary: depends on fish caught.
    ============================================================ */
 
-// Tiny sound effects (no files needed — we sing the notes ourselves)
-const Sound = {
-  ctx: null,
-  play(notes) {
-    try {
-      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      let t = this.ctx.currentTime;
-      notes.forEach(([freq, dur]) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.08, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-        osc.connect(gain).connect(this.ctx.destination);
-        osc.start(t); osc.stop(t + dur);
-        t += dur * 0.9;
-      });
-    } catch (e) { /* sound is a bonus, never a problem */ }
-  },
-  catchFish() { this.play([[520, 0.09], [660, 0.09], [880, 0.16]]); },
-  jackpot()   { this.play([[520, 0.1], [660, 0.1], [880, 0.1], [1100, 0.22], [1320, 0.3]]); },
-  danger()    { this.play([[220, 0.12], [180, 0.16]]); },
-  splash()    { this.play([[300, 0.08], [200, 0.12]]); },
-  ding()      { this.play([[780, 0.12]]); },
-};
+// (The Sound kit now lives in engine.js so every game shares it.)
 
 const Fishing = {
   running: false,
@@ -444,3 +419,5 @@ const Fishing = {
     content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
   },
 };
+
+GAMES.fisherman = Fishing;

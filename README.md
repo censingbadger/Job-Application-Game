@@ -28,10 +28,26 @@ Asher designed it:
 |---|---|---|
 | Home | `index.html` | The big logo and the PLAY button |
 | Paths | `paths.html` | Your career trail, mystery ranks, and the job wheel (45M to spin!) |
-| Levels | `levels.html` | DO your job — fish the sea, or survive a work day |
+| Levels | `levels.html` | DO your job — a different mini-game for each one! |
 | Applications | `applications.html` | Daily job offers (accept/decline) and the SHOP |
 
 Your progress saves automatically in the browser.
+
+## The job mini-games 🎮
+
+Every job is played differently. So far these have their own custom game
+(more are on the way — jobs without one yet use a shared work-day game):
+
+| Job | Game | Style |
+|---|---|---|
+| Fisherman 🎣 | Cast, wait for the **!**, reel before the shark | Timing |
+| Chef 🍳 | Flip each dish when the bar hits the **green** | Perfect timing |
+| Miner ⛏️ | Slide your cart to catch gems, dodge rocks | Catch |
+| Prisoner ⛓️ | Switch lanes to grab money, dodge guards | Dodge |
+| Soldier 🪖 | Tap the targets before they fire back | Aim & shoot |
+
+The games get **harder as you rank up**, and the job's **fatality rate**
+still shows up as a "dodge it or get knocked out" danger.
 
 ## Players 👤
 
@@ -73,8 +89,10 @@ css/style.css        ← the hand-drawn-on-paper look
 js/data.js           ← ALL the game numbers and names (edit me!)
 js/state.js          ← saving, money, jobs, offers
 js/ui.js             ← top bar, the spinner wheel, popups
+js/games/engine.js   ← shared game harness (timer, danger, payday)
 js/games/fishing.js  ← the fishing minigame
-js/games/workshift.js← the work-day minigame (every other job)
+js/games/workshift.js← the fallback work-day (jobs without a custom game yet)
+js/games/chef.js · miner.js · prisoner.js · soldier.js  ← custom job games
 js/pages/*.js        ← one script per page
 tools/build_single.py← bundles everything into play.html
 ```

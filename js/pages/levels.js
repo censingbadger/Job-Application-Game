@@ -10,7 +10,9 @@ PAGES.levels = {
   init(root) {
     UI.spikyAll(root);
     const gameRoot = root.querySelector('#game-root');
-    this.engine = State.job().special === 'fishing' ? Fishing : WorkShift;
+    // Each job picks its own game from the registry; jobs without a
+    // custom game yet fall back to the shared work-day game.
+    this.engine = GAMES[State.data.path.jobId] || WorkShift;
     this.engine.start(gameRoot);
   },
 
