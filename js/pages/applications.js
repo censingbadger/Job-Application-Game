@@ -91,6 +91,22 @@ PAGES.applications = {
     const root = this.root;
     root.querySelector('#shop-luck').textContent = '+' + State.luck() + '%';
 
+    // POTIONS — cheap random gambles
+    const potions = root.querySelector('#shop-potions');
+    if (potions) {
+      potions.innerHTML = '';
+      Object.entries(POTIONS).forEach(([id, p]) => {
+        const card = el('div', 'card shop-item potion-item');
+        card.innerHTML = `
+          <div class="shop-emoji">${p.emoji}</div>
+          <b class="shop-name">${esc(p.name)}</b>
+          <div class="shop-blurb">A random effect — could be great, could be deadly!</div>
+          <button class="btn btn-money" data-potion="${id}">${fmtMoney(p.cost)}</button>`;
+        potions.appendChild(card);
+      });
+      potions.querySelectorAll('[data-potion]').forEach(b => b.addEventListener('click', () => this.buyPotion(b.dataset.potion)));
+    }
+
     // LUCKY items — show the cheapest charms you don't own yet; buying one
     // makes the next one appear (the shop restocks). Collect them all!
     const lucky = root.querySelector('#shop-lucky');
@@ -173,6 +189,78 @@ PAGES.applications = {
     const moreLeft = Object.keys(LUCK_ITEMS).some(k => !State.data.luckItems.includes(k));
     UI.toast(`${item.name}! Luck +${State.luck()}%.${moreLeft ? ' A new charm is in stock!' : ' Every charm collected!'}`, item.emoji);
     this.renderShop();
+  },
+
+  // Drink a random potion — could be luck, cash, a jackpot, a new job,
+  // a dud... or a deadly one that wipes you out.
+  buyPotion(id) {
+    const p = POTIONS[id];
+    if (!State.spend(p.cost)) return this.cantAfford(p.cost);
+    UI.moneyPop(-p.cost);
+    Sound.splash();
+    const outcome = this.rollPotion(p);
+
+    const box = el('div', 'day-summary potion-reveal');
+    box.innerHTML = `
+      <div class="potion-glug">${p.emoji}</div>
+      <h2 data-spiky>${outcome.title}</h2>
+      <p>${outcome.text}</p>
+      <div class="summary-actions"><button class="btn btn-go" id="potion-ok">OK</button></div>`;
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+    if (outcome.good) { UI.confetti(outcome.big ? 45 : 16); Sound.jackpot(); }
+    else Sound.thud();
+    box.querySelector('#potion-ok').addEventListener('click', () => {
+      modal.close();
+      UI.refreshWealth();
+      this.renderShop();
+      this.renderOffers();
+    });
+  },
+
+  // Roll and APPLY a potion's random effect; returns how to show it.
+  rollPotion(p) {
+    const t = p.tier;   // 0 cheap, 1 mid, 2 pricey
+    const kind = weightedPick([
+      ['luck', 26], ['wealth', 32], ['jackpot', [4, 6, 9][t]],
+      ['job', 18], ['dud', [12, 10, 7][t]], ['death', [6, 10, 14][t]],
+    ]);
+
+    if (kind === 'luck') {
+      const amt = [8, 15, 30][t] + Math.floor(Math.random() * [7, 10, 20][t]);
+      State.data.bonusLuck = (State.data.bonusLuck || 0) + amt;
+      State.save();
+      return { good: true, title: '🍀 LUCKY!', text: `The potion glows green — <b>+${amt}% luck</b>, forever! Your luck is now <b>+${State.luck()}%</b>.` };
+    }
+    if (kind === 'wealth') {
+      const amt = Math.floor(p.cost * (2 + Math.random() * 5));
+      State.addWealth(amt);
+      return { good: true, title: '💰 CASH!', text: `Coins pour out of the bottle — you gained <b>${fmtMoney(amt)}</b>!` };
+    }
+    if (kind === 'jackpot') {
+      const base = [100e3, 1e6, 10e6][t];
+      const amt = base + Math.floor(Math.random() * base);
+      State.addWealth(amt);
+      return { good: true, big: true, title: '🎉 JACKPOT!!', text: `Liquid treasure! The potion was worth <b>${fmtMoney(amt)}</b>!!!` };
+    }
+    if (kind === 'job') {
+      const allow = [['common', 'uncommon'], ['common', 'uncommon', 'rare'], ['uncommon', 'rare', 'epic']][t];
+      const pool = Object.keys(JOBS).filter(jid => !JOBS[jid].shopOnly && allow.includes(JOBS[jid].rarity));
+      const jobId = pool[Math.floor(Math.random() * pool.length)] || 'peasant';
+      State.addOffer(jobId);
+      return { good: true, title: '📋 A NEW JOB!', text: `A <b>${esc(JOBS[jobId].name)}</b> application fizzed up — it's in your Daily offers!` };
+    }
+    if (kind === 'dud') {
+      return { good: false, title: '😐 ...nothing.', text: `It tastes like flat lemonade. Nothing happens. Oh well — worth a try!` };
+    }
+    // death — the risk you took
+    const lost = State.data.wealth;
+    const oldJob = State.rankName();
+    State.data.wealth = 0;
+    State.data.stats.knockouts += 1;
+    State.switchJob('fisherman');
+    State.save();
+    return { good: false, death: true, title: '☠️ POISON!', text: `It was deadly! You lose <b>everything</b> (${fmtMoney(lost)}) and your job as <b>${esc(oldJob)}</b>, and wake up broke on the fishing boat.` };
   },
 
   buyExtra(id) {

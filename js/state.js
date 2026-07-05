@@ -180,6 +180,7 @@ const State = {
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
       luckItems: [],            // ids from LUCK_ITEMS you own
+      bonusLuck: 0,             // flat luck from potions etc.
       offers: [],               // current job offers: [{ jobId }]
       offersAt: 0,              // real-time (ms) the current offers were rolled
       pendingPromotion: null,   // rank name to celebrate next time you look
@@ -201,6 +202,7 @@ const State = {
     Profiles._loadedLP = this.data.lastPlayed || 0;
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     if (!this.data.gear) this.data.gear = { rod: 0 };   // older saves had no equipment
+    if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
     this.ensureOffers();
     return this.data;
   },
@@ -293,7 +295,8 @@ const State = {
   salary() { return Math.floor(this.job().salary * RANK_SALARY_MULT[this.data.path.rank]); },
 
   luck() {
-    return this.data.luckItems.reduce((sum, id) => sum + (LUCK_ITEMS[id] ? LUCK_ITEMS[id].luck : 0), 0);
+    const fromItems = this.data.luckItems.reduce((sum, id) => sum + (LUCK_ITEMS[id] ? LUCK_ITEMS[id].luck : 0), 0);
+    return fromItems + (this.data.bonusLuck || 0);
   },
 
   // Earnings at your job push you up the career ladder.

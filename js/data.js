@@ -225,6 +225,18 @@ const LUCK_ITEMS = {
   star:      { name: 'Shooting Star',      emoji: '🌟', cost: 200e9, luck: 2500 },
 };
 
+// ------------------------------------------------------------
+// SHOP — POTIONS. Cheap ($1K–$10K) gambles with a RANDOM effect:
+// luck, cash, a jackpot, a new job offer, a dud... or death! The
+// pricier the potion, the bigger the rewards (and the risk).
+// ASHER: change a name, emoji or cost and reload.
+// ------------------------------------------------------------
+const POTIONS = {
+  mystery:  { name: 'Mystery Potion', emoji: '🧪', cost: 1000,  tier: 0 },
+  fizzy:    { name: 'Fizzy Potion',   emoji: '⚗️', cost: 5000,  tier: 1 },
+  bubbling: { name: 'Bubbling Brew',  emoji: '🧫', cost: 10000, tier: 2 },
+};
+
 // SHOP — APPLICATIONS section
 const SHOP_EXTRAS = {
   avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 6e6,   blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
