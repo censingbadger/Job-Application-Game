@@ -565,6 +565,11 @@ u { text-decoration-thickness: 3px; }
 .shop-blurb { font-size: 13px; color: var(--pencil); flex: 1; }
 .shop-stock { font-size: 11px; color: var(--pencil); letter-spacing: .3px; }
 .lucky-complete { grid-column: 1 / -1; background: var(--money-light); }
+.shop-note { font-size: 12px; color: var(--pencil); margin: -2px 0 8px; }
+.potion-item .shop-emoji { animation: potion-bob 2.4s ease-in-out infinite; }
+.potion-glug { font-size: 72px; text-align: center; animation: potion-bob 1.6s ease-in-out infinite; }
+.potion-reveal { text-align: center; }
+@keyframes potion-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
 
 .owned-badge {
   border: 2.5px solid var(--money);
