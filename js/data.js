@@ -92,17 +92,17 @@ const RANK_POWER_BONUS = [0, 15, 35, 70];        // extra power at each rank
 // and better chest loot more likely.
 // ------------------------------------------------------------
 const LUCK_ITEMS = {
-  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 500e3, luck: 25 },
-  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 1.5e6, luck: 60 },
-  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 100e6, luck: 200 },
-  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 1e9,   luck: 1000 },
+  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
+  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
+  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
+  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
 };
 
 // SHOP — APPLICATIONS section
 const SHOP_EXTRAS = {
-  avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 700e3, blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
-  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 40e6,  blurb: 'Wealth, a lucky item, or a rare job offer.' },
-  anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 10e6,  blurb: 'Could be ANYTHING.' },
-  frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 100e6, blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
-  mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 300e9, blurb: 'The rarest chest ever made.' },
+  avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 6e6,   blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
+  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
+  anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 120e6, blurb: 'Could be ANYTHING.' },
+  frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 2e9,   blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
+  mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 3e12, blurb: 'The rarest chest ever made.' },
 };

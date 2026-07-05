@@ -1243,19 +1243,19 @@ const RANK_POWER_BONUS = [0, 15, 35, 70];        // extra power at each rank
 // and better chest loot more likely.
 // ------------------------------------------------------------
 const LUCK_ITEMS = {
-  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 500e3, luck: 25 },
-  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 1.5e6, luck: 60 },
-  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 100e6, luck: 200 },
-  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 1e9,   luck: 1000 },
+  clover:  { name: 'Clover in a Jar',    emoji: '🍀', cost: 3e6,   luck: 25 },
+  goblet:  { name: 'Enchanted Goblet',   emoji: '🏆', cost: 25e6,  luck: 60 },
+  paste:   { name: 'Jingfish Paste',     emoji: '🧴', cost: 750e6, luck: 200 },
+  crystal: { name: 'Jingathyst Crystal', emoji: '💎', cost: 30e9,  luck: 1000 },
 };
 
 // SHOP — APPLICATIONS section
 const SHOP_EXTRAS = {
-  avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 700e3, blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
-  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 40e6,  blurb: 'Wealth, a lucky item, or a rare job offer.' },
-  anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 10e6,  blurb: 'Could be ANYTHING.' },
-  frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 100e6, blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
-  mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 300e9, blurb: 'The rarest chest ever made.' },
+  avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 6e6,   blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
+  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
+  anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 120e6, blurb: 'Could be ANYTHING.' },
+  frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 2e9,   blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
+  mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 3e12, blurb: 'The rarest chest ever made.' },
 };
 
 ;
@@ -2947,109 +2947,116 @@ GAMES.chef = defineShift({
 
 ;
 /* ============================================================
-   MINER ⛏️ — CATCH FALLING STUFF.
-   Slide your cart to catch gems and ore. Dodge the falling
-   rocks — and when the "Cave-in!" hits, tap fast to dodge.
+   MINER ⛏️ — PERFECT TIMING (pickaxe swings).
+   A marker sweeps across the rock. Tap to swing your pickaxe
+   when it's in the GREEN vein to crack the rock for gems.
+   The sweet spot gets narrower and faster as you rank up.
    ============================================================ */
 
-const MINER_GEMS = [
-  { emoji: '🪨', worth: 0,    rock: true, r: 26 },
-  { emoji: '🟤', worth: 0.4,  r: 20 },   // ore
-  { emoji: '💎', worth: 1,    r: 22 },   // diamond
-  { emoji: '💚', worth: 1.6,  r: 22 },   // emerald
-  { emoji: '💛', worth: 2.4,  r: 22 },   // gold gem
-];
+function minerNewRock(g) {
+  const w = Math.max(0.1, 0.24 / g.diff);          // narrower vein at higher ranks
+  const lo = 0.08 + Math.random() * (0.84 - w);
+  g.rock = { hp: 3, maxhp: 3, value: 1 + Math.random() * 1.4, lo, hi: lo + w };
+}
+
+function minerSwing(g) {
+  const m = g.marker, rk = g.rock;
+  g.spark = 0.18; g.hitFlash = 0.16;
+  if (m >= rk.lo && m <= rk.hi) { rk.hp -= 2; g.lastHit = 'CRACK!'; Sound.zap(); }
+  else if (m >= rk.lo - 0.07 && m <= rk.hi + 0.07) { rk.hp -= 1; g.lastHit = 'hit'; Sound.ding(); }
+  else { g.lastHit = 'miss'; Sound.thud(); }
+  g.hitText = 0.5;
+  if (rk.hp <= 0) {
+    const gems = 2 + Math.floor(Math.random() * 3);
+    g.earn(g.unit * rk.value * gems);
+    g.broken++; g.burst = 0.5; g.burstX = GW / 2; g.burstY = 250;
+    Sound.coin();
+    minerNewRock(g);
+  }
+}
 
 GAMES.miner = defineShift({
-  hint: 'Slide the <b>cart</b> (move your finger/mouse, or ← →) to catch gems. Dodge the falling <b>rocks</b>! 🪨',
+  hint: 'Tap (or press <b>space</b>) to <b>swing your pickaxe</b> when the marker is in the <b>green vein</b>! Crack rocks for gems. ⛏️',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.cart = { x: GW / 2, target: GW / 2, w: 150 };
-    g.items = [];
-    g.spawnEvery = 0.85 / g.diff;      // faster spawns as you rank up
-    g.spawnT = 0;
-    g.fall = 150 + g.rank * 45;        // faster falls as you rank up
-    g.unit = Math.max(2, Math.floor(State.salary() / 16));
-    g.gems = 0;
-    g.stun = 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 8));
+    g.broken = 0;
+    g.marker = 0; g.dir = 1;
+    g.sweep = 0.85 * g.diff;      // sweeps faster as you rank up
+    g.spark = 0; g.hitFlash = 0; g.hitText = 0; g.burst = 0; g.lastHit = '';
+    minerNewRock(g);
   },
 
-  move(g, x) { g.cart.target = Math.max(g.cart.w / 2, Math.min(GW - g.cart.w / 2, x)); },
-  key(g, e) {
-    if (e.code === 'ArrowLeft') g.cart.target = Math.max(g.cart.w / 2, g.cart.target - 60);
-    if (e.code === 'ArrowRight') g.cart.target = Math.min(GW - g.cart.w / 2, g.cart.target + 60);
-  },
+  pointer(g) { minerSwing(g); },
+  key(g, e) { if (e.code === 'Space') { e.preventDefault(); minerSwing(g); } },
 
   update(g, dt) {
-    // cart eases toward where you point
-    g.cart.x += (g.cart.target - g.cart.x) * Math.min(1, dt * 14);
-    if (g.stun > 0) g.stun -= dt;
-
-    // spawn
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      // more rocks at higher fatality/rank
-      const rockChance = 0.28 + g.rank * 0.05;
-      const kind = Math.random() < rockChance
-        ? MINER_GEMS[0]
-        : MINER_GEMS[1 + Math.floor(Math.random() * (MINER_GEMS.length - 1))];
-      g.items.push({ ...kind, x: 40 + Math.random() * (GW - 80), y: -30, vy: g.fall * (0.85 + Math.random() * 0.5), spin: 0 });
-    }
-
-    const catchY = GH - 96;
-    for (let i = g.items.length - 1; i >= 0; i--) {
-      const it = g.items[i];
-      it.y += it.vy * dt;
-      it.spin += dt * 3;
-      // caught?
-      if (it.y >= catchY && it.y <= catchY + 46 && Math.abs(it.x - g.cart.x) < g.cart.w / 2) {
-        if (it.rock) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('Ouch! A rock!', '🪨'); }
-        else { g.earn(g.unit * it.worth); g.gems++; Sound.coin(); }
-        g.items.splice(i, 1);
-        continue;
-      }
-      if (it.y > GH + 40) g.items.splice(i, 1);
-    }
+    g.marker += g.dir * g.sweep * dt;
+    if (g.marker > 1) { g.marker = 1; g.dir = -1; }
+    if (g.marker < 0) { g.marker = 0; g.dir = 1; }
+    if (g.spark > 0) g.spark -= dt;
+    if (g.hitFlash > 0) g.hitFlash -= dt;
+    if (g.hitText > 0) g.hitText -= dt;
+    if (g.burst > 0) g.burst -= dt;
   },
 
   draw(g, t) {
     const ctx = g.ctx;
     // cave
     ctx.fillStyle = '#3a2f28'; ctx.fillRect(0, 0, GW, GH);
-    ctx.fillStyle = '#4a3d33';
-    for (let i = 0; i < 8; i++) { const x = (i * 137 + 40) % GW; Draw.emoji(ctx, '⬤', x, 40 + (i % 3) * 30, 26); }
-    ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, GW, 60); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#332a23';
+    for (let i = 0; i < 10; i++) { const x = (i * 149 + 30) % GW; Draw.emoji(ctx, '⬤', x, 30 + (i % 3) * 24, 22); }
     Draw.bigText(ctx, '⛏️ THE MINE', GW / 2, 40, 30, '#e8b830');
 
-    // falling items
-    g.items.forEach(it => {
-      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(it.spin) * 0.3);
-      Draw.emoji(ctx, it.emoji, 0, 0, it.r * 2);
-      ctx.restore();
-    });
-
-    // the cart
-    const cx = g.cart.x, cy = GH - 70, w = g.cart.w;
-    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
-    ctx.fillStyle = '#8a5a3a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    const cx = GW / 2, cy = 250, rk = g.rock;
+    // the rock
+    const shake = g.hitFlash > 0 ? Math.sin(t * 80) * 5 : 0;
+    ctx.save(); ctx.translate(cx + shake, cy);
+    ctx.fillStyle = g.hitFlash > 0 ? '#8a7a5a' : '#6b6257';
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(cx - w / 2, cy);
-    ctx.lineTo(cx + w / 2, cy);
-    ctx.lineTo(cx + w / 2 - 18, cy + 46);
-    ctx.lineTo(cx - w / 2 + 18, cy + 46);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // slats
-    for (let i = 1; i < 4; i++) { const x = cx - w / 2 + (w / 4) * i; ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, cy + 46); ctx.stroke(); }
-    // wheels
-    ctx.fillStyle = '#2b2b33';
-    ctx.beginPath(); ctx.arc(cx - w / 3, cy + 50, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + w / 3, cy + 50, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.moveTo(-110, -20); ctx.lineTo(-70, -80); ctx.lineTo(30, -92);
+    ctx.lineTo(108, -40); ctx.lineTo(96, 60); ctx.lineTo(10, 92);
+    ctx.lineTo(-84, 66); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // cracks appear as hp drops
+    ctx.lineWidth = 3; ctx.strokeStyle = '#2b2b33';
+    const cracks = rk.maxhp - rk.hp;
+    if (cracks >= 1) { ctx.beginPath(); ctx.moveTo(-40, -60); ctx.lineTo(0, 0); ctx.lineTo(-20, 60); ctx.stroke(); }
+    if (cracks >= 2) { ctx.beginPath(); ctx.moveTo(60, -50); ctx.lineTo(0, 0); ctx.lineTo(50, 50); ctx.stroke(); }
+    // a glint of gems inside
+    Draw.emoji(ctx, '💎', 20, -10, 26);
+    ctx.restore();
 
-    Draw.bigText(ctx, `Gems: ${g.gems}`, GW / 2, GH - 18, 22, '#e8b830');
+    // gem burst on break
+    if (g.burst > 0) {
+      const p = 1 - g.burst / 0.5;
+      ['💰', '💎', '💛', '💚'].forEach((e, i) => {
+        const a = (Math.PI / 2) + i * 1.4;
+        Draw.emoji(ctx, e, cx + Math.cos(a) * p * 130, cy - Math.sin(a) * p * 90, 30);
+      });
+    }
+
+    // hit word
+    if (g.hitText > 0) {
+      const col = g.lastHit === 'CRACK!' ? '#2f7d3f' : (g.lastHit === 'miss' ? '#d9534f' : '#9a7714');
+      Draw.bigText(ctx, g.lastHit, cx, cy - 120, 30, col);
+    }
+
+    // the strike bar
+    const bx = cx - 230, bw = 460, by = 400;
+    Draw.panel(ctx, bx, by, bw, 30, '#2b2b33');
+    // green vein
+    ctx.fillStyle = '#3fa555'; ctx.fillRect(bx + bw * rk.lo, by, bw * (rk.hi - rk.lo), 30);
+    ctx.strokeStyle = '#cdeccf'; ctx.lineWidth = 2; ctx.strokeRect(bx + bw * rk.lo, by, bw * (rk.hi - rk.lo), 30);
+    // sweeping marker (the pickaxe)
+    const mx = bx + bw * g.marker;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(mx, by - 8); ctx.lineTo(mx, by + 38); ctx.stroke();
+    Draw.emoji(ctx, '⛏️', mx, by - 30, 40 * (g.spark > 0 ? 1.3 : 1));
+
+    Draw.bigText(ctx, `Rocks cracked: ${g.broken}`, GW / 2, GH - 20, 22, '#e8b830');
   },
 });
 
@@ -3244,6 +3251,474 @@ GAMES.soldier = defineShift({
     ctx.moveTo(a.x, a.y - 30); ctx.lineTo(a.x, a.y - 8); ctx.moveTo(a.x, a.y + 8); ctx.lineTo(a.x, a.y + 30); ctx.stroke();
 
     Draw.bigText(ctx, `Targets hit: ${g.hits}`, GW / 2, GH - 16, 22, '#5a5320');
+  },
+});
+
+;
+/* ============================================================
+   PEASANT 🌾 — CATCH FALLING STUFF.
+   Move your basket to catch the falling crops. Catch a runaway
+   goat by mistake and it knocks your basket over!
+   ============================================================ */
+
+const PEASANT_CROPS = [
+  { emoji: '🌾', worth: 0.8, r: 20 },
+  { emoji: '🥕', worth: 1.0, r: 20 },
+  { emoji: '🌽', worth: 1.3, r: 22 },
+  { emoji: '🍅', worth: 1.1, r: 20 },
+  { emoji: '🥔', worth: 0.9, r: 20 },
+  { emoji: '🍎', worth: 1.5, r: 22 },
+];
+
+GAMES.peasant = defineShift({
+  hint: 'Move your <b>basket</b> (finger/mouse, or ← →) to catch the falling crops. Dodge the runaway <b>goat</b>! 🐐',
+  duration: r => 44 + r * 6,
+
+  init(g) {
+    g.basket = { x: GW / 2, target: GW / 2, w: 150 };
+    g.items = [];
+    g.spawnEvery = 0.8 / g.diff;
+    g.spawnT = 0;
+    g.fall = 135 + g.rank * 40;
+    g.unit = Math.max(2, Math.floor(State.salary() / 5));
+    g.caught = 0; g.stun = 0;
+  },
+
+  move(g, x) { g.basket.target = Math.max(g.basket.w / 2, Math.min(GW - g.basket.w / 2, x)); },
+  key(g, e) {
+    if (e.code === 'ArrowLeft') g.basket.target = Math.max(g.basket.w / 2, g.basket.target - 60);
+    if (e.code === 'ArrowRight') g.basket.target = Math.min(GW - g.basket.w / 2, g.basket.target + 60);
+  },
+
+  update(g, dt) {
+    g.basket.x += (g.basket.target - g.basket.x) * Math.min(1, dt * 14);
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const goat = Math.random() < (0.18 + g.rank * 0.04);
+      const kind = goat ? { emoji: '🐐', worth: 0, goat: true, r: 26 } : PEASANT_CROPS[Math.floor(Math.random() * PEASANT_CROPS.length)];
+      g.items.push({ ...kind, x: 40 + Math.random() * (GW - 80), y: -30, vy: g.fall * (0.85 + Math.random() * 0.5), spin: 0 });
+    }
+    const catchY = GH - 96;
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i];
+      it.y += it.vy * dt; it.spin += dt * 2;
+      if (it.y >= catchY && it.y <= catchY + 48 && Math.abs(it.x - g.basket.x) < g.basket.w / 2) {
+        if (it.goat) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('The goat knocked your basket!', '🐐'); }
+        else { g.earn(g.unit * it.worth); g.caught++; Sound.coin(); }
+        g.items.splice(i, 1); continue;
+      }
+      if (it.y > GH + 40) g.items.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // sky + sun
+    ctx.fillStyle = '#cdeaf6'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#f7d774'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(GW - 90, 70, 34, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // field
+    ctx.fillStyle = '#8fca6e'; ctx.fillRect(0, GH - 130, GW, 130);
+    ctx.strokeStyle = '#2b2b33'; ctx.beginPath(); ctx.moveTo(0, GH - 130); ctx.lineTo(GW, GH - 130); ctx.stroke();
+    ctx.strokeStyle = 'rgba(43,43,51,.15)'; ctx.lineWidth = 2;
+    for (let x = 0; x < GW; x += 46) { ctx.beginPath(); ctx.moveTo(x, GH - 120); ctx.lineTo(x + 20, GH); ctx.stroke(); }
+    Draw.bigText(ctx, '🌾 HARVEST TIME', GW / 2, 40, 30, '#4a7a2f');
+
+    // falling items
+    g.items.forEach(it => {
+      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(it.spin) * 0.3);
+      Draw.emoji(ctx, it.emoji, 0, 0, it.r * 2); ctx.restore();
+    });
+
+    // basket
+    const cx = g.basket.x, cy = GH - 92, w = g.basket.w;
+    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    ctx.fillStyle = '#c98a5b'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2, cy); ctx.lineTo(cx + w / 2, cy);
+    ctx.lineTo(cx + w / 2 - 20, cy + 50); ctx.lineTo(cx - w / 2 + 20, cy + 50);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // woven lines
+    for (let i = 1; i < 5; i++) { const x = cx - w / 2 + (w / 5) * i; ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x - 4, cy + 50); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(cx - w / 2 + 6, cy + 18); ctx.lineTo(cx + w / 2 - 6, cy + 18); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Crops: ${g.caught}`, GW / 2, GH - 16, 22, '#3a5a1f');
+  },
+});
+
+;
+/* ============================================================
+   BEEKEEPER 🐝 — CATCH FALLING STUFF (with a sting).
+   Catch the dripping honeycombs in your jar. The bees drift
+   sideways as they fall — catch one and you get stung!
+   ============================================================ */
+
+GAMES.beekeeper = defineShift({
+  hint: 'Catch the dripping <b>honeycombs</b> 🍯 in your jar (finger/mouse, or ← →). Dodge the wandering <b>bees</b> 🐝 — they sting!',
+  duration: r => 44 + r * 6,
+
+  init(g) {
+    g.jar = { x: GW / 2, target: GW / 2, w: 140 };
+    g.items = [];
+    g.spawnEvery = 0.8 / g.diff;
+    g.spawnT = 0;
+    g.fall = 120 + g.rank * 38;
+    g.unit = Math.max(2, Math.floor(State.salary() / 9));
+    g.honey = 0; g.stun = 0;
+  },
+
+  move(g, x) { g.jar.target = Math.max(g.jar.w / 2, Math.min(GW - g.jar.w / 2, x)); },
+  key(g, e) {
+    if (e.code === 'ArrowLeft') g.jar.target = Math.max(g.jar.w / 2, g.jar.target - 60);
+    if (e.code === 'ArrowRight') g.jar.target = Math.min(GW - g.jar.w / 2, g.jar.target + 60);
+  },
+
+  update(g, dt) {
+    g.jar.x += (g.jar.target - g.jar.x) * Math.min(1, dt * 14);
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const bee = Math.random() < (0.32 + g.rank * 0.04);
+      g.items.push({
+        bee, emoji: bee ? '🐝' : '🍯', worth: bee ? 0 : (0.9 + Math.random() * 0.8), r: bee ? 22 : 22,
+        x: 40 + Math.random() * (GW - 80), y: -30,
+        vy: g.fall * (0.85 + Math.random() * 0.5),
+        vx: bee ? (Math.random() < 0.5 ? -1 : 1) * (60 + g.rank * 30) : 0, wob: Math.random() * 6,
+      });
+    }
+    const catchY = GH - 92;
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i];
+      it.y += it.vy * dt;
+      if (it.bee) { it.x += it.vx * dt; if (it.x < 30 || it.x > GW - 30) it.vx *= -1; }
+      if (it.y >= catchY && it.y <= catchY + 46 && Math.abs(it.x - g.jar.x) < g.jar.w / 2) {
+        if (it.bee) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('Ouch! A bee sting!', '🐝'); }
+        else { g.earn(g.unit * it.worth); g.honey++; Sound.coin(); }
+        g.items.splice(i, 1); continue;
+      }
+      if (it.y > GH + 40) g.items.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#f6e7b8'; ctx.fillRect(0, 0, GW, GH);
+    // honeycomb wall pattern
+    ctx.strokeStyle = 'rgba(200,150,40,.25)'; ctx.lineWidth = 2;
+    for (let y = 20; y < GH; y += 46) {
+      for (let x = 20; x < GW; x += 52) {
+        const ox = (Math.floor(y / 46) % 2) * 26;
+        ctx.beginPath();
+        for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k - Math.PI / 6; const px = x + ox + Math.cos(a) * 16, py = y + Math.sin(a) * 16; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+        ctx.closePath(); ctx.stroke();
+      }
+    }
+    Draw.bigText(ctx, '🐝 THE APIARY', GW / 2, 40, 30, '#a5771a');
+
+    g.items.forEach(it => {
+      ctx.save(); ctx.translate(it.x, it.y);
+      if (it.bee) ctx.rotate(Math.sin(t * 10 + it.wob) * 0.3);
+      Draw.emoji(ctx, it.emoji, 0, 0, it.r * 2); ctx.restore();
+    });
+
+    // jar
+    const cx = g.jar.x, cy = GH - 88, w = g.jar.w;
+    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    ctx.fillStyle = 'rgba(255,220,120,.75)'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2, cy); ctx.lineTo(cx + w / 2, cy);
+    ctx.lineTo(cx + w / 2 - 10, cy + 52); ctx.lineTo(cx - w / 2 + 10, cy + 52);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // jar rim
+    ctx.fillStyle = '#e8b830'; ctx.fillRect(cx - w / 2 - 6, cy - 12, w + 12, 14);
+    ctx.strokeRect(cx - w / 2 - 6, cy - 12, w + 12, 14);
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Honey: ${g.honey}`, GW / 2, GH - 14, 22, '#8a6410');
+  },
+});
+
+;
+/* ============================================================
+   NOMAD 🐪 — DODGE & SURVIVE (desert runner).
+   Tap (or space / ↑) to JUMP over cacti and grab floating
+   water. Keep crossing the desert — mind the sandstorm!
+   ============================================================ */
+
+function nomadJump(g) {
+  if (g.onGround) { g.vy = -760; g.onGround = false; Sound.ding(); }
+}
+
+GAMES.nomad = defineShift({
+  hint: 'Tap (or <b>space</b> / ↑) to <b>jump</b> over cacti 🌵 and grab floating water 💧. Keep crossing the desert!',
+  duration: r => 44 + r * 6,
+
+  init(g) {
+    g.ground = GH - 120;
+    g.px = 170; g.py = g.ground; g.vy = 0; g.onGround = true;
+    g.things = [];
+    g.spawnEvery = 1.05 / g.diff;
+    g.spawnT = 0.7;
+    g.speed = 280 + g.rank * 70;
+    g.unit = Math.max(2, Math.floor(State.salary() / 6));
+    g.got = 0; g.stun = 0; g.dist = 0;
+  },
+
+  pointer(g) { nomadJump(g); },
+  key(g, e) { if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); nomadJump(g); } },
+
+  update(g, dt) {
+    g.dist += dt;
+    g.vy += 2000 * dt; g.py += g.vy * dt;
+    if (g.py >= g.ground) { g.py = g.ground; g.vy = 0; g.onGround = true; }
+    if (g.stun > 0) g.stun -= dt;
+
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const water = Math.random() < 0.42;
+      g.things.push(water
+        ? { type: 'water', emoji: '💧', x: GW + 40, y: g.ground - 70 - Math.random() * 80, r: 22 }
+        : { type: 'cactus', emoji: '🌵', x: GW + 40, y: g.ground, r: 26 });
+    }
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const th = g.things[i];
+      th.x -= g.speed * dt;
+      if (Math.abs(th.x - g.px) < 42 && Math.abs(th.y - g.py) < 46) {
+        if (th.type === 'water') { g.earn(g.unit); g.got++; Sound.coin(); g.things.splice(i, 1); continue; }
+        else if (g.stun <= 0) { g.stun = 0.6; g.flash('#d9534f'); Sound.thud(); UI.toast('Ouch! A cactus!', '🌵'); }
+      }
+      if (th.x < -50) g.things.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // desert sky
+    const sky = ctx.createLinearGradient(0, 0, 0, GH);
+    sky.addColorStop(0, '#f8d9a0'); sky.addColorStop(1, '#f6ead0');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#f6b45e'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(140, 90, 40, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // dunes
+    ctx.fillStyle = '#e9c079';
+    ctx.beginPath(); ctx.moveTo(0, g.ground);
+    for (let x = 0; x <= GW; x += 60) ctx.lineTo(x, g.ground - 20 - Math.sin((x + g.dist * 40) / 120) * 16);
+    ctx.lineTo(GW, GH); ctx.lineTo(0, GH); ctx.closePath(); ctx.fill();
+    // ground line
+    ctx.fillStyle = '#d9a95a'; ctx.fillRect(0, g.ground + 20, GW, GH - g.ground - 20);
+    ctx.strokeStyle = '#2b2b33'; ctx.beginPath(); ctx.moveTo(0, g.ground + 20); ctx.lineTo(GW, g.ground + 20); ctx.stroke();
+    Draw.bigText(ctx, '🐪 DESERT CROSSING', GW / 2, 40, 28, '#9a6a1f');
+
+    // obstacles & water
+    g.things.forEach(th => Draw.emoji(ctx, th.emoji, th.x, th.y, th.r * 2));
+
+    // the nomad on a camel
+    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    const bounce = g.onGround ? Math.sin(t * 12) * 3 : 0;
+    Draw.emoji(ctx, '🐪', g.px, g.py + bounce, 60);
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Water jugs: ${g.got}`, GW / 2, GH - 14, 22, '#9a6a1f');
+  },
+});
+
+;
+/* ============================================================
+   TEACHER 📚 — PERFECT TIMING (pop quiz!).
+   Tap the correct answer before the timer runs out. The maths
+   gets harder (and the clock faster) as you rank up.
+   ============================================================ */
+
+function teacherNewQuestion(g) {
+  const r = g.rank, roll = Math.random();
+  let a, b, op, ans;
+  if (r === 0) {
+    if (roll < 0.6) { a = 2 + (Math.random() * 12 | 0); b = 1 + (Math.random() * 10 | 0); op = '+'; ans = a + b; }
+    else { a = 6 + (Math.random() * 14 | 0); b = 1 + (Math.random() * a | 0); op = '−'; ans = a - b; }
+  } else if (r === 1) {
+    if (roll < 0.4) { a = 10 + (Math.random() * 30 | 0); b = 5 + (Math.random() * 25 | 0); op = '+'; ans = a + b; }
+    else if (roll < 0.7) { a = 20 + (Math.random() * 30 | 0); b = 1 + (Math.random() * 20 | 0); op = '−'; ans = a - b; }
+    else { a = 2 + (Math.random() * 5 | 0); b = 2 + (Math.random() * 6 | 0); op = '×'; ans = a * b; }
+  } else {
+    if (roll < 0.5) { a = 2 + (Math.random() * 11 | 0); b = 2 + (Math.random() * 11 | 0); op = '×'; ans = a * b; }
+    else if (roll < 0.75) { a = 30 + (Math.random() * 70 | 0); b = 10 + (Math.random() * 50 | 0); op = '+'; ans = a + b; }
+    else { a = 40 + (Math.random() * 60 | 0); b = 1 + (Math.random() * 39 | 0); op = '−'; ans = a - b; }
+  }
+  g.q = `${a} ${op} ${b} = ?`;
+
+  const opts = new Set([ans]);
+  let guard = 0;
+  while (opts.size < 4 && guard++ < 40) {
+    let d = ans + ((Math.random() * 9 | 0) - 4);
+    if (d < 0) d = ans + 1 + (Math.random() * 5 | 0);
+    opts.add(d);
+  }
+  const arr = [...opts];
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [arr[i], arr[j]] = [arr[j], arr[i]]; }
+
+  const bw = 250, bh = 78, gapx = 40, gapy = 26;
+  const gx = (GW - bw * 2 - gapx) / 2, gy = 250;
+  g.answers = arr.map((val, i) => ({
+    val, correct: val === ans,
+    x: gx + (i % 2) * (bw + gapx), y: gy + (i / 2 | 0) * (bh + gapy), w: bw, h: bh,
+  }));
+  g.qLeft = g.qTime;
+}
+
+function teacherPick(g, i) {
+  const a = g.answers[i];
+  if (!a) return;
+  if (a.correct) { g.earn(g.unit); g.right++; g.flash('#cdeccf'); Sound.coin(); }
+  else { g.wrong++; g.flash('#d9534f'); Sound.thud(); }
+  teacherNewQuestion(g);
+}
+
+GAMES.teacher = defineShift({
+  hint: 'Tap the <b>correct answer</b> before the timer runs out. Ace the pop quiz! 📚',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 6));
+    g.right = 0; g.wrong = 0;
+    g.qTime = Math.max(2.2, 4.2 - g.rank * 0.55);
+    teacherNewQuestion(g);
+  },
+
+  pointer(g, x, y) {
+    g.answers.forEach((a, i) => { if (x >= a.x && x <= a.x + a.w && y >= a.y && y <= a.y + a.h) teacherPick(g, i); });
+  },
+
+  update(g, dt) {
+    g.qLeft -= dt;
+    if (g.qLeft <= 0) { g.wrong++; g.flash('#d9534f'); Sound.thud(); teacherNewQuestion(g); }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // chalkboard
+    ctx.fillStyle = '#2f4a3a'; ctx.fillRect(0, 0, GW, GH);
+    ctx.strokeStyle = '#c98a5b'; ctx.lineWidth = 14; ctx.strokeRect(7, 7, GW - 14, GH - 14);
+    Draw.bigText(ctx, '📚 POP QUIZ!', GW / 2, 60, 30, '#f6ead0');
+
+    // question
+    ctx.font = 'bold 64px "Trebuchet MS", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fffdf6'; ctx.fillText(g.q, GW / 2, 150);
+
+    // timer bar
+    const bw = 460, bx = (GW - bw) / 2;
+    Draw.panel(ctx, bx, 196, bw, 16, '#1e2f26');
+    ctx.fillStyle = g.qLeft < g.qTime * 0.3 ? '#d9534f' : '#e8b830';
+    ctx.fillRect(bx, 196, bw * Math.max(0, g.qLeft / g.qTime), 16);
+    ctx.strokeStyle = '#fffdf6'; ctx.lineWidth = 2; ctx.strokeRect(bx, 196, bw, 16);
+
+    // answer buttons
+    g.answers.forEach(a => {
+      ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.rect(a.x, a.y, a.w, a.h); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2b2b33'; ctx.font = 'bold 40px "Trebuchet MS", sans-serif';
+      ctx.fillText(String(a.val), a.x + a.w / 2, a.y + a.h / 2);
+    });
+
+    Draw.bigText(ctx, `Correct: ${g.right}   Wrong: ${g.wrong}`, GW / 2, GH - 40, 22, '#f6ead0');
+  },
+});
+
+;
+/* ============================================================
+   CRIMINAL 🕶️ — AIM & GRAB (a heist!).
+   Grab the loot when the eye is GREEN. When it flashes RED,
+   FREEZE — tap during red and the alarm catches you!
+   ============================================================ */
+
+const CRIMINAL_LOOT = [
+  { emoji: '💰', worth: 1.0 },
+  { emoji: '💎', worth: 1.6 },
+  { emoji: '💍', worth: 2.0 },
+  { emoji: '👑', worth: 3.0 },
+  { emoji: '🏆', worth: 2.4 },
+];
+
+GAMES.criminal = defineShift({
+  hint: 'Grab loot when the eye is <b style="color:#3fa555">GREEN</b>. When it goes <b style="color:#d9534f">RED</b>, <b>FREEZE</b> — tapping then sets off the alarm! 🚨',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.loot = [];
+    g.spawnEvery = 0.8 / g.diff;
+    g.spawnT = 0.3;
+    g.life = Math.max(0.9, 1.9 - g.rank * 0.28);
+    g.unit = Math.max(2, Math.floor(State.salary() / 12));
+    g.grabbed = 0;
+    g.alarm = false;
+    g.alarmT = 1.8 + Math.random();
+    g.stun = 0;
+  },
+
+  pointer(g, x, y) {
+    if (g.alarm) { g.stun = 0.7; g.flash('#d9534f'); Sound.thud(); UI.toast('The alarm! Caught red-handed!', '🚨'); return; }
+    for (let i = g.loot.length - 1; i >= 0; i--) {
+      const L = g.loot[i];
+      if (Math.hypot(L.x - x, L.y - y) <= L.r) {
+        g.earn(g.unit * L.worth); g.grabbed++; g.loot.splice(i, 1); Sound.coin(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.stun > 0) g.stun -= dt;
+    g.alarmT -= dt;
+    if (g.alarmT <= 0) {
+      g.alarm = !g.alarm;
+      g.alarmT = g.alarm ? (0.7 + Math.random() * 0.6) : (1.1 + Math.random() * 1.4 / g.diff);
+      if (g.alarm) Sound.zap();
+    }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const k = CRIMINAL_LOOT[Math.random() * CRIMINAL_LOOT.length | 0];
+      g.loot.push({ emoji: k.emoji, worth: k.worth, x: 90 + Math.random() * (GW - 180), y: 150 + Math.random() * (GH - 290), r: 36, born: 0, life: g.life });
+    }
+    for (let i = g.loot.length - 1; i >= 0; i--) {
+      const L = g.loot[i]; L.born += dt; L.life -= dt;
+      if (L.life <= 0) g.loot.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // vault room
+    ctx.fillStyle = g.alarm ? '#3a2630' : '#26303a'; ctx.fillRect(0, 0, GW, GH);
+    ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 2;
+    for (let x = 0; x < GW; x += 54) { ctx.beginPath(); ctx.moveTo(x, 90); ctx.lineTo(x, GH); ctx.stroke(); }
+    for (let y = 90; y < GH; y += 54) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke(); }
+    Draw.bigText(ctx, '🕶️ THE HEIST', GW / 2, 40, 28, '#e8b830');
+
+    // the alarm eye
+    const ex = GW / 2, ey = 96;
+    ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(ex, ey, 58, 30, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = g.alarm ? '#d9534f' : '#3fa555';
+    ctx.beginPath(); ctx.arc(ex, ey, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (g.alarm && Math.sin(t * 20) > 0) { ctx.fillStyle = 'rgba(217,83,79,.25)'; ctx.fillRect(0, 0, GW, GH); }
+    Draw.bigText(ctx, g.alarm ? 'RED — FREEZE!' : 'GREEN — GRAB!', GW / 2, 150, 26, g.alarm ? '#d9534f' : '#3fa555');
+
+    // loot (pulsing)
+    g.loot.forEach(L => {
+      const pop = Math.min(1, L.born * 6);
+      const warn = L.life < 0.4;
+      Draw.emoji(ctx, L.emoji, L.x, L.y, L.r * 2 * pop * (warn && Math.sin(t * 20) > 0 ? 0.85 : 1));
+    });
+
+    // robber cursor hint
+    if (g.stun > 0) { ctx.fillStyle = 'rgba(217,83,79,.2)'; ctx.fillRect(0, 0, GW, GH); }
+
+    Draw.bigText(ctx, `Loot grabbed: ${g.grabbed}`, GW / 2, GH - 20, 22, '#e8b830');
   },
 });
 
@@ -3608,7 +4083,7 @@ PAGES.applications = {
     State.data.mythicalOwned = true;
     State.save();
     this.openChest('THE MYTHICAL CHEST', '🌈', () => {
-      const prize = 500e9 + Math.floor(Math.random() * 500e9);
+      const prize = 2e12 + Math.floor(Math.random() * 4e12);
       State.addWealth(prize);
       State.addOffer('king');
       const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
