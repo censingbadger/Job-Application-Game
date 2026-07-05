@@ -718,7 +718,25 @@ u { text-decoration-thickness: 3px; }
 
 .catch-banner.legendary .catch-word { color: #9a7714; }
 .catch-banner.epic .catch-word { color: #7a4fb0; }
+.catch-banner.divine .catch-word { color: #c0398a; }
 .catch-banner.stolen .catch-word { color: var(--danger); font-size: 44px; }
+
+/* the rarest tier: a shimmering rainbow "CATCH!" for the Black Diamond Jingfish */
+.catch-banner.transcendent .catch-word {
+  background: linear-gradient(90deg, #e74c3c, #e8b830, #3fa555, #1e7fbf, #8d5bd4, #e74c3c);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  text-shadow: none;
+  -webkit-text-stroke: 2.5px rgba(43, 43, 51, 0.7);
+  animation: rainbow-shift 2s linear infinite;
+}
+@keyframes rainbow-shift { to { background-position: 200% 0; } }
+
+.catch-banner.transcendent .fish-rarity {
+  color: #7c3aed;
+  border-image: linear-gradient(90deg, #e74c3c, #e8b830, #3fa555, #1e7fbf, #8d5bd4, #e74c3c) 1;
+}
 
 /* the rarity chip on a fish catch (common has none) */
 .fish-rarity {
