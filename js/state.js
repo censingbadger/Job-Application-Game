@@ -83,6 +83,8 @@ const Profiles = {
   // Sign out to the "Who's playing?" screen (keeps the character saved).
   signOut() {
     State.save();
+    const name = this.currentName();
+    if (name && State.data && Cloud.on()) Cloud.save(name, State.data);  // flush before leaving
     this.store.current = null;
     this._write();
     State.data = null;
@@ -102,7 +104,57 @@ const Profiles = {
       State.data.lastPlayed = Date.now();
       this.store.players[c].data = State.data;
       this._write();
+      Cloud.markDirty();     // schedule a background push to the cloud
     }
+  },
+
+  // Sign in AND check the cloud so a character saved on another device
+  // comes back. Returns { isNew, source: 'cloud' | 'local' }.
+  async signInAsync(name) {
+    const hadLocal = this.exists(name);          // real local progress under this name?
+    const { isNew } = this.signIn(name);         // instant local (creates if new)
+    let source = 'local';
+    if (Cloud.on()) {
+      Cloud.start();
+      const remote = await Cloud.load(name);
+      if (remote && remote.path) {
+        // A freshly-created local character isn't "real" progress, so always
+        // take the cloud copy; otherwise keep whichever was played more recently.
+        const remoteWins = !hadLocal || (remote.lastPlayed || 0) >= (State.data.lastPlayed || 0);
+        if (remoteWins) { this._adoptRemote(remote); source = 'cloud'; }
+        else { await Cloud.pushNow(); }
+      } else {
+        await Cloud.pushNow();                    // nothing in the cloud yet — seed it
+      }
+    }
+    return { isNew: isNew && source !== 'cloud', source };
+  },
+
+  // Replace the active character with one pulled from the cloud.
+  _adoptRemote(remote) {
+    const key = this.store.current;
+    const label = key && this.store.players[key] ? this.store.players[key].name : remote.name;
+    const merged = Object.assign(State.fresh(), remote);   // fill any fields the cloud dropped
+    merged.name = label;
+    if (!merged.path || !JOBS[merged.path.jobId]) merged.path = { jobId: 'fisherman', rank: 0, career: 0 };
+    if (key && this.store.players[key]) this.store.players[key].data = merged;
+    State.data = merged;
+    this._write();
+    State.ensureOffers();
+  },
+
+  // On a returning device, pull a newer cloud save if there is one.
+  // Compares against the timestamp as it was stored (not the freshly
+  // bumped one), so loading offers doesn't hide a newer cloud save.
+  async reconcileCurrent() {
+    if (!Cloud.on() || !State.data) return false;
+    const baseLP = this._loadedLP != null ? this._loadedLP : (State.data.lastPlayed || 0);
+    const remote = await Cloud.load(this.currentName());
+    if (remote && remote.path && (remote.lastPlayed || 0) >= baseLP) {
+      this._adoptRemote(remote);
+      return true;
+    }
+    return false;
   },
 
   // Move a pre-names save into the profile system (once), then remove it.
@@ -139,6 +191,10 @@ const State = {
     Profiles.init();
     this.data = Profiles.activeData();
     if (!this.data) return null;
+    // Remember when this save was last played BEFORE any housekeeping (like
+    // regenerating daily offers) bumps the timestamp — the cloud reconcile
+    // needs the real "as stored" value to compare against.
+    Profiles._loadedLP = this.data.lastPlayed || 0;
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     this.ensureOffers();
     return this.data;

@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 JS_FILES = [
     'js/data.js',
     'js/state.js',
+    'js/cloud.js',
     'js/ui.js',
     'js/games/engine.js',
     'js/games/fishing.js',
