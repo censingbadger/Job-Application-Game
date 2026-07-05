@@ -110,6 +110,45 @@ const RODS = [
 ];
 
 // ------------------------------------------------------------
+// GEAR — every NON-fishing job has better equipment you can buy
+// to earn more. Five tiers; each multiplies what you earn that
+// day. The tiers share one power/price curve (GEAR_TIERS); each
+// job just names its five tools. Cost scales with the job's
+// salary, so fancier jobs have fancier (pricier) gear.
+// (Fishing has its own thing — rods — see RODS above.)
+// ASHER: rename any tool or change the curve and reload!
+// ------------------------------------------------------------
+const GEAR_TIERS = [
+  { mult: 1,   costMult: 0 },     // your starting kit (free)
+  { mult: 1.6, costMult: 6 },     // cost = the job's salary × costMult
+  { mult: 2.4, costMult: 22 },
+  { mult: 3.6, costMult: 70 },
+  { mult: 5,   costMult: 220 },
+];
+
+const GEAR = {
+  peasant:      [['🖐️','Bare Hands'], ['🪓','Wooden Hoe'],    ['🌾','Iron Scythe'],    ['🐂','Ox & Plow'],      ['🚜','Steam Tractor']],
+  prisoner:     [['🖐️','Bare Hands'], ['🥄','Bent Spoon'],    ['🔪','Sharp Shiv'],     ['🔨','Rock Hammer'],    ['🗝️','Master Key']],
+  teacher:      [['🖐️','Chalk Stub'], ['🖊️','Red Pen'],       ['📗','Textbook'],       ['🖥️','Smartboard'],     ['🤖','AI Tutor']],
+  chef:         [['🔪','Rusty Knife'], ['🍳','Frying Pan'],    ['🔪','Chef’s Knife'],   ['🔥','Pro Range'],      ['⭐','Michelin Kit']],
+  nomad:        [['🦯','Walking Stick'],['🧴','Water Skin'],    ['🧭','Compass'],        ['🐪','Trusty Camel'],   ['🛺','Caravan']],
+  gamer:        [['💻','Office PC'],    ['🖱️','Gaming Mouse'],  ['⌨️','Mech Keyboard'],  ['🖥️','Gaming Rig'],     ['🕹️','Pro Setup']],
+  beekeeper:    [['🖐️','Bare Hands'],  ['🥽','Bee Veil'],      ['💨','Smoker'],         ['🥼','Bee Suit'],       ['🤖','Apiary Bots']],
+  soldier:      [['🪃','Slingshot'],    ['🔫','Pistol'],        ['🎖️','Rifle'],         ['🦺','Body Armor'],     ['🚙','Tank']],
+  criminal:     [['🗝️','Lockpick'],    ['🪛','Crowbar'],       ['🏍️','Getaway Bike'],  ['🏎️','Fast Car'],       ['💻','Hacker Kit']],
+  miner:        [['⛏️','Rusty Pick'],   ['⛏️','Iron Pick'],     ['🔩','Steel Drill'],    ['🧨','Dynamite'],       ['💎','Diamond Drill']],
+  bodyguard:    [['🖐️','Bare Fists'],   ['🌶️','Pepper Spray'], ['⚡','Taser'],          ['🦺','Kevlar Vest'],    ['🛡️','Riot Shield']],
+  engineer:     [['🪛','Screwdriver'],  ['🔧','Wrench Set'],    ['🔩','Power Drill'],    ['🖥️','CAD Station'],    ['🦾','Robot Arm']],
+  executioner:  [['🪓','Dull Axe'],      ['🪓','Sharp Axe'],     ['⚔️','Broadsword'],    ['🗡️','Great Axe'],      ['🔻','Guillotine']],
+  bountyhunter: [['🪢','Lasso'],         ['🔫','Revolver'],      ['🥅','Net Gun'],        ['🛸','Tracker Drone'],  ['🚀','Bounty Rig']],
+  dungeoneer:   [['🔦','Torch'],         ['🗡️','Short Sword'],   ['🛡️','Shield'],        ['⚔️','Enchanted Blade'],['🐉','Dragon Armor']],
+  deadshot:     [['🪃','Slingshot'],     ['🔫','Pistol'],        ['🎯','Sniper Rifle'],   ['🔴','Laser Sight'],    ['🚀','Rail Gun']],
+  jobapplicator:[['✏️','Pencil'],        ['🖊️','Nice Pen'],      ['📄','Résumé Kit'],     ['💼','Briefcase'],      ['🏆','Golden Stapler']],
+  frogkeeper:   [['🥅','Little Net'],    ['🪷','Lily Pad'],      ['🪟','Terrarium'],      ['🎵','Frog Whistle'],   ['🏅','Golden Pond']],
+  king:         [['👑','Wooden Crown'],  ['👑','Silver Crown'],  ['👑','Gold Crown'],     ['🔱','Jeweled Scepter'],['💎','Diamond Throne']],
+};
+
+// ------------------------------------------------------------
 // JOB RARITY — how often each rarity shows up in daily offers.
 // Luck makes the rarer ones more likely.
 // ------------------------------------------------------------

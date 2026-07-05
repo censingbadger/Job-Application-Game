@@ -624,10 +624,10 @@ u { text-decoration-thickness: 3px; }
 .collection-total { margin-top: 8px; font-size: 16px; }
 .collection-total b { color: #9a7714; }
 
-/* the fishing ROD card + upgrade */
-.rod-name { font-size: 18px; margin-bottom: 2px; }
-.rod-emoji { font-size: 22px; }
-.rod-buy { width: 100%; margin-top: 8px; font-size: 14px; }
+/* the fishing ROD card + the per-job GEAR card + upgrades */
+.rod-name, .gear-now { font-size: 18px; margin-bottom: 2px; }
+.rod-emoji, .gear-emoji { font-size: 22px; }
+.rod-buy, .gear-buy { width: 100%; margin-top: 8px; font-size: 14px; }
 .rod-hint { margin: 6px 0 0; font-size: 13px; text-align: center; }
 .rod-max {
   margin-top: 8px; text-align: center; font-family: var(--font-display);
@@ -1379,6 +1379,45 @@ const RODS = [
 ];
 
 // ------------------------------------------------------------
+// GEAR — every NON-fishing job has better equipment you can buy
+// to earn more. Five tiers; each multiplies what you earn that
+// day. The tiers share one power/price curve (GEAR_TIERS); each
+// job just names its five tools. Cost scales with the job's
+// salary, so fancier jobs have fancier (pricier) gear.
+// (Fishing has its own thing — rods — see RODS above.)
+// ASHER: rename any tool or change the curve and reload!
+// ------------------------------------------------------------
+const GEAR_TIERS = [
+  { mult: 1,   costMult: 0 },     // your starting kit (free)
+  { mult: 1.6, costMult: 6 },     // cost = the job's salary × costMult
+  { mult: 2.4, costMult: 22 },
+  { mult: 3.6, costMult: 70 },
+  { mult: 5,   costMult: 220 },
+];
+
+const GEAR = {
+  peasant:      [['🖐️','Bare Hands'], ['🪓','Wooden Hoe'],    ['🌾','Iron Scythe'],    ['🐂','Ox & Plow'],      ['🚜','Steam Tractor']],
+  prisoner:     [['🖐️','Bare Hands'], ['🥄','Bent Spoon'],    ['🔪','Sharp Shiv'],     ['🔨','Rock Hammer'],    ['🗝️','Master Key']],
+  teacher:      [['🖐️','Chalk Stub'], ['🖊️','Red Pen'],       ['📗','Textbook'],       ['🖥️','Smartboard'],     ['🤖','AI Tutor']],
+  chef:         [['🔪','Rusty Knife'], ['🍳','Frying Pan'],    ['🔪','Chef’s Knife'],   ['🔥','Pro Range'],      ['⭐','Michelin Kit']],
+  nomad:        [['🦯','Walking Stick'],['🧴','Water Skin'],    ['🧭','Compass'],        ['🐪','Trusty Camel'],   ['🛺','Caravan']],
+  gamer:        [['💻','Office PC'],    ['🖱️','Gaming Mouse'],  ['⌨️','Mech Keyboard'],  ['🖥️','Gaming Rig'],     ['🕹️','Pro Setup']],
+  beekeeper:    [['🖐️','Bare Hands'],  ['🥽','Bee Veil'],      ['💨','Smoker'],         ['🥼','Bee Suit'],       ['🤖','Apiary Bots']],
+  soldier:      [['🪃','Slingshot'],    ['🔫','Pistol'],        ['🎖️','Rifle'],         ['🦺','Body Armor'],     ['🚙','Tank']],
+  criminal:     [['🗝️','Lockpick'],    ['🪛','Crowbar'],       ['🏍️','Getaway Bike'],  ['🏎️','Fast Car'],       ['💻','Hacker Kit']],
+  miner:        [['⛏️','Rusty Pick'],   ['⛏️','Iron Pick'],     ['🔩','Steel Drill'],    ['🧨','Dynamite'],       ['💎','Diamond Drill']],
+  bodyguard:    [['🖐️','Bare Fists'],   ['🌶️','Pepper Spray'], ['⚡','Taser'],          ['🦺','Kevlar Vest'],    ['🛡️','Riot Shield']],
+  engineer:     [['🪛','Screwdriver'],  ['🔧','Wrench Set'],    ['🔩','Power Drill'],    ['🖥️','CAD Station'],    ['🦾','Robot Arm']],
+  executioner:  [['🪓','Dull Axe'],      ['🪓','Sharp Axe'],     ['⚔️','Broadsword'],    ['🗡️','Great Axe'],      ['🔻','Guillotine']],
+  bountyhunter: [['🪢','Lasso'],         ['🔫','Revolver'],      ['🥅','Net Gun'],        ['🛸','Tracker Drone'],  ['🚀','Bounty Rig']],
+  dungeoneer:   [['🔦','Torch'],         ['🗡️','Short Sword'],   ['🛡️','Shield'],        ['⚔️','Enchanted Blade'],['🐉','Dragon Armor']],
+  deadshot:     [['🪃','Slingshot'],     ['🔫','Pistol'],        ['🎯','Sniper Rifle'],   ['🔴','Laser Sight'],    ['🚀','Rail Gun']],
+  jobapplicator:[['✏️','Pencil'],        ['🖊️','Nice Pen'],      ['📄','Résumé Kit'],     ['💼','Briefcase'],      ['🏆','Golden Stapler']],
+  frogkeeper:   [['🥅','Little Net'],    ['🪷','Lily Pad'],      ['🪟','Terrarium'],      ['🎵','Frog Whistle'],   ['🏅','Golden Pond']],
+  king:         [['👑','Wooden Crown'],  ['👑','Silver Crown'],  ['👑','Gold Crown'],     ['🔱','Jeweled Scepter'],['💎','Diamond Throne']],
+};
+
+// ------------------------------------------------------------
 // JOB RARITY — how often each rarity shows up in daily offers.
 // Luck makes the rarer ones more likely.
 // ------------------------------------------------------------
@@ -1709,6 +1748,32 @@ const State = {
     if (!next || !this.spend(next.cost)) return false;
     if (!this.data.gear) this.data.gear = {};
     this.data.gear.rod = this.rodLevel() + 1;
+    this.save();
+    return true;
+  },
+
+  // ---- equipment for the OTHER (non-fishing) games -----------
+  // Gear is stored per job in the same `gear` map: gear[jobId] = tier.
+  gearLevel(jobId = this.data.path.jobId) { return (this.data.gear && this.data.gear[jobId]) || 0; },
+
+  // The gear you're using for a job, resolved to { emoji, name, mult, cost, tier }.
+  gear(jobId = this.data.path.jobId) { return this._gearAt(jobId, this.gearLevel(jobId)); },
+  nextGear(jobId = this.data.path.jobId) { return this._gearAt(jobId, this.gearLevel(jobId) + 1); },
+  gearMult(jobId = this.data.path.jobId) { const g = this.gear(jobId); return g ? g.mult : 1; },
+
+  _gearAt(jobId, tier) {
+    const list = GEAR[jobId];
+    if (!list || tier < 0 || tier >= list.length) return null;
+    const t = GEAR_TIERS[tier] || GEAR_TIERS[0];
+    return { emoji: list[tier][0], name: list[tier][1], mult: t.mult, cost: Math.floor(JOBS[jobId].salary * t.costMult), tier };
+  },
+
+  // Buy the next gear tier for a job (if affordable). Returns true on success.
+  buyGear(jobId = this.data.path.jobId) {
+    const next = this.nextGear(jobId);
+    if (!next || !this.spend(next.cost)) return false;
+    if (!this.data.gear) this.data.gear = {};
+    this.data.gear[jobId] = this.gearLevel(jobId) + 1;
     this.save();
     return true;
   },
@@ -2457,6 +2522,7 @@ function defineShift(spec) {
       window.addEventListener('keydown', this._key);
 
       if (spec.init) spec.init(this);
+      if (!this.trial) this._renderGear();
       this.lastTime = performance.now();
       requestAnimationFrame(t => this._loop(t));
     },
@@ -2469,10 +2535,11 @@ function defineShift(spec) {
     // Earn money mid-game (a trial doesn't bank real money — it only
     // counts toward the goal), with a floating "+$" and a running total.
     earn(n) {
-      n = Math.floor(n);
+      // Better equipment earns more (but not during a no-pay skill trial).
+      n = Math.floor(n * (this.trial ? 1 : State.gearMult(State.data.path.jobId)));
       if (n <= 0) return;
       this.earned += n;
-      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); }
+      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); this._maybeRefreshGear(); }
       UI.moneyPop(n);
       const t = this.root.querySelector('#g-earned');
       if (t) t.textContent = this.trial ? `${fmtMoney(this.earned)} / ${fmtMoney(this.trial.goal)}` : fmtMoney(this.earned);
@@ -2480,6 +2547,43 @@ function defineShift(spec) {
         const fill = this.root.querySelector('#g-goal-fill');
         if (fill) fill.style.width = Math.min(100, this.earned / this.trial.goal * 100) + '%';
       }
+    },
+
+    // ---- gear: better equipment earns you more ----------------
+    _renderGear() {
+      const box = this.root && this.root.querySelector('#g-gear');
+      if (!box) return;
+      const jobId = State.data.path.jobId;
+      const cur = State.gear(jobId);
+      if (!cur) { box.hidden = true; return; }
+      const next = State.nextGear(jobId);
+      const can = next ? State.data.wealth >= next.cost : false;
+      this._gearAffordable = can;
+      const mult = String(cur.mult).replace(/\.0$/, '');
+      box.innerHTML = `
+        <h3>YOUR GEAR</h3>
+        <div class="gear-now"><span class="gear-emoji">${cur.emoji}</span> <b>${esc(cur.name)}</b></div>
+        <div class="hud-line">Earnings <b>×${mult}</b></div>
+        ${next
+          ? `<button class="btn btn-money gear-buy" ${can ? '' : 'disabled'}>Upgrade → ${next.emoji} ${esc(next.name)} · ${fmtMoney(next.cost)}</button>
+             ${can ? '' : '<p class="hint rod-hint">Earn more to afford it!</p>'}`
+          : '<div class="rod-max">✦ Best gear there is! ✦</div>'}`;
+      const btn = box.querySelector('.gear-buy');
+      if (btn) btn.addEventListener('click', () => {
+        if (!State.buyGear(jobId)) return;
+        Sound.jackpot(); UI.confetti(14);
+        UI.moneyPop(-next.cost); UI.refreshWealth();
+        UI.toast(`Upgraded to the ${next.name}!`, next.emoji);
+        this._renderGear();
+      });
+    },
+
+    // Re-render only when you cross the "can afford the next tier" line,
+    // so the button doesn't get rebuilt (and un-clickable) every earn.
+    _maybeRefreshGear() {
+      const next = State.nextGear(State.data.path.jobId);
+      const can = next ? State.data.wealth >= next.cost : false;
+      if (can !== this._gearAffordable) this._renderGear();
     },
 
     flash(color) { this.flashColor = color; this.flashT = 0.25; },
@@ -2503,6 +2607,7 @@ function defineShift(spec) {
         <div class="work-layout">
           <aside class="fishing-side">
             <div class="card hud-card">${topCard}</div>
+            ${trial ? '' : '<div class="card hud-card gear-card" id="g-gear"></div>'}
             <div class="card hud-card">
               <h3>HOW TO PLAY</h3>
               <p class="hud-line">${spec.hint || 'Do your job before the day ends!'}</p>
