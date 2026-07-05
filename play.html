@@ -1615,7 +1615,7 @@ function fmtMoney(n) {
    Leave CLOUD_URL empty to stay local-only (saves just on this device).
    ============================================================ */
 
-const CLOUD_URL = '';   // <-- paste your Firebase Realtime Database URL here
+const CLOUD_URL = 'https://job-application-game-default-rtdb.firebaseio.com';   // Firebase Realtime Database
 
 const Cloud = {
   dirty: false,
@@ -1635,11 +1635,19 @@ const Cloud = {
   },
   _url(name) { return `${this.base()}/players/${this._key(name)}.json`; },
 
+  // fetch with a timeout, so a slow/offline database never hangs sign-in
+  async _fetch(url, opts, ms) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms || 8000);
+    try { return await fetch(url, Object.assign({ signal: ctl.signal }, opts)); }
+    finally { clearTimeout(timer); }
+  },
+
   // Fetch a character from the cloud (or null if none / offline).
   async load(name) {
     if (!this.on()) return null;
     try {
-      const res = await fetch(this._url(name), { cache: 'no-store' });
+      const res = await this._fetch(this._url(name), { cache: 'no-store' }, 8000);
       if (!res.ok) return null;
       const data = await res.json();
       return data && typeof data === 'object' ? data : null;
@@ -1650,7 +1658,7 @@ const Cloud = {
   async save(name, data) {
     if (!this.on()) return false;
     try {
-      const res = await fetch(this._url(name), { method: 'PUT', body: JSON.stringify(data) });
+      const res = await this._fetch(this._url(name), { method: 'PUT', body: JSON.stringify(data) }, 8000);
       return res.ok;
     } catch (e) { return false; }
   },
