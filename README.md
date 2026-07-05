@@ -35,21 +35,30 @@ Your progress saves automatically in the browser.
 
 ## The job mini-games 🎮
 
-Every job is played differently. So far these have their own custom game
-(more are on the way — jobs without one yet use a shared work-day game):
+**Every one of the 20 jobs has its own game!** Each plays completely differently:
 
 | Job | Game | Style |
 |---|---|---|
 | Fisherman 🎣 | Cast, wait for the **!**, reel before the shark | Timing |
-| Chef 🍳 | Flip each dish when the bar hits the **green** | Perfect timing |
-| Miner ⛏️ | Swing your pickaxe when the marker hits the **green vein** | Perfect timing |
-| Teacher 📚 | Tap the right answer before the pop-quiz timer | Perfect timing |
+| Chef 🍳 | Flip each dish when the bar hits the **green** | Timing |
+| Miner ⛏️ | Swing your pickaxe when the marker hits the **green vein** | Timing |
+| Teacher 📚 | Tap the right answer before the pop-quiz timer | Timing |
+| Engineer 🛠️ | Set rivets in the **green** to build each girder | Timing |
+| Executioner 🪓 | Drop the axe when the log lines up in the **green** | Timing |
 | Prisoner ⛓️ | Switch lanes to grab money, dodge guards | Dodge |
 | Nomad 🐪 | Jump over cacti, grab floating water | Dodge |
-| Peasant 🌾 | Move your basket to catch crops, dodge the goat | Catch |
-| Beekeeper 🐝 | Catch honeycombs in your jar, dodge the bees | Catch |
-| Soldier 🪖 | Tap the targets before they fire back | Aim & shoot |
-| Criminal 🕶️ | Grab loot on **green**, freeze on **red** (heist!) | Aim & timing |
+| Dungeoneer 🗝️ | Move up/down to grab treasure, dodge fireballs | Dodge |
+| Peasant 🌾 | Catch falling crops, dodge the runaway goat | Catch |
+| Beekeeper 🐝 | Catch honeycombs, dodge the bees | Catch |
+| Frog Keeper 🐸 | Net the frogs, grab the golden one, skip the poison | Catch |
+| Soldier 🪖 | Tap the targets before they fire back | Aim |
+| Deadshot 🎯 | Nail the small targets — bullseyes pay triple | Aim |
+| Bounty Hunter 🤠 | Tag the fast, zig-zagging outlaw | Aim |
+| Gamer 🎮 | Tap bugs & power-ups, never the bombs | Aim |
+| Bodyguard 🕴️ | Block threats to the VIP, spare the fans | Aim |
+| King 👑 | Blast invaders before they reach the castle | Aim |
+| Criminal 🕶️ | Grab loot on **green**, freeze on **red** (heist!) | Aim + timing |
+| Job Applicator 📋 | Stamp Accept/Decline to match each applicant | Sort + timing |
 
 The games get **harder as you rank up**, and the job's **fatality rate**
 still shows up as a "dodge it or get knocked out" danger.

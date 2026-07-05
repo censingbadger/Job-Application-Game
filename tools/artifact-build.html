@@ -3716,6 +3716,790 @@ GAMES.criminal = defineShift({
 
 ;
 /* ============================================================
+   GAMER 🎮 — AIM & REACT (retro arcade).
+   Tap the bugs and power-ups that pop up on the screen — but
+   DON'T tap the bombs! A lag spike can freeze you.
+   ============================================================ */
+
+GAMES.gamer = defineShift({
+  hint: 'Tap the bugs 👾 and power-ups 🍄 fast — but <b>never tap the bombs</b> 💣! Rack up your score before the lag spike.',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.things = [];
+    g.spawnEvery = 0.66 / g.diff;
+    g.spawnT = 0.3;
+    g.life = Math.max(0.8, 1.7 - g.rank * 0.24);
+    g.unit = Math.max(2, Math.floor(State.salary() / 14));
+    g.score = 0; g.stun = 0;
+  },
+
+  pointer(g, x, y) {
+    if (g.stun > 0) return;
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const o = g.things[i];
+      if (Math.hypot(o.x - x, o.y - y) <= o.r) {
+        if (o.bomb) { g.stun = 0.6; g.flash('#d9534f'); Sound.thud(); UI.toast('Boom! Never tap bombs!', '💣'); }
+        else { g.earn(g.unit * o.worth); g.score++; Sound.coin(); }
+        g.things.splice(i, 1); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const roll = Math.random();
+      const o = roll < 0.25 ? { e: '💣', bomb: true, worth: 0, r: 30 }
+        : roll < 0.45 ? { e: '🍄', worth: 1.8, r: 28 }
+          : (roll < 0.7 ? { e: '👾', worth: 1, r: 30 } : { e: '👻', worth: 1.2, r: 30 });
+      g.things.push({ emoji: o.e, bomb: o.bomb, worth: o.worth, r: o.r, x: 60 + Math.random() * (GW - 120), y: 100 + Math.random() * (GH - 200), life: g.life, born: 0 });
+    }
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const o = g.things[i]; o.born += dt; o.life -= dt;
+      if (o.life <= 0) g.things.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#0e0e1a'; ctx.fillRect(0, 0, GW, GH);
+    // scanlines
+    ctx.fillStyle = 'rgba(255,255,255,.03)';
+    for (let y = 0; y < GH; y += 4) ctx.fillRect(0, y, GW, 2);
+    // pixel border
+    ctx.strokeStyle = '#00e6a8'; ctx.lineWidth = 4; ctx.strokeRect(10, 70, GW - 20, GH - 90);
+    ctx.font = 'bold 30px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#00e6a8';
+    ctx.fillText('🎮 ARCADE MODE', GW / 2, 44);
+
+    g.things.forEach(o => {
+      const pop = Math.min(1, o.born * 7);
+      Draw.emoji(ctx, o.emoji, o.x, o.y, o.r * 2 * pop);
+    });
+
+    if (g.stun > 0) { ctx.fillStyle = 'rgba(217,83,79,.25)'; ctx.fillRect(0, 0, GW, GH); Draw.bigText(ctx, 'LAG!', GW / 2, GH / 2, 60, '#d9534f'); }
+
+    ctx.font = 'bold 24px "Courier New", monospace'; ctx.fillStyle = '#00e6a8'; ctx.textAlign = 'center';
+    ctx.fillText(`SCORE ${g.score}`, GW / 2, GH - 22);
+  },
+});
+
+;
+/* ============================================================
+   BODYGUARD 🕴️ — AIM & REACT (protect the VIP).
+   Threats fly in toward your VIP. Tap them to block — but
+   don't hit the fans and photographers! Beware the ambush.
+   ============================================================ */
+
+const BG_THREATS = ['🍅', '🔪', '🥊', '🧨', '🥚'];
+const BG_FANS = ['🙋', '🙋‍♂️', '📸', '💐'];
+
+GAMES.bodyguard = defineShift({
+  hint: 'Protect the VIP 🤵 on the right! Tap the incoming threats 🍅🔪 to block them — but DON\'T hit the fans 🙋!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.things = [];
+    g.spawnEvery = 0.8 / g.diff;
+    g.spawnT = 0.4;
+    g.speed = 150 + g.rank * 46;
+    g.unit = Math.max(2, Math.floor(State.salary() / 12));
+    g.blocked = 0; g.vipX = GW - 84; g.hitFlash = 0; g.stun = 0;
+  },
+
+  pointer(g, x, y) {
+    if (g.stun > 0) return;
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const o = g.things[i];
+      if (Math.hypot(o.x - x, o.y - y) <= 32) {
+        if (o.threat) { g.earn(g.unit); g.blocked++; Sound.coin(); }
+        else { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('That was a fan!', '🙋'); }
+        g.things.splice(i, 1); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.hitFlash > 0) g.hitFlash -= dt;
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const threat = Math.random() < 0.68;
+      const list = threat ? BG_THREATS : BG_FANS;
+      g.things.push({ emoji: list[Math.random() * list.length | 0], threat, x: -30, y: 110 + Math.random() * (GH - 210), vx: g.speed * (0.8 + Math.random() * 0.5) });
+    }
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const o = g.things[i]; o.x += o.vx * dt;
+      if (o.x >= g.vipX) { if (o.threat) { g.hitFlash = 0.3; g.flash('#d9534f'); Sound.thud(); } g.things.splice(i, 1); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#3a3f4a'; ctx.fillRect(0, 0, GW, GH);
+    // red carpet
+    ctx.fillStyle = '#9a3b3b'; ctx.fillRect(0, GH - 96, GW, 96);
+    ctx.strokeStyle = '#e8b830'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 96); ctx.lineTo(GW, GH - 96); ctx.stroke();
+    Draw.bigText(ctx, '🕴️ THE RED CARPET', GW / 2, 40, 28, '#e8b830');
+
+    // the VIP + bodyguard
+    const vx = g.vipX + (g.hitFlash > 0 ? Math.sin(t * 80) * 5 : 0);
+    if (g.hitFlash > 0) { ctx.fillStyle = 'rgba(217,83,79,.3)'; ctx.beginPath(); ctx.arc(vx + 30, GH / 2, 70, 0, Math.PI * 2); ctx.fill(); }
+    Draw.emoji(ctx, '🤵', vx + 44, GH / 2, 66);
+    Draw.emoji(ctx, '🕴️', vx - 6, GH / 2 + 30, 52);
+
+    g.things.forEach(o => Draw.emoji(ctx, o.emoji, o.x, o.y, 46));
+
+    Draw.bigText(ctx, `Threats blocked: ${g.blocked}`, GW / 2, GH - 24, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   ENGINEER 🛠️ — PERFECT TIMING (build the bridge).
+   A power meter bounces up and down. Tap to set a rivet when
+   it's in the green. Enough rivets finish a girder — and pay!
+   ============================================================ */
+
+function engNewZone(g) {
+  const w = Math.max(0.12, 0.28 / g.diff);
+  g.lo = 0.1 + Math.random() * (0.8 - w);
+  g.hi = g.lo + w;
+}
+
+function engRivet(g) {
+  g.spark = 0.15;
+  if (g.marker >= g.lo && g.marker <= g.hi) {
+    g.pieces++; g.lastHit = 'SOLID!'; g.hitText = 0.5; Sound.zap();
+    if (g.pieces >= g.need) { g.earn(g.unit); g.built++; g.pieces = 0; g.burst = 0.4; Sound.coin(); }
+    engNewZone(g);
+  } else { g.lastHit = 'clang!'; g.hitText = 0.4; Sound.thud(); }
+}
+
+GAMES.engineer = defineShift({
+  hint: 'Tap (or <b>space</b>) to set a rivet when the meter is in the <b>green</b>. Fill the bar to finish each girder! 🛠️',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 6));
+    g.built = 0; g.pieces = 0; g.need = 4;
+    g.marker = 0; g.dir = 1; g.speed = 0.95 * g.diff;
+    g.spark = 0; g.hitText = 0; g.lastHit = ''; g.burst = 0;
+    engNewZone(g);
+  },
+
+  pointer(g) { engRivet(g); },
+  key(g, e) { if (e.code === 'Space') { e.preventDefault(); engRivet(g); } },
+
+  update(g, dt) {
+    g.marker += g.dir * g.speed * dt;
+    if (g.marker > 1) { g.marker = 1; g.dir = -1; }
+    if (g.marker < 0) { g.marker = 0; g.dir = 1; }
+    if (g.spark > 0) g.spark -= dt;
+    if (g.hitText > 0) g.hitText -= dt;
+    if (g.burst > 0) g.burst -= dt;
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#cfe0ea'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#9fb3c0'; ctx.fillRect(0, GH - 80, GW, 80);
+    Draw.bigText(ctx, '🛠️ BUILD THE BRIDGE', GW / 2, 40, 28, '#3a5a70');
+
+    // the bridge being built (girders)
+    const total = 8;
+    for (let i = 0; i < total; i++) {
+      const x = 120 + i * 84, done = i < g.built;
+      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+      ctx.fillStyle = done ? '#e8b830' : 'rgba(43,43,51,.12)';
+      ctx.beginPath();
+      ctx.moveTo(x, GH - 90); ctx.lineTo(x + 42, GH - 140); ctx.lineTo(x + 84, GH - 90);
+      ctx.stroke();
+      if (done) { ctx.fill(); }
+    }
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(90, GH - 90); ctx.lineTo(GW - 60, GH - 90); ctx.stroke();
+
+    // vertical power meter
+    const bx = GW / 2 - 30, by = 100, bh = 250, bw = 60;
+    Draw.panel(ctx, bx, by, bw, bh, '#2b2b33');
+    // green zone (measured from the bottom up)
+    ctx.fillStyle = '#3fa555'; ctx.fillRect(bx, by + bh * (1 - g.hi), bw, bh * (g.hi - g.lo));
+    ctx.strokeStyle = '#cdeccf'; ctx.lineWidth = 2; ctx.strokeRect(bx, by + bh * (1 - g.hi), bw, bh * (g.hi - g.lo));
+    // marker
+    const my = by + bh * (1 - g.marker);
+    ctx.fillStyle = g.spark > 0 ? '#e8b830' : '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.rect(bx - 12, my - 8, bw + 24, 16); ctx.fill(); ctx.stroke();
+    Draw.emoji(ctx, '🔧', bx + bw + 34, my, 34);
+
+    // progress dots
+    for (let i = 0; i < g.need; i++) {
+      ctx.fillStyle = i < g.pieces ? '#e8b830' : '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(bx + 8 + i * 16, by - 20, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    if (g.hitText > 0) Draw.bigText(ctx, g.lastHit, GW / 2, by - 44, 24, g.lastHit === 'SOLID!' ? '#2f7d3f' : '#d9534f');
+
+    Draw.bigText(ctx, `Girders built: ${g.built}`, GW / 2, GH - 24, 22, '#3a5a70');
+  },
+});
+
+;
+/* ============================================================
+   EXECUTIONER 🪓 — PERFECT TIMING (drop the axe).
+   The log slides back and forth under the blade. Tap to drop
+   the axe when the log's mark is in the green. One clean chop!
+   ============================================================ */
+
+function exeChop(g) {
+  if (g.cool > 0) return;
+  g.spark = 0.2; g.dropT = 0;
+  if (g.block >= g.lo && g.block <= g.hi) {
+    const perfect = Math.abs(g.block - (g.lo + g.hi) / 2) < 0.04;
+    g.earn(g.unit * (perfect ? 1.8 : 1)); g.chops++;
+    g.lastHit = perfect ? 'CLEAN CHOP!' : 'chop!'; Sound.zap();
+  } else { g.lastHit = 'missed!'; Sound.thud(); g.flash('#d9534f'); }
+  g.hitText = 0.6; g.cool = 0.4;
+}
+
+GAMES.executioner = defineShift({
+  hint: 'Tap (or <b>space</b>) to drop the axe 🪓 when the log is in the <b>green</b>. Line it up for a clean chop!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 8));
+    g.chops = 0;
+    g.block = 0; g.dir = 1; g.speed = 0.5 * g.diff + 0.3;
+    const w = Math.max(0.14, 0.3 / g.diff);
+    g.lo = 0.5 - w / 2; g.hi = 0.5 + w / 2;   // green zone in the middle
+    g.spark = 0; g.hitText = 0; g.lastHit = ''; g.cool = 0; g.dropT = 1;
+  },
+
+  pointer(g) { exeChop(g); },
+  key(g, e) { if (e.code === 'Space') { e.preventDefault(); exeChop(g); } },
+
+  update(g, dt) {
+    if (g.spark > 0) g.spark -= dt;
+    if (g.hitText > 0) g.hitText -= dt;
+    if (g.dropT < 1) g.dropT += dt * 5;
+    if (g.cool > 0) { g.cool -= dt; return; }
+    g.block += g.dir * g.speed * dt;
+    if (g.block > 1) { g.block = 1; g.dir = -1; }
+    if (g.block < 0) { g.block = 0; g.dir = 1; }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#5a4a5a'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#4a3d4a'; ctx.fillRect(0, GH - 90, GW, 90);
+    Draw.bigText(ctx, '🪓 THE CHOPPING BLOCK', GW / 2, 40, 28, '#e8b830');
+
+    const trackX = 120, trackW = GW - 240, y = GH - 150;
+    // the track with green zone
+    Draw.panel(ctx, trackX, y, trackW, 24, '#2b2b33');
+    ctx.fillStyle = '#3fa555'; ctx.fillRect(trackX + trackW * g.lo, y, trackW * (g.hi - g.lo), 24);
+    ctx.strokeStyle = '#cdeccf'; ctx.lineWidth = 2; ctx.strokeRect(trackX + trackW * g.lo, y, trackW * (g.hi - g.lo), 24);
+
+    // the log
+    const bx = trackX + trackW * g.block;
+    Draw.emoji(ctx, '🪵', bx, y - 4, 54);
+
+    // the axe (drops on chop)
+    const axeY = 120 + (g.dropT < 1 ? (1 - Math.abs(g.dropT - 0.5) * 2) * 140 : 0);
+    Draw.emoji(ctx, '🪓', (g.lo + g.hi) / 2 * trackW + trackX, axeY, 60);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2; ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.moveTo((g.lo + g.hi) / 2 * trackW + trackX, 150); ctx.lineTo((g.lo + g.hi) / 2 * trackW + trackX, y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (g.hitText > 0) Draw.bigText(ctx, g.lastHit, GW / 2, 230, 30, g.lastHit.includes('CHOP') || g.lastHit === 'chop!' ? '#2f7d3f' : '#d9534f');
+
+    Draw.bigText(ctx, `Logs chopped: ${g.chops}`, GW / 2, GH - 24, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   BOUNTY HUNTER 🤠 — AIM & SHOOT (chase the outlaw).
+   One fast outlaw zig-zags around. Tap to tag it — it speeds
+   up and shrinks each time. Careful when it fights back!
+   ============================================================ */
+
+function bhRespawn(g) {
+  const speed = 190 + g.tags * 16 + g.rank * 34;
+  const a = Math.random() * Math.PI * 2;
+  g.t.x = 90 + Math.random() * (GW - 180);
+  g.t.y = 110 + Math.random() * (GH - 210);
+  g.t.vx = Math.cos(a) * speed;
+  g.t.vy = Math.sin(a) * speed;
+  g.t.r = Math.max(24, 40 - g.tags * 0.6);
+}
+
+GAMES.bountyhunter = defineShift({
+  hint: 'Tag the runaway outlaw 🏃 — tap it before it gets away! It speeds up every time. Watch out when it fights back!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.tags = 0; g.aim = { x: GW / 2, y: GH / 2 }; g.pop = null;
+    g.t = { x: GW / 2, y: GH / 2, r: 40, vx: 0, vy: 0 };
+    bhRespawn(g);
+  },
+
+  move(g, x, y) { g.aim.x = x; g.aim.y = y; },
+
+  pointer(g, x, y) {
+    g.aim.x = x; g.aim.y = y; Sound.zap();
+    if (Math.hypot(g.t.x - x, g.t.y - y) <= g.t.r) {
+      g.earn(g.unit); g.tags++; g.pop = { x: g.t.x, y: g.t.y, t: 0 }; Sound.coin(); bhRespawn(g);
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
+    const t = g.t; t.x += t.vx * dt; t.y += t.vy * dt;
+    if (t.x < 50 || t.x > GW - 50) { t.vx *= -1; t.x = Math.max(50, Math.min(GW - 50, t.x)); }
+    if (t.y < 100 || t.y > GH - 70) { t.vy *= -1; t.y = Math.max(100, Math.min(GH - 70, t.y)); }
+    if (Math.random() < 0.02) {   // sudden jink
+      const sp = Math.hypot(t.vx, t.vy) || 1, a = Math.random() * Math.PI * 2;
+      t.vx = Math.cos(a) * sp; t.vy = Math.sin(a) * sp;
+    }
+  },
+
+  draw(g, tm) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#e3c48f'; ctx.fillRect(0, 0, GW, GH);
+    // wanted-poster desert town vibe
+    ctx.fillStyle = '#c9a367'; ctx.fillRect(0, GH - 80, GW, 80);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 80); ctx.lineTo(GW, GH - 80); ctx.stroke();
+    Draw.bigText(ctx, '🤠 WANTED!', GW / 2, 40, 28, '#7a4a1f');
+
+    // the outlaw
+    const t = g.t;
+    ctx.fillStyle = 'rgba(217,83,79,.18)'; ctx.beginPath(); ctx.arc(t.x, t.y, t.r + 6, 0, Math.PI * 2); ctx.fill();
+    Draw.emoji(ctx, '🏃', t.x, t.y, t.r * 1.7);
+
+    if (g.pop) Draw.bigText(ctx, 'GOTCHA!', g.pop.x, g.pop.y - 30, 24, '#2f7d3f');
+
+    // crosshair / lasso
+    const a = g.aim;
+    ctx.strokeStyle = '#7a4a1f'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 18, 0, Math.PI * 2); ctx.stroke();
+
+    Draw.bigText(ctx, `Outlaws tagged: ${g.tags}`, GW / 2, GH - 22, 22, '#7a4a1f');
+  },
+});
+
+;
+/* ============================================================
+   DUNGEONEER 🗝️ — DODGE & SURVIVE.
+   Move up and down to grab treasure and dodge fireballs and
+   bats flying in from the dungeon depths. Beware the dragon!
+   ============================================================ */
+
+const DUNGEON_LOOT = ['💎', '👑', '💰', '🗝️'];
+const DUNGEON_TRAPS = ['🔥', '🦇', '🗿', '⚔️'];
+
+GAMES.dungeoneer = defineShift({
+  hint: 'Move up/down (drag, or ↑ ↓) to grab treasure 💎 and dodge the fireballs 🔥 and bats 🦇 flying at you!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.py = GH / 2; g.targetY = GH / 2;
+    g.things = [];
+    g.spawnEvery = 0.6 / g.diff;
+    g.spawnT = 0.4;
+    g.speed = 240 + g.rank * 70;
+    g.unit = Math.max(2, Math.floor(State.salary() / 8));
+    g.gold = 0; g.stun = 0;
+  },
+
+  move(g, x, y) { g.targetY = Math.max(80, Math.min(GH - 60, y)); },
+  key(g, e) {
+    if (e.code === 'ArrowUp') g.targetY = Math.max(80, g.targetY - 54);
+    if (e.code === 'ArrowDown') g.targetY = Math.min(GH - 60, g.targetY + 54);
+  },
+
+  update(g, dt) {
+    g.py += (g.targetY - g.py) * Math.min(1, dt * 12);
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const loot = Math.random() < 0.4;
+      const list = loot ? DUNGEON_LOOT : DUNGEON_TRAPS;
+      g.things.push({ emoji: list[Math.random() * list.length | 0], loot, x: GW + 30, y: 80 + Math.random() * (GH - 150), vx: g.speed * (0.85 + Math.random() * 0.4) });
+    }
+    const px = 150;
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const o = g.things[i]; o.x -= o.vx * dt;
+      if (Math.abs(o.x - px) < 38 && Math.abs(o.y - g.py) < 42) {
+        if (o.loot) { g.earn(g.unit); g.gold++; Sound.coin(); g.things.splice(i, 1); continue; }
+        else if (g.stun <= 0) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); }
+      }
+      if (o.x < -40) g.things.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#231d2b'; ctx.fillRect(0, 0, GW, GH);
+    // brick walls top/bottom
+    ctx.fillStyle = '#33283a';
+    ctx.fillRect(0, 0, GW, 70); ctx.fillRect(0, GH - 40, GW, 40);
+    ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 2;
+    for (let x = 0; x < GW; x += 60) { ctx.strokeRect(x, 10, 58, 26); ctx.strokeRect(x + 30, 40, 58, 26); }
+    // torches
+    ['🔦'].forEach(() => {});
+    Draw.bigText(ctx, '🗝️ THE DUNGEON', GW / 2, 40, 26, '#e8b830');
+
+    g.things.forEach(o => Draw.emoji(ctx, o.emoji, o.x, o.y, 44));
+
+    // the dungeoneer
+    const px = 150;
+    if (g.stun > 0) ctx.globalAlpha = 0.4 + Math.sin(t * 40) * 0.3;
+    Draw.emoji(ctx, '🧝', px, g.py, 54);
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Treasure: ${g.gold}`, GW / 2, GH - 14, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   DEADSHOT 🎯 — AIM & SHOOT (precision).
+   Small, drifting targets worth a lot. Nail the tiny bullseye
+   for triple pay. Miss too long and they return fire!
+   ============================================================ */
+
+GAMES.deadshot = defineShift({
+  hint: 'Precision shots! Tap the small targets 🎯 — hit the tiny <b>bullseye</b> centre for triple. Don\'t let them return fire!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.targets = [];
+    g.spawnEvery = 1.3 / g.diff;
+    g.spawnT = 0.5;
+    g.life = Math.max(1.2, 2.5 - g.rank * 0.3);
+    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.hits = 0; g.aim = { x: GW / 2, y: GH / 2 }; g.shotT = 0; g.pop = null;
+  },
+
+  move(g, x, y) { g.aim.x = x; g.aim.y = y; },
+
+  pointer(g, x, y) {
+    g.aim.x = x; g.aim.y = y; g.shotT = 0.12; Sound.zap();
+    for (let i = g.targets.length - 1; i >= 0; i--) {
+      const tg = g.targets[i]; const d = Math.hypot(tg.x - x, tg.y - y);
+      if (d <= tg.r) {
+        const bull = d <= tg.r * 0.3;
+        g.earn(g.unit * (bull ? 3 : 1.3)); g.hits++; g.pop = { x: tg.x, y: tg.y, bull, t: 0 };
+        g.targets.splice(i, 1); Sound.coin(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.shotT > 0) g.shotT -= dt;
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const r = 24 + Math.random() * 16;
+      g.targets.push({ x: 80 + Math.random() * (GW - 160), y: 100 + Math.random() * (GH - 210), r, life: g.life, max: g.life, born: 0, vx: (Math.random() * 2 - 1) * 34, vy: (Math.random() * 2 - 1) * 24 });
+    }
+    for (let i = g.targets.length - 1; i >= 0; i--) {
+      const tg = g.targets[i]; tg.born += dt; tg.life -= dt; tg.x += tg.vx * dt; tg.y += tg.vy * dt;
+      if (tg.x < 44 || tg.x > GW - 44) tg.vx *= -1;
+      if (tg.y < 90 || tg.y > GH - 54) tg.vy *= -1;
+      if (tg.life <= 0) { g.targets.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#2e3a44'; ctx.fillRect(0, 0, GW, GH);
+    ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1;
+    for (let x = 0; x < GW; x += 40) { ctx.beginPath(); ctx.moveTo(x, 70); ctx.lineTo(x, GH); ctx.stroke(); }
+    for (let y = 70; y < GH; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke(); }
+    Draw.bigText(ctx, '🎯 THE RANGE', GW / 2, 40, 28, '#e8b830');
+
+    g.targets.forEach(tg => {
+      const pop = Math.min(1, tg.born * 6), r = tg.r * pop, warn = tg.life < tg.max * 0.35;
+      ctx.lineWidth = 3; ctx.strokeStyle = '#2b2b33';
+      ctx.fillStyle = warn ? '#f6cccb' : '#fff'; ctx.beginPath(); ctx.arc(tg.x, tg.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d9534f'; ctx.beginPath(); ctx.arc(tg.x, tg.y, r * 0.62, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(tg.x, tg.y, r * 0.3, 0, Math.PI * 2); ctx.fill();
+      if (warn) Draw.emoji(ctx, '⚠️', tg.x, tg.y - r - 16, 24);
+    });
+
+    if (g.pop) Draw.bigText(ctx, g.pop.bull ? 'BULLSEYE! ×3' : 'HIT!', g.pop.x, g.pop.y - 30, g.pop.bull ? 26 : 20, g.pop.bull ? '#2f7d3f' : '#9a7714');
+
+    // crosshair
+    const a = g.aim;
+    ctx.strokeStyle = g.shotT > 0 ? '#d9534f' : '#e8b830'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a.x - 26, a.y); ctx.lineTo(a.x - 6, a.y); ctx.moveTo(a.x + 6, a.y); ctx.lineTo(a.x + 26, a.y);
+    ctx.moveTo(a.x, a.y - 26); ctx.lineTo(a.x, a.y - 6); ctx.moveTo(a.x, a.y + 6); ctx.lineTo(a.x, a.y + 26); ctx.stroke();
+
+    Draw.bigText(ctx, `Bullseyes: ${g.hits}`, GW / 2, GH - 20, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   JOB APPLICATOR 📋 — TIMING & SORT (the meta job!).
+   Applications slide in. Stamp ACCEPT for a happy applicant,
+   DECLINE for a grumpy one — before the timer runs out.
+   ============================================================ */
+
+const JAP_GOOD = ['😊', '😄', '🤩', '😎', '🥳'];
+const JAP_BAD = ['😠', '😡', '🥴', '😰', '😈'];
+const JAP_JOBS = ['Prisoner', 'Peasant', 'Chef', 'Miner', 'Soldier', 'Gamer', 'Nomad', 'Beekeeper', 'Criminal'];
+
+function japNew(g) {
+  g.good = Math.random() < 0.5;
+  g.face = (g.good ? JAP_GOOD : JAP_BAD)[Math.random() * 5 | 0];
+  g.applicant = JAP_JOBS[Math.random() * JAP_JOBS.length | 0];
+  g.qLeft = g.qTime;
+  g.slide = 0;
+}
+
+function japStamp(g, accepted) {
+  if (accepted === g.good) { g.earn(g.unit); g.right++; g.flash('#cdeccf'); g.lastStamp = accepted ? 'HIRED!' : 'REJECTED!'; Sound.coin(); }
+  else { g.wrong++; g.flash('#d9534f'); g.lastStamp = 'WRONG!'; Sound.thud(); }
+  g.stampT = 0.4;
+  japNew(g);
+}
+
+GAMES.jobapplicator = defineShift({
+  hint: 'Stamp each application! Tap <b>ACCEPT</b> for a happy applicant 😊 and <b>DECLINE</b> for a grumpy one 😠 — beat the timer!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 6));
+    g.right = 0; g.wrong = 0;
+    g.qTime = Math.max(1.6, 3.2 - g.rank * 0.42);
+    g.stampT = 0; g.lastStamp = '';
+    g.btns = { accept: { x: GW / 2 - 290, y: GH - 116, w: 260, h: 80 }, decline: { x: GW / 2 + 30, y: GH - 116, w: 260, h: 80 } };
+    japNew(g);
+  },
+
+  pointer(g, x, y) {
+    const b = g.btns;
+    if (x >= b.accept.x && x <= b.accept.x + b.accept.w && y >= b.accept.y && y <= b.accept.y + b.accept.h) japStamp(g, true);
+    else if (x >= b.decline.x && x <= b.decline.x + b.decline.w && y >= b.decline.y && y <= b.decline.y + b.decline.h) japStamp(g, false);
+  },
+
+  update(g, dt) {
+    if (g.slide < 1) g.slide = Math.min(1, g.slide + dt * 5);
+    if (g.stampT > 0) g.stampT -= dt;
+    g.qLeft -= dt;
+    if (g.qLeft <= 0) { g.wrong++; g.flash('#d9534f'); Sound.thud(); japNew(g); }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#e7e0d0'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#d8cfb8'; ctx.fillRect(0, GH - 140, GW, 140);
+    Draw.bigText(ctx, '📋 THE HIRING DESK', GW / 2, 40, 28, '#7a6a3a');
+
+    // the application card
+    const cardW = 420, cardH = 240, cx = (GW - cardW) / 2, cy = 80 + (1 - g.slide) * -30;
+    ctx.globalAlpha = g.slide;
+    Draw.panel(ctx, cx, cy, cardW, cardH, '#fffdf6');
+    Draw.emoji(ctx, g.face, cx + 90, cy + 100, 90);
+    ctx.fillStyle = '#2b2b33'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 30px "Trebuchet MS", sans-serif'; ctx.fillText('APPLICATION', cx + 170, cy + 60);
+    ctx.font = '24px "Trebuchet MS", sans-serif'; ctx.fillText('Job: ' + g.applicant, cx + 170, cy + 110);
+    ctx.fillText('Mood: ' + (g.good ? 'great!' : 'awful...'), cx + 170, cy + 150);
+    ctx.globalAlpha = 1;
+
+    // timer
+    const tw = cardW, tx = cx;
+    ctx.fillStyle = g.qLeft < g.qTime * 0.3 ? '#d9534f' : '#e8b830';
+    ctx.fillRect(tx, cy + cardH + 10, tw * Math.max(0, g.qLeft / g.qTime), 12);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2; ctx.strokeRect(tx, cy + cardH + 10, tw, 12);
+
+    // buttons
+    const b = g.btns;
+    Draw.panel(ctx, b.accept.x, b.accept.y, b.accept.w, b.accept.h, '#cdeccf');
+    Draw.panel(ctx, b.decline.x, b.decline.y, b.decline.w, b.decline.h, '#f6cccb');
+    ctx.fillStyle = '#2b2b33'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 34px "Trebuchet MS", sans-serif';
+    ctx.fillText('✓ ACCEPT', b.accept.x + b.accept.w / 2, b.accept.y + b.accept.h / 2);
+    ctx.fillText('✗ DECLINE', b.decline.x + b.decline.w / 2, b.decline.y + b.decline.h / 2);
+
+    if (g.stampT > 0) Draw.bigText(ctx, g.lastStamp, GW / 2, cy + cardH / 2, 40, g.lastStamp === 'WRONG!' ? '#d9534f' : '#2f7d3f');
+
+    ctx.textAlign = 'center';
+    Draw.bigText(ctx, `Hired right: ${g.right}   Wrong: ${g.wrong}`, GW / 2, 300, 20, '#7a6a3a');
+  },
+});
+
+;
+/* ============================================================
+   FROG KEEPER 🐸 — CATCH FALLING STUFF (legendary!).
+   Catch the frogs in your net. The rare GOLDEN frog pays big —
+   but skip the red poison frogs, they make you drop everything!
+   ============================================================ */
+
+GAMES.frogkeeper = defineShift({
+  hint: 'Catch the frogs 🐸 in your net (finger/mouse, or ← →). Grab the rare <b>golden</b> frog for big money — skip the <b>red poison</b> ones!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.net = { x: GW / 2, target: GW / 2, w: 150 };
+    g.items = [];
+    g.spawnEvery = 0.72 / g.diff;
+    g.spawnT = 0;
+    g.fall = 140 + g.rank * 40;
+    g.unit = Math.max(2, Math.floor(State.salary() / 12));
+    g.caught = 0; g.stun = 0;
+  },
+
+  move(g, x) { g.net.target = Math.max(g.net.w / 2, Math.min(GW - g.net.w / 2, x)); },
+  key(g, e) {
+    if (e.code === 'ArrowLeft') g.net.target = Math.max(g.net.w / 2, g.net.target - 60);
+    if (e.code === 'ArrowRight') g.net.target = Math.min(GW - g.net.w / 2, g.net.target + 60);
+  },
+
+  update(g, dt) {
+    g.net.x += (g.net.target - g.net.x) * Math.min(1, dt * 14);
+    if (g.stun > 0) g.stun -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const roll = Math.random();
+      const kind = roll < 0.12 ? { worth: 6, gold: true } : roll < 0.30 ? { worth: 0, poison: true } : { worth: 1 + Math.random() };
+      g.items.push({ ...kind, x: 40 + Math.random() * (GW - 80), y: -30, vy: g.fall * (0.85 + Math.random() * 0.5), spin: 0 });
+    }
+    const catchY = GH - 96;
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i];
+      it.y += it.vy * dt; it.spin += dt * 3;
+      if (it.y >= catchY && it.y <= catchY + 48 && Math.abs(it.x - g.net.x) < g.net.w / 2) {
+        if (it.poison) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('A poison frog! Yuck!', '🐸'); }
+        else { g.earn(g.unit * it.worth); g.caught++; if (it.gold) { UI.confetti(12); Sound.jackpot(); } else Sound.coin(); }
+        g.items.splice(i, 1); continue;
+      }
+      if (it.y > GH + 40) g.items.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    const sky = ctx.createLinearGradient(0, 0, 0, GH);
+    sky.addColorStop(0, '#bfe3c0'); sky.addColorStop(1, '#e6f4e0');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
+    // lily pads at the bottom
+    ctx.fillStyle = '#6fbf72';
+    for (let x = 40; x < GW; x += 120) { ctx.beginPath(); ctx.ellipse(x, GH - 40, 40, 16, 0, 0, Math.PI * 2); ctx.fill(); }
+    Draw.bigText(ctx, '🐸 THE FROG POND', GW / 2, 40, 28, '#2f7d4a');
+
+    g.items.forEach(it => {
+      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(it.spin) * 0.25);
+      if (it.gold) { ctx.fillStyle = 'rgba(232,184,48,.6)'; ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill(); }
+      if (it.poison) { ctx.fillStyle = 'rgba(217,83,79,.55)'; ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI * 2); ctx.fill(); }
+      Draw.emoji(ctx, '🐸', 0, 0, 42); ctx.restore();
+    });
+
+    // the net
+    const cx = g.net.x, cy = GH - 92, w = g.net.w;
+    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    ctx.fillStyle = 'rgba(120,200,120,.4)'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(cx, cy + 18, w / 2, 30, 0, 0, Math.PI, false); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - w / 2, cy + 18); ctx.lineTo(cx + w / 2, cy + 18); ctx.stroke();
+    // net mesh
+    for (let i = 1; i < 5; i++) { const x = cx - w / 2 + (w / 5) * i; ctx.beginPath(); ctx.moveTo(x, cy + 18); ctx.lineTo(cx + (x - cx) * 0.4, cy + 44); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Frogs: ${g.caught}`, GW / 2, GH - 12, 22, '#2f7d4a');
+  },
+});
+
+;
+/* ============================================================
+   KING 👑 — AIM & SHOOT (defend the castle).
+   Invaders charge your castle from the left. Tap to blast them
+   with the cannon before they reach the wall. A coup can still
+   topple you!
+   ============================================================ */
+
+const KING_INVADERS = [
+  { emoji: '🗡️', worth: 1.0, sp: 1.0 },
+  { emoji: '🏹', worth: 1.3, sp: 1.25 },
+  { emoji: '🐉', worth: 2.4, sp: 0.8 },
+  { emoji: '🛡️', worth: 1.6, sp: 0.9 },
+];
+
+GAMES.king = defineShift({
+  hint: 'Defend your castle 🏰! Tap the invaders to blast them before they reach the wall. Beware the coup!',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.inv = [];
+    g.spawnEvery = 0.8 / g.diff;
+    g.spawnT = 0.4;
+    g.speed = 66 + g.rank * 20;
+    g.unit = Math.max(2, Math.floor(State.salary() / 14));
+    g.blasted = 0; g.wallX = GW - 96; g.hitFlash = 0; g.boom = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.inv.length - 1; i >= 0; i--) {
+      const v = g.inv[i];
+      if (Math.hypot(v.x - x, v.y - y) <= 36) {
+        g.earn(g.unit * v.worth); g.blasted++; g.boom = { x: v.x, y: v.y, t: 0 };
+        g.inv.splice(i, 1); Sound.zap(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.hitFlash > 0) g.hitFlash -= dt;
+    if (g.boom) { g.boom.t += dt; if (g.boom.t > 0.3) g.boom = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const k = KING_INVADERS[Math.random() * KING_INVADERS.length | 0];
+      g.inv.push({ emoji: k.emoji, worth: k.worth, x: -30, y: 120 + Math.random() * (GH - 210), vx: g.speed * k.sp * (0.8 + Math.random() * 0.5) });
+    }
+    for (let i = g.inv.length - 1; i >= 0; i--) {
+      const v = g.inv[i]; v.x += v.vx * dt;
+      if (v.x >= g.wallX) { g.hitFlash = 0.3; g.flash('#d9534f'); Sound.thud(); g.inv.splice(i, 1); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    const sky = ctx.createLinearGradient(0, 0, 0, GH);
+    sky.addColorStop(0, '#b9a0d4'); sky.addColorStop(1, '#e7dcc4');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#7fa35a'; ctx.fillRect(0, GH - 70, GW, 70);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 70); ctx.lineTo(GW, GH - 70); ctx.stroke();
+    Draw.bigText(ctx, '👑 DEFEND THE CASTLE', GW / 2, 40, 28, '#5a3d8a');
+
+    // castle on the right
+    const wx = g.wallX + (g.hitFlash > 0 ? Math.sin(t * 80) * 5 : 0);
+    ctx.fillStyle = g.hitFlash > 0 ? '#d9a0a0' : '#cbb89a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.fillRect(wx, 130, GW - wx, GH - 200); ctx.strokeRect(wx, 130, GW - wx, GH - 200);
+    for (let y = 150; y < GH - 90; y += 40) { ctx.strokeRect(wx, y, GW - wx, 40); }
+    // battlements
+    for (let x = wx; x < GW; x += 30) { ctx.fillRect(x, 112, 18, 20); ctx.strokeRect(x, 112, 18, 20); }
+    Draw.emoji(ctx, '🏰', (wx + GW) / 2, 90, 46);
+
+    // invaders
+    g.inv.forEach(v => Draw.emoji(ctx, v.emoji, v.x, v.y, 52));
+    // cannon blast
+    if (g.boom) { const p = g.boom.t / 0.3; Draw.emoji(ctx, '💥', g.boom.x, g.boom.y, 40 + p * 40); }
+
+    Draw.bigText(ctx, `Invaders blasted: ${g.blasted}`, GW / 2, GH - 22, 22, '#5a3d8a');
+  },
+});
+
+;
+/* ============================================================
    HOME — the title screen. JOB APPLICATION: what job will
    YOU get? By Jing & Ash Games.
    ============================================================ */
