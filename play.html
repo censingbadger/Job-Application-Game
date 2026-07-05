@@ -725,7 +725,23 @@ u { text-decoration-thickness: 3px; }
 }
 
 .catch-banner.legendary .catch-word { color: #9a7714; }
+.catch-banner.epic .catch-word { color: #7a4fb0; }
 .catch-banner.stolen .catch-word { color: var(--danger); font-size: 44px; }
+
+/* the rarity chip on a fish catch (common has none) */
+.fish-rarity {
+  display: inline-block;
+  margin-top: 6px;
+  border: 2.5px solid var(--chip, var(--pencil));
+  color: var(--chip, var(--pencil));
+  background: #fffdf6;
+  border-radius: var(--wobble);
+  padding: 1px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 
 /* work day */
 .work-scene {
@@ -1170,15 +1186,49 @@ const CONFIG = {
 };
 
 // ------------------------------------------------------------
-// FISH — weight = how common it is (bigger number = more common)
+// FISH RARITY — how often each kind of fish shows up.
+// Luck makes the rarer tiers more likely (just like jobs!).
+// ------------------------------------------------------------
+const FISH_RARITY = {
+  common:    { label: 'common',    color: '#8a8a94', weight: 100 },
+  rare:      { label: 'rare',      color: '#1e7fbf', weight: 26 },
+  epic:      { label: 'epic',      color: '#8d5bd4', weight: 6 },
+  legendary: { label: 'LEGENDARY', color: '#c98a00', weight: 0.8 },
+};
+
+// ------------------------------------------------------------
+// FISH — every fish you can catch. value = what it sells for.
+// ASHER: add a fish here (name, rarity, value, emoji, size) and
+// you can catch it right away! Rarer tiers are worth more.
 // ------------------------------------------------------------
 const FISH = [
-  { name: 'Minnow',     value: 50,    weight: 42,  emoji: '🐟', size: 30 },
-  { name: 'Carp',       value: 300,   weight: 22,  emoji: '🐟', size: 38 },
-  { name: 'Pike',       value: 350,   weight: 14,  emoji: '🐟', size: 46 },
-  { name: 'Char',       value: 1000,  weight: 10,  emoji: '🐠', size: 46, rare: true },
-  { name: 'Large Fish', value: 800e3, weight: 8,   emoji: '🐡', size: 68, rare: true },
-  { name: 'Jingfish',   value: 20e6,  weight: 0.6, emoji: '🐠', size: 80, rare: true, legendary: true },
+  // --- common ---
+  { name: 'Minnow',    rarity: 'common', value: 25,   emoji: '🐟', size: 28 },
+  { name: 'Clownfish', rarity: 'common', value: 60,   emoji: '🐠', size: 30 },
+  { name: 'Cod',       rarity: 'common', value: 120,  emoji: '🐟', size: 34 },
+  { name: 'Bass',      rarity: 'common', value: 200,  emoji: '🐟', size: 36 },
+  { name: 'Salmon',    rarity: 'common', value: 320,  emoji: '🐟', size: 40 },
+  { name: 'Pike',      rarity: 'common', value: 500,  emoji: '🐟', size: 44 },
+  // --- rare ---
+  { name: 'Carp',       rarity: 'rare', value: 1200,  emoji: '🐟', size: 42 },
+  { name: 'Char',       rarity: 'rare', value: 3500,  emoji: '🐠', size: 44 },
+  { name: 'Archerfish', rarity: 'rare', value: 8000,  emoji: '🐠', size: 44 },
+  { name: 'Gar',        rarity: 'rare', value: 18e3,  emoji: '🐟', size: 50 },
+  { name: 'Catfish',    rarity: 'rare', value: 35e3,  emoji: '🐟', size: 52 },
+  { name: 'Angelfish',  rarity: 'rare', value: 60e3,  emoji: '🐠', size: 46 },
+  { name: 'Lionfish',   rarity: 'rare', value: 90e3,  emoji: '🐡', size: 48 },
+  // --- epic ---
+  { name: 'Anglerfish',     rarity: 'epic', value: 250e3, emoji: '🐡', size: 58 },
+  { name: 'Sunfish',        rarity: 'epic', value: 600e3, emoji: '🐡', size: 70 },
+  { name: 'Monstrous Fish', rarity: 'epic', value: 1.5e6, emoji: '🐡', size: 78 },
+  { name: 'Shark',          rarity: 'epic', value: 4e6,   emoji: '🦈', size: 76 },
+  { name: 'Orca',           rarity: 'epic', value: 9e6,   emoji: '🐋', size: 84 },
+  { name: 'Jingfish',       rarity: 'epic', value: 20e6,  emoji: '🐠', size: 80 },
+  // --- legendary ---
+  { name: 'Lungfish',          rarity: 'legendary', value: 100e6, emoji: '🐟', size: 72 },
+  { name: 'Platinum Arowana',  rarity: 'legendary', value: 350e6, emoji: '🐉', size: 88 },
+  { name: 'Sapphire Jingfish', rarity: 'legendary', value: 800e6, emoji: '🐠', size: 90 },
+  { name: 'Emerald Jingfish',  rarity: 'legendary', value: 2e9,   emoji: '🐠', size: 92 },
 ];
 
 // ------------------------------------------------------------
@@ -2495,10 +2545,14 @@ const Fishing = {
   },
 
   // ---- fish luck math -----------------------------------------
+  // Pick a rarity tier (luck helps the rarer ones), then a fish in it.
   pickFish() {
-    const luck = State.luck();
-    const entries = FISH.map(f => [f, f.rare ? f.weight * (1 + luck / 100) : f.weight]);
-    return weightedPick(entries);
+    const boost = 1 + State.luck() / 100;
+    const entries = Object.entries(FISH_RARITY).map(([id, r]) =>
+      [id, id === 'common' ? r.weight : r.weight * boost]);
+    const tier = weightedPick(entries);
+    const pool = FISH.filter(f => f.rarity === tier);
+    return pool[Math.floor(Math.random() * pool.length)] || FISH[0];
   },
 
   resolveCatch() {
@@ -2517,19 +2571,23 @@ const Fishing = {
     this.jump = { x: this.bobber.x, y: this.bobber.y, fish };
     this.setAction('nice!', 'btn-wait');
 
+    const rar = FISH_RARITY[fish.rarity] || FISH_RARITY.common;
+    const big = fish.rarity === 'epic' || fish.rarity === 'legendary';
     this.banner.hidden = false;
-    this.banner.className = 'catch-banner' + (fish.legendary ? ' legendary' : '');
+    this.banner.className = 'catch-banner' + (fish.rarity === 'legendary' ? ' legendary' : (fish.rarity === 'epic' ? ' epic' : ''));
     this.banner.innerHTML = `
       <div class="catch-word" data-spiky>CATCH!</div>
-      <div class="catch-fish">${fish.legendary ? '🌟 ' : ''}${esc(fish.name)}${fish.legendary ? ' 🌟' : ''}</div>
+      <div class="catch-fish">${big ? '🌟 ' : ''}${esc(fish.name)}${big ? ' 🌟' : ''}</div>
+      ${fish.rarity !== 'common' ? `<div class="fish-rarity" style="--chip:${rar.color}">${rar.label}</div>` : ''}
       <div class="catch-value">Value: ${fmtMoney(value)}</div>`;
     UI.spikyAll(this.banner);
 
-    if (fish.legendary) { Sound.jackpot(); UI.confetti(40); }
+    if (fish.rarity === 'legendary') { Sound.jackpot(); UI.confetti(55); }
+    else if (fish.rarity === 'epic') { Sound.jackpot(); UI.confetti(24); }
     else Sound.catchFish();
     UI.moneyPop(value);
     this.renderCollection();
-    setTimeout(() => { if (this.running) this.banner.hidden = true; }, 1700);
+    setTimeout(() => { if (this.running) this.banner.hidden = true; }, big ? 2100 : 1700);
   },
 
   renderCollection() {
@@ -2684,6 +2742,15 @@ const Fishing = {
     if (this.jump) {
       const p = Math.min(1, (this.jump.t || 0) / 0.9);
       const y = this.jump.y - Math.sin(p * Math.PI) * 170;
+      // a colored halo for rarer catches
+      const rar = FISH_RARITY[this.jump.fish.rarity];
+      if (rar && this.jump.fish.rarity !== 'common') {
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = rar.color;
+        ctx.beginPath(); ctx.arc(this.jump.x, y, this.jump.fish.size * 1.15, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
       ctx.font = `${this.jump.fish.size * 1.6}px serif`;
       ctx.save();
       ctx.translate(this.jump.x, y);

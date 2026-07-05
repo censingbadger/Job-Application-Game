@@ -88,7 +88,9 @@ saved per-device. (No passwords, so friends should each pick a **unique name**.)
 
 ## The rules of the world
 
-- **Wealth** 💰 — you earn it by working. Fish are worth $50 (Minnow) to $20M (the legendary Jingfish).
+- **Wealth** 💰 — you earn it by working. Fish come in four rarity tiers — from the
+  $25 Minnow (common) up to the legendary **$2B Emerald Jingfish** — and luck makes
+  the rarer ones bite more often.
 - **Power** — how good you are at your job. Promotions raise it.
 - **Luck** 🍀 — buy lucky items in the shop; rare fish and rare job offers show up more.
 - **Fatality rate** ☠️ — dangerous jobs pay big, but if you miss the dodge, it's a

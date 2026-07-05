@@ -19,15 +19,49 @@ const CONFIG = {
 };
 
 // ------------------------------------------------------------
-// FISH — weight = how common it is (bigger number = more common)
+// FISH RARITY — how often each kind of fish shows up.
+// Luck makes the rarer tiers more likely (just like jobs!).
+// ------------------------------------------------------------
+const FISH_RARITY = {
+  common:    { label: 'common',    color: '#8a8a94', weight: 100 },
+  rare:      { label: 'rare',      color: '#1e7fbf', weight: 26 },
+  epic:      { label: 'epic',      color: '#8d5bd4', weight: 6 },
+  legendary: { label: 'LEGENDARY', color: '#c98a00', weight: 0.8 },
+};
+
+// ------------------------------------------------------------
+// FISH — every fish you can catch. value = what it sells for.
+// ASHER: add a fish here (name, rarity, value, emoji, size) and
+// you can catch it right away! Rarer tiers are worth more.
 // ------------------------------------------------------------
 const FISH = [
-  { name: 'Minnow',     value: 50,    weight: 42,  emoji: '🐟', size: 30 },
-  { name: 'Carp',       value: 300,   weight: 22,  emoji: '🐟', size: 38 },
-  { name: 'Pike',       value: 350,   weight: 14,  emoji: '🐟', size: 46 },
-  { name: 'Char',       value: 1000,  weight: 10,  emoji: '🐠', size: 46, rare: true },
-  { name: 'Large Fish', value: 800e3, weight: 8,   emoji: '🐡', size: 68, rare: true },
-  { name: 'Jingfish',   value: 20e6,  weight: 0.6, emoji: '🐠', size: 80, rare: true, legendary: true },
+  // --- common ---
+  { name: 'Minnow',    rarity: 'common', value: 25,   emoji: '🐟', size: 28 },
+  { name: 'Clownfish', rarity: 'common', value: 60,   emoji: '🐠', size: 30 },
+  { name: 'Cod',       rarity: 'common', value: 120,  emoji: '🐟', size: 34 },
+  { name: 'Bass',      rarity: 'common', value: 200,  emoji: '🐟', size: 36 },
+  { name: 'Salmon',    rarity: 'common', value: 320,  emoji: '🐟', size: 40 },
+  { name: 'Pike',      rarity: 'common', value: 500,  emoji: '🐟', size: 44 },
+  // --- rare ---
+  { name: 'Carp',       rarity: 'rare', value: 1200,  emoji: '🐟', size: 42 },
+  { name: 'Char',       rarity: 'rare', value: 3500,  emoji: '🐠', size: 44 },
+  { name: 'Archerfish', rarity: 'rare', value: 8000,  emoji: '🐠', size: 44 },
+  { name: 'Gar',        rarity: 'rare', value: 18e3,  emoji: '🐟', size: 50 },
+  { name: 'Catfish',    rarity: 'rare', value: 35e3,  emoji: '🐟', size: 52 },
+  { name: 'Angelfish',  rarity: 'rare', value: 60e3,  emoji: '🐠', size: 46 },
+  { name: 'Lionfish',   rarity: 'rare', value: 90e3,  emoji: '🐡', size: 48 },
+  // --- epic ---
+  { name: 'Anglerfish',     rarity: 'epic', value: 250e3, emoji: '🐡', size: 58 },
+  { name: 'Sunfish',        rarity: 'epic', value: 600e3, emoji: '🐡', size: 70 },
+  { name: 'Monstrous Fish', rarity: 'epic', value: 1.5e6, emoji: '🐡', size: 78 },
+  { name: 'Shark',          rarity: 'epic', value: 4e6,   emoji: '🦈', size: 76 },
+  { name: 'Orca',           rarity: 'epic', value: 9e6,   emoji: '🐋', size: 84 },
+  { name: 'Jingfish',       rarity: 'epic', value: 20e6,  emoji: '🐠', size: 80 },
+  // --- legendary ---
+  { name: 'Lungfish',          rarity: 'legendary', value: 100e6, emoji: '🐟', size: 72 },
+  { name: 'Platinum Arowana',  rarity: 'legendary', value: 350e6, emoji: '🐉', size: 88 },
+  { name: 'Sapphire Jingfish', rarity: 'legendary', value: 800e6, emoji: '🐠', size: 90 },
+  { name: 'Emerald Jingfish',  rarity: 'legendary', value: 2e9,   emoji: '🐠', size: 92 },
 ];
 
 // ------------------------------------------------------------

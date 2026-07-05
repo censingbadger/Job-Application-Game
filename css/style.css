@@ -717,7 +717,23 @@ u { text-decoration-thickness: 3px; }
 }
 
 .catch-banner.legendary .catch-word { color: #9a7714; }
+.catch-banner.epic .catch-word { color: #7a4fb0; }
 .catch-banner.stolen .catch-word { color: var(--danger); font-size: 44px; }
+
+/* the rarity chip on a fish catch (common has none) */
+.fish-rarity {
+  display: inline-block;
+  margin-top: 6px;
+  border: 2.5px solid var(--chip, var(--pencil));
+  color: var(--chip, var(--pencil));
+  background: #fffdf6;
+  border-radius: var(--wobble);
+  padding: 1px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 
 /* work day */
 .work-scene {
