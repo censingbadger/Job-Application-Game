@@ -85,13 +85,15 @@ function defineShift(spec) {
       this.flashT = 0;
       this.flashColor = null;
       this.dangerActive = null;
+      this.maxHp = CONFIG.workHP;
+      this.hp = this.maxHp;                             // full health each new day
 
       // No danger during a trial (it's an audition). Otherwise: more
-      // fatality = more danger moments.
+      // fatality = more danger moments (each missed dodge costs a heart).
       if (this.trial) {
         this.dangersLeft = 0;
       } else {
-        const expected = this.job.fatality / 35;
+        const expected = this.job.fatality / 20;
         this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
       }
       this.nextDangerAt = 0.18 + Math.random() * 0.4;  // as a fraction of the day (0..1)
@@ -126,7 +128,7 @@ function defineShift(spec) {
       window.addEventListener('keydown', this._key);
 
       if (spec.init) spec.init(this);
-      if (!this.trial) this._renderGear();
+      if (!this.trial) { this._renderGear(); this._renderHP(); }
       this.lastTime = performance.now();
       requestAnimationFrame(t => this._loop(t));
     },
@@ -206,6 +208,7 @@ function defineShift(spec) {
            <div class="hud-job">${esc(State.rankName())}</div>
            <div class="hud-line">Power: <b>${State.power()}%</b></div>
            <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+           <div class="hud-line hp-line">Health: <span class="hearts" id="g-hp"></span></div>
            <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>`;
       this.root.innerHTML = `
         <div class="work-layout">
@@ -242,7 +245,7 @@ function defineShift(spec) {
         this.dangerActive.timeLeft -= dt;
         const fill = this.frame.querySelector('.danger-timer-fill');
         if (fill) fill.style.width = Math.max(0, this.dangerActive.timeLeft / this.dangerActive.total * 100) + '%';
-        if (this.dangerActive.timeLeft <= 0) { this._knockout(); return; }
+        if (this.dangerActive.timeLeft <= 0) { if (this._hurt()) return; }   // lost a heart (or died)
       }
 
       if (this.flashT > 0) this.flashT -= dt;
@@ -281,27 +284,53 @@ function defineShift(spec) {
       overlay.querySelector('.danger-tap').addEventListener('pointerdown', e => { e.preventDefault(); dodge(); });
     },
 
-    _knockout() {
+    // Paint the health hearts (❤️ left, 🖤 lost).
+    _renderHP() {
+      const box = this.root && this.root.querySelector('#g-hp');
+      if (!box) return;
+      let s = '';
+      for (let i = 0; i < this.maxHp; i++) s += i < this.hp ? '❤️' : '🖤';
+      box.textContent = s;
+    },
+
+    // A missed dodge costs one heart. Returns true only if it was fatal
+    // (then _die has taken over and the loop must stop).
+    _hurt() {
+      const overlay = this.frame.querySelector('.danger-overlay');
+      if (overlay) overlay.remove();
+      this.dangerActive = null;
+      this.hp -= 1;
+      this._renderHP();
+      this.flash('#d9534f');
+      Sound.thud();
+      if (this.hp <= 0) { this._die(); return true; }
+      UI.toast(`Ouch! ${esc(this.job.danger)} You lost a heart!`, '💔');
+      return false;
+    },
+
+    // Out of hearts — you die, lose EVERYTHING, and wash up as a fisherman.
+    _die() {
       this.running = false;
       Sound.thud();
-      const bill = Math.max(5, Math.floor(State.data.wealth * CONFIG.hospitalBillPercent / 100));
-      State.addWealth(-bill);
-      State.data.stats.knockouts += 1;
+      const lost = State.data.wealth;
       const oldJob = State.rankName();
       const danger = this.job.danger;
+      State.data.wealth = 0;                     // no money — start from scratch
+      State.data.stats.knockouts += 1;
       State.switchJob('fisherman');
+      State.save();
       State.nextDay();
+      UI.refreshWealth();
 
       const content = el('div', 'day-summary');
       content.innerHTML = `
-        <h2 data-spiky>💥 KNOCKED OUT!</h2>
-        <p><b>${esc(danger)}</b> got you. The hospital patched you up.</p>
+        <h2 data-spiky>💀 YOU DIED!</h2>
+        <p><b>${esc(danger)}</b> got you — you ran out of hearts.</p>
         <ul class="collection">
-          <li>💰 Kept what you earned <b>${fmtMoney(this.earned)}</b></li>
-          <li>🏥 Hospital bill <b>−${fmtMoney(bill)}</b></li>
+          <li>💸 Lost all your money <b>−${fmtMoney(lost)}</b></li>
           <li>😢 Lost your job as <b>${esc(oldJob)}</b></li>
         </ul>
-        <p>Back to the fishing boat with you...</p>
+        <p>You wake up broke, back on the fishing boat. Grind it back!</p>
         <div class="summary-actions">
           <a class="btn btn-go" href="levels.html" data-nav="levels">🎣 Go fishing</a>
           <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>

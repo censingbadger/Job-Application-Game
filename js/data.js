@@ -37,7 +37,7 @@ const CONFIG = {
   workShiftSeconds: 45,      // how long one work day lasts (other jobs)
   offersPerDay: 3,           // how many job offers appear in a batch
   offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
-  hospitalBillPercent: 10,   // % of your wealth you pay if you get knocked out
+  workHP: 3,                 // hearts you have per work day; run out and you die
 };
 
 // ------------------------------------------------------------

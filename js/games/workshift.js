@@ -16,13 +16,16 @@ const WorkShift = {
     this.speed = 100 / CONFIG.workShiftSeconds;
     this.dangerActive = null;
     this.survived = true;
+    this.maxHp = CONFIG.workHP;
+    this.hp = this.maxHp;                     // full health each new day
     this.lastTime = performance.now();
 
     const job = State.job();
     this.salary = Math.floor(State.salary() * (1 + State.power() / 100));
 
-    // How many dangers today? More fatality = more danger.
-    const expected = job.fatality / 35;
+    // How many dangers today? More fatality = more danger (each missed
+    // dodge costs a heart).
+    const expected = job.fatality / 20;
     this.dangersLeft = Math.floor(expected) + (Math.random() < expected % 1 ? 1 : 0);
     this.nextDangerAt = this.scheduleDanger();
 
@@ -35,6 +38,7 @@ const WorkShift = {
             <div class="hud-line">Salary: <b>${fmtMoney(this.salary)} / day</b></div>
             <div class="hud-line">Power: <b>${State.power()}%</b></div>
             <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+            <div class="hud-line hp-line">Health: <span class="hearts" id="ws-hp"></span></div>
           </div>
           <div class="card hud-card">
             <h3>HOW TO WORK</h3>
@@ -57,6 +61,7 @@ const WorkShift = {
     this.scene = root.querySelector('#ws-scene');
     this.workBtn = root.querySelector('#ws-work');
     this.taps = 0;
+    this.renderHP();
 
     this.workBtn.addEventListener('click', () => {
       if (!this.running || this.dangerActive) return;
@@ -91,7 +96,7 @@ const WorkShift = {
       this.dangerActive.timeLeft -= dt;
       const ring = this.scene.querySelector('.danger-timer-fill');
       if (ring) ring.style.width = Math.max(0, (this.dangerActive.timeLeft / this.dangerActive.total) * 100) + '%';
-      if (this.dangerActive.timeLeft <= 0) { this.knockout(); return; }
+      if (this.dangerActive.timeLeft <= 0) { if (this.hurt()) return; }   // lost a heart (or died)
     }
 
     this.fill.style.width = this.progress + '%';
@@ -120,28 +125,51 @@ const WorkShift = {
     });
   },
 
-  knockout() {
+  renderHP() {
+    const box = this.root && this.root.querySelector('#ws-hp');
+    if (!box) return;
+    let s = '';
+    for (let i = 0; i < this.maxHp; i++) s += i < this.hp ? '❤️' : '🖤';
+    box.textContent = s;
+  },
+
+  // A missed dodge costs a heart. Returns true only if it was fatal.
+  hurt() {
+    const overlay = this.scene.querySelector('.danger-overlay');
+    if (overlay) overlay.remove();
+    this.dangerActive = null;
+    this.hp -= 1;
+    this.renderHP();
+    Sound.danger();
+    if (this.hp <= 0) { this.die(); return true; }
+    UI.toast(`Ouch! ${esc(State.job().danger)} You lost a heart!`, '💔');
+    return false;
+  },
+
+  // Out of hearts — you die, lose EVERYTHING, and wash up as a fisherman.
+  die() {
     this.running = false;
     this.survived = false;
-    Sound.danger();
-    const bill = Math.max(5, Math.floor(State.data.wealth * CONFIG.hospitalBillPercent / 100));
-    State.addWealth(-bill);
-    State.data.stats.knockouts += 1;
+    Sound.thud();
+    const lost = State.data.wealth;
     const oldJob = State.rankName();
     const danger = State.job().danger;
+    State.data.wealth = 0;                    // no money — start from scratch
+    State.data.stats.knockouts += 1;
     State.switchJob('fisherman');
+    State.save();
     State.nextDay();
+    UI.refreshWealth();
 
     const content = el('div', 'day-summary');
     content.innerHTML = `
-      <h2 data-spiky>💥 KNOCKED OUT!</h2>
-      <p><b>${esc(danger)}</b> got you. The hospital patched you up.</p>
+      <h2 data-spiky>💀 YOU DIED!</h2>
+      <p><b>${esc(danger)}</b> got you — you ran out of hearts.</p>
       <ul class="collection">
-        <li>🏥 Hospital bill <b>−${fmtMoney(bill)}</b></li>
-        <li>📄 No pay today <b>$0</b></li>
-        <li>😢 You lost your job as <b>${esc(oldJob)}</b></li>
+        <li>💸 Lost all your money <b>−${fmtMoney(lost)}</b></li>
+        <li>😢 Lost your job as <b>${esc(oldJob)}</b></li>
       </ul>
-      <p>Back to the fishing boat with you...</p>
+      <p>You wake up broke, back on the fishing boat. Grind it back!</p>
       <div class="summary-actions">
         <a class="btn btn-go" href="levels.html" data-nav="levels" id="ko-fish">🎣 Go fishing</a>
         <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>
