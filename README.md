@@ -42,9 +42,14 @@ Every job is played differently. So far these have their own custom game
 |---|---|---|
 | Fisherman 🎣 | Cast, wait for the **!**, reel before the shark | Timing |
 | Chef 🍳 | Flip each dish when the bar hits the **green** | Perfect timing |
-| Miner ⛏️ | Slide your cart to catch gems, dodge rocks | Catch |
+| Miner ⛏️ | Swing your pickaxe when the marker hits the **green vein** | Perfect timing |
+| Teacher 📚 | Tap the right answer before the pop-quiz timer | Perfect timing |
 | Prisoner ⛓️ | Switch lanes to grab money, dodge guards | Dodge |
+| Nomad 🐪 | Jump over cacti, grab floating water | Dodge |
+| Peasant 🌾 | Move your basket to catch crops, dodge the goat | Catch |
+| Beekeeper 🐝 | Catch honeycombs in your jar, dodge the bees | Catch |
 | Soldier 🪖 | Tap the targets before they fire back | Aim & shoot |
+| Criminal 🕶️ | Grab loot on **green**, freeze on **red** (heist!) | Aim & timing |
 
 The games get **harder as you rank up**, and the job's **fatality rate**
 still shows up as a "dodge it or get knocked out" danger.

@@ -195,7 +195,7 @@ PAGES.applications = {
     State.data.mythicalOwned = true;
     State.save();
     this.openChest('THE MYTHICAL CHEST', '🌈', () => {
-      const prize = 500e9 + Math.floor(Math.random() * 500e9);
+      const prize = 2e12 + Math.floor(Math.random() * 4e12);
       State.addWealth(prize);
       State.addOffer('king');
       const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
