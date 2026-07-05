@@ -219,6 +219,22 @@ u { text-decoration-thickness: 3px; }
 
 .wealth-pill b { font-variant-numeric: tabular-nums; }
 
+.player-pill {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: 15px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--sea-light);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+.player-pill + .wealth-pill { margin-left: 0; }
+.player-pill:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--paper-shadow); }
+
 /* ---- HOME ------------------------------------------------------ */
 .home-hero {
   min-height: calc(100vh - 40px);
@@ -343,7 +359,16 @@ u { text-decoration-thickness: 3px; }
 .hex-nav:hover .hex { transform: rotate(-6deg) scale(1.08); }
 .hex-nav b { font-family: var(--font-display); letter-spacing: 2px; font-size: 16px; }
 
-.home-footer { margin-top: 46px; color: var(--pencil); font-size: 14px; }
+.home-footer { margin-top: 40px; color: var(--pencil); font-size: 14px; display: grid; gap: 8px; justify-items: center; }
+
+.home-playing {
+  background: var(--sea-light);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  padding: 5px 14px;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
 
 /* ---- PATHS ------------------------------------------------------ */
 .paths-layout {
@@ -925,6 +950,78 @@ u { text-decoration-thickness: 3px; }
 .wheel-spin-btn { margin-top: 16px; font-size: 20px; padding: 12px 34px; }
 .wheel-note { color: var(--pencil); font-size: 14px; margin-bottom: 0; }
 
+/* ---- WHO'S PLAYING? sign-in gate ------------------------------------ */
+.signin { text-align: center; }
+
+.signin-logo { font-family: var(--font-display); line-height: 1; margin-bottom: 6px; }
+.signin-logo span { font-size: 34px; }
+.signin-logo .signin-logo2 { color: var(--sea); font-size: 26px; display: block; }
+
+.signin-title {
+  font-size: clamp(26px, 5vw, 36px);
+  margin: 6px 0 14px;
+  text-shadow: 3px 3px 0 var(--paper-shadow);
+}
+
+.signin-sub { color: var(--pencil); font-size: 14px; margin-bottom: 8px; }
+
+.signin-players { display: grid; gap: 10px; margin-bottom: 6px; }
+
+.signin-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+  padding: 8px 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.signin-player:hover { background: var(--money-light); }
+.signin-player:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--paper-shadow); }
+
+.signin-avatar {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--sea-light);
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.signin-who { display: flex; flex-direction: column; line-height: 1.25; }
+.signin-who b { font-size: 18px; }
+.signin-who small { color: var(--pencil); font-variant-numeric: tabular-nums; }
+
+.signin-or { color: var(--pencil); font-size: 13px; margin: 14px 0 10px; }
+
+.signin-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.signin-input {
+  font: inherit;
+  font-size: 18px;
+  padding: 12px 16px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  background: #fffdf6;
+  box-shadow: inset 2px 2px 0 var(--paper-shadow);
+  min-width: 0;
+  flex: 1 1 200px;
+  max-width: 280px;
+}
+
+.signin-input:focus-visible { outline: 3px dashed var(--sea); outline-offset: 2px; }
+.signin-go { flex: none; }
+.signin-note { color: var(--pencil); font-size: 13px; margin: 14px 0 0; }
+
 /* ---- small screens -------------------------------------------------- */
 @media (max-width: 900px) {
   .paths-layout, .apps-layout, .fishing-layout, .work-layout { grid-template-columns: 1fr; }
@@ -984,7 +1081,8 @@ u { text-decoration-thickness: 3px; }
       </nav>
 
       <footer class="home-footer">
-        <span id="home-day">Day 1</span> · 💰 <b id="home-wealth">$0</b> · <button class="linkish" id="home-reset">start over</button>
+        <div class="home-playing">👤 Playing as <b id="home-player">Player</b> · <button class="linkish" id="home-switch">switch player</button></div>
+        <div>Day <span id="home-day">1</span> · 💰 <b id="home-wealth">$0</b> · <button class="linkish" id="home-reset">start over</button></div>
       </footer>
     </div>
   </main>
@@ -1164,15 +1262,126 @@ const SHOP_EXTRAS = {
 /* ============================================================
    STATE — saving, loading, money, jobs, luck, offers.
    Your game saves itself in the browser (localStorage).
+
+   PLAYERS: everyone types a simple name (no password) and gets
+   their own character. Type the same name next time to pick up
+   right where you left off. All characters live side by side.
    ============================================================ */
 
-const SAVE_KEY = 'jobApplicationGame.v1';
+const PROFILES_KEY = 'jobApplicationGame.profiles.v1';
+const LEGACY_KEY = 'jobApplicationGame.v1';   // the old one-character save
+
+// ------------------------------------------------------------
+// PROFILES — the list of everyone who plays on this device,
+// and which one is signed in right now.
+//   store = { current: "asher", players: { asher: {name, data} } }
+// The name you type is the label; we match on its lowercase form
+// so "Asher", "asher" and "ASHER" are the same character.
+// ------------------------------------------------------------
+const Profiles = {
+  store: { current: null, players: {} },
+
+  init() {
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(PROFILES_KEY)); } catch (e) { /* none yet */ }
+    if (!s || typeof s !== 'object') s = { current: null, players: {} };
+    if (!s.players || typeof s.players !== 'object') s.players = {};
+    this.store = s;
+    return this.store;
+  },
+
+  _write() {
+    try { localStorage.setItem(PROFILES_KEY, JSON.stringify(this.store)); } catch (e) { /* private mode */ }
+  },
+
+  key(name) { return String(name).trim().toLowerCase(); },
+  exists(name) { return !!this.store.players[this.key(name)]; },
+
+  // Everyone on this device, most-recently-played first.
+  list() {
+    return Object.values(this.store.players)
+      .sort((a, b) => (b.data.lastPlayed || 0) - (a.data.lastPlayed || 0));
+  },
+
+  currentName() {
+    const c = this.store.current;
+    return c && this.store.players[c] ? this.store.players[c].name : null;
+  },
+
+  // The active character's save data (the real object we keep mutating).
+  activeData() {
+    const c = this.store.current;
+    return c && this.store.players[c] ? this.store.players[c].data : null;
+  },
+
+  // Type a name to start a new character or continue an old one.
+  // Returns { data, isNew }.
+  signIn(name) {
+    const clean = String(name).trim().slice(0, 20) || 'Player';
+    const key = this.key(clean);
+    let isNew = false;
+    if (!this.store.players[key]) {
+      isNew = true;
+      let data = State.fresh();
+      // First-ever character on this device inherits any old single save,
+      // so nobody's early progress is lost when we add names.
+      if (Object.keys(this.store.players).length === 0) {
+        const legacy = this._takeLegacy();
+        if (legacy) { data = legacy; isNew = false; }
+      }
+      data.name = clean;
+      this.store.players[key] = { name: clean, data };
+    }
+    this.store.current = key;
+    this._write();
+    State.data = this.store.players[key].data;
+    State.data.name = clean;                 // keep the label fresh
+    if (!JOBS[State.data.path.jobId]) State.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
+    State.ensureOffers();
+    return { data: State.data, isNew };
+  },
+
+  // Sign out to the "Who's playing?" screen (keeps the character saved).
+  signOut() {
+    State.save();
+    this.store.current = null;
+    this._write();
+    State.data = null;
+  },
+
+  // Erase ONE character forever.
+  erase(name) {
+    delete this.store.players[this.key(name)];
+    if (this.store.current === this.key(name)) this.store.current = null;
+    this._write();
+    if (!this.store.current) State.data = null;
+  },
+
+  saveActive() {
+    const c = this.store.current;
+    if (c && this.store.players[c] && State.data) {
+      State.data.lastPlayed = Date.now();
+      this.store.players[c].data = State.data;
+      this._write();
+    }
+  },
+
+  // Move a pre-names save into the profile system (once), then remove it.
+  _takeLegacy() {
+    let l = null;
+    try { l = JSON.parse(localStorage.getItem(LEGACY_KEY)); } catch (e) { return null; }
+    if (!l) return null;
+    try { localStorage.removeItem(LEGACY_KEY); } catch (e) { /* ignore */ }
+    return Object.assign(State.fresh(), l);
+  },
+};
 
 const State = {
   data: null,
 
   fresh() {
     return {
+      name: null,
       wealth: CONFIG.startWealth,
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
@@ -1181,25 +1390,36 @@ const State = {
       offersDay: 0,             // which day the offers were made for
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
+      lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1 },
     };
   },
 
+  // Load the signed-in character (or null if nobody is signed in yet).
   load() {
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { /* no save yet */ }
-    this.data = Object.assign(this.fresh(), saved || {});
+    Profiles.init();
+    this.data = Profiles.activeData();
+    if (!this.data) return null;
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     this.ensureOffers();
     return this.data;
   },
 
+  signedIn() { return !!this.data; },
+
   save() {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) { /* private mode */ }
+    if (!this.data) return;
+    Profiles.saveActive();
   },
 
+  // Erase the CURRENT character back to a brand-new start (same name).
   reset() {
+    if (!this.data) return;
+    const name = this.data.name;
     this.data = this.fresh();
+    this.data.name = name;
+    const c = Profiles.store.current;
+    if (c && Profiles.store.players[c]) Profiles.store.players[c].data = this.data;
     this.save();
   },
 
@@ -1354,7 +1574,19 @@ function Boot() {
       e.preventDefault();
       showPage(link.dataset.nav);
     });
-    showPage('home');
+  }
+  // Nobody signed in yet? Ask "Who's playing?" before anything else.
+  if (!State.signedIn()) {
+    UI.signInGate(() => { State.load(); renderCurrentPage(); });
+  } else {
+    renderCurrentPage();
+  }
+}
+
+// Draw whichever page this document/section is showing right now.
+function renderCurrentPage() {
+  if (window.SINGLE_FILE) {
+    showPage(currentPage || 'home');
   } else {
     const page = document.body.dataset.page;
     UI.renderHeader(page);
@@ -1388,12 +1620,78 @@ const UI = {
       ['levels', 'LEVELS', 'levels.html'],
       ['applications', 'APPLICATIONS', 'applications.html'],
     ];
+    const player = Profiles.currentName() || 'Player';
     header.innerHTML = `
       <a class="home-hex" href="index.html" data-nav="home" aria-label="Home">🏠</a>
       <nav>${links.map(([id, label, href]) =>
         `<a href="${href}" data-nav="${id}" class="${id === activePage ? 'active' : ''}">${label}</a>`).join('')}
       </nav>
+      <button class="player-pill" id="player-pill" title="Switch player">👤 <b>${esc(player)}</b> ▾</button>
       <span class="wealth-pill" title="Your wealth">💰 <b id="wealth-pill">${fmtMoney(State.data.wealth)}</b></span>`;
+    const pill = header.querySelector('#player-pill');
+    if (pill) pill.addEventListener('click', () => UI.switchPlayer());
+  },
+
+  // The "Who's playing?" screen. Type a name to start or continue.
+  // onDone() runs once someone is signed in.
+  signInGate(onDone) {
+    const box = el('div', 'signin');
+    const players = Profiles.list();
+    const returning = players.length
+      ? `<div class="signin-returning">
+           <div class="signin-sub">Tap your name to keep going:</div>
+           <div class="signin-players">${players.map(p => {
+             const job = JOBS[p.data.path.jobId];
+             return `<button class="signin-player" data-name="${esc(p.name)}">
+               <span class="signin-avatar">${job ? job.emoji : '🙂'}</span>
+               <span class="signin-who"><b>${esc(p.name)}</b>
+               <small>Day ${p.data.day} · ${fmtMoney(p.data.wealth)}</small></span>
+             </button>`;
+           }).join('')}</div>
+           <div class="signin-or">— or start a new one —</div>
+         </div>`
+      : '';
+    box.innerHTML = `
+      <div class="signin-logo"><span data-spiky>JOB</span> <span class="signin-logo2" data-spiky>APPLICATION</span></div>
+      <h2 class="signin-title" data-spiky>WHO'S PLAYING?</h2>
+      ${returning}
+      <form class="signin-form" autocomplete="off">
+        <input class="signin-input" id="signin-name" type="text" maxlength="20"
+               placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
+        <button class="btn btn-go signin-go" type="submit">Let's go!</button>
+      </form>
+      <p class="signin-note">No password needed — just your name keeps your character safe on this device.</p>`;
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+
+    const finish = name => {
+      const { isNew } = Profiles.signIn(name);
+      modal.close();
+      const who = Profiles.currentName();
+      UI.toast(isNew ? `New character created — good luck, ${who}!` : `Welcome back, ${who}!`,
+               isNew ? '🌟' : '👋');
+      if (!isNew) UI.confetti(14);
+      onDone();
+    };
+
+    box.querySelectorAll('.signin-player').forEach(b =>
+      b.addEventListener('click', () => finish(b.dataset.name)));
+    const form = box.querySelector('.signin-form');
+    const input = box.querySelector('#signin-name');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
+      finish(name);
+    });
+    setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
+  },
+
+  // Save the current character and go back to the "Who's playing?" screen.
+  switchPlayer() {
+    State.save();
+    Profiles.signOut();
+    UI.signInGate(() => { State.load(); renderCurrentPage(); });
   },
 
   refreshWealth() {
@@ -2253,11 +2551,20 @@ PAGES.home = {
   init(root) {
     UI.spikyAll(root);
     const day = root.querySelector('#home-day');
-    if (day) day.textContent = `Day ${State.data.day}`;
+    if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
     if (wealth) wealth.textContent = fmtMoney(State.data.wealth);
     const badge = root.querySelector('#home-mythical');
     if (badge) badge.hidden = !State.data.mythicalOwned;
+
+    // "Playing as Asher · switch player"
+    const who = root.querySelector('#home-player');
+    if (who) who.textContent = Profiles.currentName() || 'Player';
+    const swap = root.querySelector('#home-switch');
+    if (swap && !swap.dataset.wired) {
+      swap.dataset.wired = '1';
+      swap.addEventListener('click', () => UI.switchPlayer());
+    }
 
     const reset = root.querySelector('#home-reset');
     if (reset && !reset.dataset.wired) {
@@ -2266,7 +2573,8 @@ PAGES.home = {
         const content = el('div', 'day-summary');
         content.innerHTML = `
           <h2 data-spiky>START OVER?</h2>
-          <p>This erases your save: wealth, path, luck... everything. Forever!</p>
+          <p>This erases <b>${esc(Profiles.currentName() || 'this character')}</b>'s progress —
+             wealth, path, luck... everything. Forever! Other players are not affected.</p>
           <div class="summary-actions">
             <button class="btn btn-danger" id="reset-yes">Yes, wipe it</button>
             <button class="btn" id="reset-no">No! Keep my stuff</button>
