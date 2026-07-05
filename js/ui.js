@@ -34,7 +34,19 @@ function Boot() {
       e.preventDefault();
       showPage(link.dataset.nav);
     });
-    showPage('home');
+  }
+  // Nobody signed in yet? Ask "Who's playing?" before anything else.
+  if (!State.signedIn()) {
+    UI.signInGate(() => { State.load(); renderCurrentPage(); });
+  } else {
+    renderCurrentPage();
+  }
+}
+
+// Draw whichever page this document/section is showing right now.
+function renderCurrentPage() {
+  if (window.SINGLE_FILE) {
+    showPage(currentPage || 'home');
   } else {
     const page = document.body.dataset.page;
     UI.renderHeader(page);
@@ -68,12 +80,78 @@ const UI = {
       ['levels', 'LEVELS', 'levels.html'],
       ['applications', 'APPLICATIONS', 'applications.html'],
     ];
+    const player = Profiles.currentName() || 'Player';
     header.innerHTML = `
       <a class="home-hex" href="index.html" data-nav="home" aria-label="Home">🏠</a>
       <nav>${links.map(([id, label, href]) =>
         `<a href="${href}" data-nav="${id}" class="${id === activePage ? 'active' : ''}">${label}</a>`).join('')}
       </nav>
+      <button class="player-pill" id="player-pill" title="Switch player">👤 <b>${esc(player)}</b> ▾</button>
       <span class="wealth-pill" title="Your wealth">💰 <b id="wealth-pill">${fmtMoney(State.data.wealth)}</b></span>`;
+    const pill = header.querySelector('#player-pill');
+    if (pill) pill.addEventListener('click', () => UI.switchPlayer());
+  },
+
+  // The "Who's playing?" screen. Type a name to start or continue.
+  // onDone() runs once someone is signed in.
+  signInGate(onDone) {
+    const box = el('div', 'signin');
+    const players = Profiles.list();
+    const returning = players.length
+      ? `<div class="signin-returning">
+           <div class="signin-sub">Tap your name to keep going:</div>
+           <div class="signin-players">${players.map(p => {
+             const job = JOBS[p.data.path.jobId];
+             return `<button class="signin-player" data-name="${esc(p.name)}">
+               <span class="signin-avatar">${job ? job.emoji : '🙂'}</span>
+               <span class="signin-who"><b>${esc(p.name)}</b>
+               <small>Day ${p.data.day} · ${fmtMoney(p.data.wealth)}</small></span>
+             </button>`;
+           }).join('')}</div>
+           <div class="signin-or">— or start a new one —</div>
+         </div>`
+      : '';
+    box.innerHTML = `
+      <div class="signin-logo"><span data-spiky>JOB</span> <span class="signin-logo2" data-spiky>APPLICATION</span></div>
+      <h2 class="signin-title" data-spiky>WHO'S PLAYING?</h2>
+      ${returning}
+      <form class="signin-form" autocomplete="off">
+        <input class="signin-input" id="signin-name" type="text" maxlength="20"
+               placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
+        <button class="btn btn-go signin-go" type="submit">Let's go!</button>
+      </form>
+      <p class="signin-note">No password needed — just your name keeps your character safe on this device.</p>`;
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+
+    const finish = name => {
+      const { isNew } = Profiles.signIn(name);
+      modal.close();
+      const who = Profiles.currentName();
+      UI.toast(isNew ? `New character created — good luck, ${who}!` : `Welcome back, ${who}!`,
+               isNew ? '🌟' : '👋');
+      if (!isNew) UI.confetti(14);
+      onDone();
+    };
+
+    box.querySelectorAll('.signin-player').forEach(b =>
+      b.addEventListener('click', () => finish(b.dataset.name)));
+    const form = box.querySelector('.signin-form');
+    const input = box.querySelector('#signin-name');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
+      finish(name);
+    });
+    setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
+  },
+
+  // Save the current character and go back to the "Who's playing?" screen.
+  switchPlayer() {
+    State.save();
+    Profiles.signOut();
+    UI.signInGate(() => { State.load(); renderCurrentPage(); });
   },
 
   refreshWealth() {

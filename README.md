@@ -33,6 +33,16 @@ Asher designed it:
 
 Your progress saves automatically in the browser.
 
+## Players 👤
+
+When the game opens it asks **"Who's playing?"** Type a simple name (no password!)
+to start a character. Come back later, type the **same name**, and you pick up
+right where you left off — your wealth, path, and luck are all still there.
+
+Lots of people can share one device: each name is its own separate character.
+Tap **switch player** any time to hop between them. It all saves in this browser
+(so a character made on the iPad lives on the iPad).
+
 ## The rules of the world
 
 - **Wealth** 💰 — you earn it by working. Fish are worth $50 (Minnow) to $20M (the legendary Jingfish).

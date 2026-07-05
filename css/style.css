@@ -211,6 +211,22 @@ u { text-decoration-thickness: 3px; }
 
 .wealth-pill b { font-variant-numeric: tabular-nums; }
 
+.player-pill {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: 15px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  background: var(--sea-light);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
+
+.player-pill + .wealth-pill { margin-left: 0; }
+.player-pill:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--paper-shadow); }
+
 /* ---- HOME ------------------------------------------------------ */
 .home-hero {
   min-height: calc(100vh - 40px);
@@ -335,7 +351,16 @@ u { text-decoration-thickness: 3px; }
 .hex-nav:hover .hex { transform: rotate(-6deg) scale(1.08); }
 .hex-nav b { font-family: var(--font-display); letter-spacing: 2px; font-size: 16px; }
 
-.home-footer { margin-top: 46px; color: var(--pencil); font-size: 14px; }
+.home-footer { margin-top: 40px; color: var(--pencil); font-size: 14px; display: grid; gap: 8px; justify-items: center; }
+
+.home-playing {
+  background: var(--sea-light);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--wobble);
+  padding: 5px 14px;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--paper-shadow);
+}
 
 /* ---- PATHS ------------------------------------------------------ */
 .paths-layout {
@@ -916,6 +941,78 @@ u { text-decoration-thickness: 3px; }
 
 .wheel-spin-btn { margin-top: 16px; font-size: 20px; padding: 12px 34px; }
 .wheel-note { color: var(--pencil); font-size: 14px; margin-bottom: 0; }
+
+/* ---- WHO'S PLAYING? sign-in gate ------------------------------------ */
+.signin { text-align: center; }
+
+.signin-logo { font-family: var(--font-display); line-height: 1; margin-bottom: 6px; }
+.signin-logo span { font-size: 34px; }
+.signin-logo .signin-logo2 { color: var(--sea); font-size: 26px; display: block; }
+
+.signin-title {
+  font-size: clamp(26px, 5vw, 36px);
+  margin: 6px 0 14px;
+  text-shadow: 3px 3px 0 var(--paper-shadow);
+}
+
+.signin-sub { color: var(--pencil); font-size: 14px; margin-bottom: 8px; }
+
+.signin-players { display: grid; gap: 10px; margin-bottom: 6px; }
+
+.signin-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  box-shadow: 3px 3px 0 var(--paper-shadow);
+  padding: 8px 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.signin-player:hover { background: var(--money-light); }
+.signin-player:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--paper-shadow); }
+
+.signin-avatar {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--sea-light);
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.signin-who { display: flex; flex-direction: column; line-height: 1.25; }
+.signin-who b { font-size: 18px; }
+.signin-who small { color: var(--pencil); font-variant-numeric: tabular-nums; }
+
+.signin-or { color: var(--pencil); font-size: 13px; margin: 14px 0 10px; }
+
+.signin-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.signin-input {
+  font: inherit;
+  font-size: 18px;
+  padding: 12px 16px;
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble-2);
+  background: #fffdf6;
+  box-shadow: inset 2px 2px 0 var(--paper-shadow);
+  min-width: 0;
+  flex: 1 1 200px;
+  max-width: 280px;
+}
+
+.signin-input:focus-visible { outline: 3px dashed var(--sea); outline-offset: 2px; }
+.signin-go { flex: none; }
+.signin-note { color: var(--pencil); font-size: 13px; margin: 14px 0 0; }
 
 /* ---- small screens -------------------------------------------------- */
 @media (max-width: 900px) {
