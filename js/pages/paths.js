@@ -47,9 +47,18 @@ PAGES.paths = {
       bar.style.width = Math.min(100, (path.career / need) * 100) + '%';
     }
 
-    // the trail: 4 hexagon stops, bottom to top
-    const positions = [[46, 90], [26, 66], [56, 42], [40, 12]];
-    const mystery = ['???', '???', '???', '????'];
+    // the trail: one hexagon stop per rank, zig-zagging bottom to top
+    const N = RANK_UP_AT.length;
+    const positions = [];
+    for (let i = 0; i < N; i++) {
+      const x = i % 2 === 0 ? 34 : 64;               // zig-zag left / right
+      const y = 91 - (i / (N - 1)) * 83;             // bottom (91%) up to top (8%)
+      positions.push([x, y]);
+    }
+    // draw the dotted connecting line through the nodes
+    const line = root.querySelector('#pt-line');
+    if (line) line.setAttribute('d', positions.map(([x, y], i) => `${i ? 'L' : 'M'} ${x} ${y}`).join(' '));
+
     const nodesBox = root.querySelector('#pt-nodes');
     nodesBox.innerHTML = '';
     positions.forEach(([x, y], i) => {
@@ -58,9 +67,9 @@ PAGES.paths = {
       node.style.top = y + '%';
       const state = i < path.rank ? 'done' : i === path.rank ? 'current' : 'locked';
       node.classList.add(state);
-      if (i === positions.length - 1) node.classList.add('boss');
-      const face = state === 'locked' ? (i === positions.length - 1 ? '☁️' : '❓') : (state === 'done' ? '✓' : job.emoji);
-      const label = state === 'locked' ? mystery[i] : State.rankName(i);
+      if (i === N - 1) node.classList.add('boss');
+      const face = state === 'locked' ? (i === N - 1 ? '☁️' : '❓') : (state === 'done' ? '✓' : job.emoji);
+      const label = state === 'locked' ? (i === N - 1 ? '????' : '???') : State.rankName(i);
       node.innerHTML = `<span class="hex hex-node"><span>${face}</span></span><b class="node-label">${esc(label)}</b>`;
       nodesBox.appendChild(node);
     });

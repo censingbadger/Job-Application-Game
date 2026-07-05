@@ -72,10 +72,10 @@ GAMES.nomad = defineShift({
     // obstacles & water
     g.things.forEach(th => Draw.emoji(ctx, th.emoji, th.x, th.y, th.r * 2));
 
-    // the nomad on a camel
+    // the nomad on a camel (flipped to face right, the way it's travelling)
     if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
     const bounce = g.onGround ? Math.sin(t * 12) * 3 : 0;
-    Draw.emoji(ctx, '🐪', g.px, g.py + bounce, 60);
+    ctx.save(); ctx.translate(g.px, g.py + bounce); ctx.scale(-1, 1); Draw.emoji(ctx, '🐪', 0, 0, 60); ctx.restore();
     ctx.globalAlpha = 1;
 
     Draw.bigText(ctx, `Water jugs: ${g.got}`, GW / 2, GH - 14, 22, '#9a6a1f');

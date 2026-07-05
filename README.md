@@ -96,8 +96,10 @@ saved per-device. (No passwords, so friends should each pick a **unique name**.)
 - **Luck** 🍀 — buy lucky items in the shop; rare fish and rare job offers show up more.
 - **Fatality rate** ☠️ — dangerous jobs pay big, but if you miss the dodge, it's a
   hospital bill and back to the fishing boat.
-- **Paths** — every job has 4 ranks. Earn money at your job to climb. The top rank is a mystery...
-- One day of work = one in-game day. New job applications arrive daily.
+- **Paths** — every job has 7 ranks. Earn money at your job to climb, and the
+  milestones get bigger each time (rank up at 1M, then +2M, +4M...). The top rank is a mystery...
+- One shift = one in-game day. A **fresh batch of job applications arrives every 10 minutes**
+  (declining them all won't refill early — you wait for the timer).
 
 ## Asher's editing desk ✏️
 

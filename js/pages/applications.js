@@ -10,13 +10,40 @@ PAGES.applications = {
     State.ensureOffers();
     this.renderOffers();
     this.renderShop();
+    this.startOfferTimer();
   },
 
-  // ---- daily offers -------------------------------------------
+  // clean up the countdown when leaving the page
+  leave() {
+    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+  },
+
+  // Tick the "next batch in m:ss" countdown; refresh the offers when it's due.
+  startOfferTimer() {
+    if (this._timer) clearInterval(this._timer);
+    const tick = () => {
+      const ms = State.msUntilOffers();
+      const el = this.root.querySelector('#apps-timer');
+      if (ms <= 0) {
+        State.ensureOffers();       // rolls a fresh batch (10 minutes have passed)
+        this.renderOffers();
+        return;
+      }
+      if (el) {
+        const s = Math.ceil(ms / 1000);
+        el.textContent = `🕒 New applications in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      }
+    };
+    tick();
+    this._timer = setInterval(tick, 1000);
+  },
+
+  // ---- job offers ---------------------------------------------
   renderOffers() {
     const box = this.root.querySelector('#apps-offers');
     if (!State.data.offers.length) {
-      box.innerHTML = `<div class="card offer-card empty-card">No offers left today.<br>Work a day — new applications arrive tomorrow!</div>`;
+      const s = Math.ceil(State.msUntilOffers() / 1000);
+      box.innerHTML = `<div class="card offer-card empty-card">No applications left right now.<br>A fresh batch arrives in <b>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</b>.</div>`;
       return;
     }
     box.innerHTML = '';

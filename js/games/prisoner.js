@@ -84,10 +84,10 @@ GAMES.prisoner = defineShift({
       Draw.emoji(ctx, e, th.x, th.y, 46);
     });
 
-    // the prisoner
+    // the prisoner (flipped to face right, toward the fence)
     const px = 150;
     if (g.stun > 0) ctx.globalAlpha = 0.4 + Math.sin(t * 40) * 0.3;
-    Draw.emoji(ctx, '🏃', px, g.py, 56);
+    ctx.save(); ctx.translate(px, g.py); ctx.scale(-1, 1); Draw.emoji(ctx, '🏃', 0, 0, 56); ctx.restore();
     ctx.globalAlpha = 1;
 
     Draw.bigText(ctx, `Money bags: ${g.grabbed}`, GW / 2, GH - 18, 22, '#e8b830');
