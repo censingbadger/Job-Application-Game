@@ -97,7 +97,7 @@ const UI = {
       <nav>${links.map(([id, label, href]) =>
         `<a href="${href}" data-nav="${id}" class="${id === activePage ? 'active' : ''}">${label}</a>`).join('')}
       </nav>
-      <button class="player-pill" id="player-pill" title="Switch player">👤 <b>${esc(player)}</b> ▾</button>
+      <button class="player-pill" id="player-pill" title="Switch player">${esc(State.avatar())} <b>${esc(player)}</b> ▾</button>
       <span class="wealth-pill" title="Your wealth">💰 <b id="wealth-pill">${fmtMoney(State.data.wealth)}</b></span>`;
     const pill = header.querySelector('#player-pill');
     if (pill) pill.addEventListener('click', () => UI.switchPlayer());
@@ -114,7 +114,7 @@ const UI = {
            <div class="signin-players">${players.map(p => {
              const job = JOBS[p.data.path.jobId];
              return `<button class="signin-player" data-name="${esc(p.name)}">
-               <span class="signin-avatar">${job ? job.emoji : '🙂'}</span>
+               <span class="signin-avatar">${p.data.avatar || (job ? job.emoji : '🙂')}</span>
                <span class="signin-who"><b>${esc(p.name)}</b>
                <small>Day ${p.data.day} · ${fmtMoney(p.data.wealth)}</small></span>
              </button>`;
@@ -126,6 +126,9 @@ const UI = {
       <div class="signin-logo"><span data-spiky>JOB</span> <span class="signin-logo2" data-spiky>APPLICATION</span></div>
       <h2 class="signin-title" data-spiky>WHO'S PLAYING?</h2>
       ${returning}
+      <div class="signin-avatars" role="radiogroup" aria-label="Pick your character">
+        ${AVATARS.map((a, i) => `<button type="button" class="signin-pick${i === 0 ? ' picked' : ''}" data-avatar="${a}">${a}</button>`).join('')}
+      </div>
       <form class="signin-form" autocomplete="off">
         <input class="signin-input" id="signin-name" type="text" maxlength="20"
                placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
@@ -135,7 +138,14 @@ const UI = {
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
-    const finish = async name => {
+    let avatar = AVATARS[0];
+    box.querySelectorAll('.signin-pick').forEach(b => b.addEventListener('click', () => {
+      box.querySelectorAll('.signin-pick').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      avatar = b.dataset.avatar;
+    }));
+
+    const finish = async (name, chosenAvatar) => {
       // brief "loading" state while we check the cloud for this character
       const loading = el('div', 'signin');
       loading.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
@@ -143,7 +153,7 @@ const UI = {
       box.innerHTML = '';
       box.appendChild(loading);
       UI.spikyAll(box);
-      const res = await Profiles.signInAsync(name);
+      const res = await Profiles.signInAsync(name, chosenAvatar);
       modal.close();
       const who = Profiles.currentName();
       const msg = res.isNew ? `New character — good luck, ${who}!`
@@ -161,7 +171,7 @@ const UI = {
       e.preventDefault();
       const name = input.value.trim();
       if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
-      finish(name);
+      finish(name, avatar);
     });
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
   },

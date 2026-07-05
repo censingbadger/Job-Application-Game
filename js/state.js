@@ -55,7 +55,7 @@ const Profiles = {
 
   // Type a name to start a new character or continue an old one.
   // Returns { data, isNew }.
-  signIn(name) {
+  signIn(name, avatar) {
     const clean = String(name).trim().slice(0, 20) || 'Player';
     const key = this.key(clean);
     let isNew = false;
@@ -69,12 +69,14 @@ const Profiles = {
         if (legacy) { data = legacy; isNew = false; }
       }
       data.name = clean;
+      if (avatar) data.avatar = avatar;
       this.store.players[key] = { name: clean, data };
     }
     this.store.current = key;
     this._write();
     State.data = this.store.players[key].data;
     State.data.name = clean;                 // keep the label fresh
+    if (!State.data.avatar) State.data.avatar = AVATARS[0];
     if (!JOBS[State.data.path.jobId]) State.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     State.ensureOffers();
     return { data: State.data, isNew };
@@ -110,9 +112,9 @@ const Profiles = {
 
   // Sign in AND check the cloud so a character saved on another device
   // comes back. Returns { isNew, source: 'cloud' | 'local' }.
-  async signInAsync(name) {
+  async signInAsync(name, avatar) {
     const hadLocal = this.exists(name);          // real local progress under this name?
-    const { isNew } = this.signIn(name);         // instant local (creates if new)
+    const { isNew } = this.signIn(name, avatar); // instant local (creates if new)
     let source = 'local';
     if (Cloud.on()) {
       Cloud.start();
@@ -173,6 +175,7 @@ const State = {
   fresh() {
     return {
       name: null,
+      avatar: AVATARS[0],
       wealth: CONFIG.startWealth,
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
@@ -230,6 +233,8 @@ const State = {
     this.save();
     return true;
   },
+
+  avatar() { return (this.data && this.data.avatar) || AVATARS[0]; },
 
   // ---- your job & path ---------------------------------------
   job() { return JOBS[this.data.path.jobId]; },

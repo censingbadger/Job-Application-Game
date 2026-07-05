@@ -1063,6 +1063,75 @@ u { text-decoration-thickness: 3px; }
 .signin-go { flex: none; }
 .signin-note { color: var(--pencil); font-size: 13px; margin: 14px 0 0; }
 
+/* ---- sign-in avatar picker ------------------------------------------ */
+.signin-avatars {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin: 4px 0 14px;
+}
+.signin-pick {
+  font-size: 26px; width: 48px; height: 48px; line-height: 1;
+  border: 3px solid var(--ink); border-radius: 50%;
+  background: #fffdf6; cursor: pointer; padding: 0;
+}
+.signin-pick.picked { background: var(--money-light); box-shadow: 0 0 0 3px var(--money); }
+
+/* ---- THE JOB APPLICATION -------------------------------------------- */
+.apply { text-align: center; display: grid; gap: 12px; }
+
+.apply-head { display: flex; align-items: center; gap: 14px; justify-content: center; }
+.apply-avatar {
+  font-size: 46px; width: 66px; height: 66px; flex: none;
+  display: grid; place-items: center;
+  border: 3px solid var(--ink); border-radius: 50%;
+  background: var(--sea-light); box-shadow: 3px 3px 0 var(--paper-shadow);
+}
+.apply-title { text-align: left; }
+.apply-title h2 { margin: 0; font-size: clamp(26px, 5vw, 36px); text-shadow: 3px 3px 0 var(--paper-shadow); }
+.apply-job { font-size: 18px; font-weight: bold; margin-top: 2px; }
+
+.apply-form { text-align: left; display: grid; gap: 6px; }
+.apply-row { font-size: 15px; }
+.apply-q { margin-top: 8px; font-weight: bold; }
+.apply-reasons { display: grid; gap: 8px; margin-top: 4px; }
+.apply-reason { justify-content: flex-start; text-align: left; font-weight: normal; font-size: 15px; }
+.apply-reason.picked { background: var(--money-light); box-shadow: 3px 3px 0 var(--money); }
+
+.apply-gauntlet {
+  font-size: 13px; color: var(--pencil);
+  border: 2px dashed var(--paper-shadow); border-radius: var(--wobble);
+  padding: 6px 10px; display: inline-block; justify-self: center;
+}
+
+/* the APPROVED / DENIED rubber stamp */
+.stamp {
+  justify-self: center;
+  font-family: var(--font-display); font-size: 34px; letter-spacing: 3px;
+  padding: 4px 20px; border: 5px solid; border-radius: 8px;
+  transform: rotate(-11deg); opacity: 0.92;
+  animation: stamp-slam 0.4s cubic-bezier(.2,1.6,.4,1);
+}
+.stamp-approved { color: #2f7d3f; border-color: #2f7d3f; }
+.stamp-denied { color: var(--danger); border-color: var(--danger); }
+@keyframes stamp-slam { from { transform: rotate(-11deg) scale(2.4); opacity: 0; } }
+
+/* the luck wheel */
+.luck-stage { position: relative; width: min(70vw, 300px); margin: 4px auto 0; }
+.luck-stage canvas { width: 100%; height: auto; display: block; }
+.luck-stage .wheel-pointer {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 36px; color: var(--ink);
+  text-shadow: -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff;
+}
+
+/* the full-screen skill-trial stage */
+.trial-overlay { padding: 12px; }
+.trial-stage {
+  width: min(1120px, 97vw); max-height: 94vh; overflow-y: auto;
+  background: var(--paper); border: 3px solid var(--ink);
+  border-radius: var(--wobble-2); box-shadow: 5px 5px 0 rgba(0,0,0,.3);
+  padding: 14px;
+}
+
 /* ---- small screens -------------------------------------------------- */
 @media (max-width: 900px) {
   .paths-layout, .apps-layout, .fishing-layout, .work-layout { grid-template-columns: 1fr; }
@@ -1197,6 +1266,27 @@ window.SINGLE_FILE = true;
    - Add a fish to FISH and it can be caught.
    - Add a job to JOBS and it appears on the wheel + applications.
    ============================================================ */
+
+// Boy avatar faces you can pick when you create your character.
+const AVATARS = ['👦', '👦🏻', '👦🏼', '👦🏽', '👦🏾', '👦🏿', '🧒'];
+
+// ------------------------------------------------------------
+// THE JOB APPLICATION — a paperwork + skill + luck gauntlet to
+// get hired, scaled by the job's rarity (better jobs = harder).
+//   paperwork : always — fill the form and stamp it
+//   trial     : play the job's game for `seconds`, earning at least
+//               (base salary * goalMult) to pass the skill test
+//   luck      : a spinner whose HIRE zone starts at luckBase% and
+//               grows with your Luck stat (rarer job = smaller zone)
+//   fee       : what it costs to APPLY AGAIN after a rejection
+// ------------------------------------------------------------
+const APPLICATION = {
+  common:    { trial: false, luck: false, fee: 1e3 },
+  uncommon:  { trial: true, goalMult: 0.30, seconds: 22, luck: false, fee: 50e3 },
+  rare:      { trial: true, goalMult: 0.45, seconds: 24, luck: true, luckBase: 42, fee: 1e6 },
+  epic:      { trial: true, goalMult: 0.60, seconds: 26, luck: true, luckBase: 26, fee: 20e6 },
+  legendary: { trial: true, goalMult: 0.85, seconds: 28, luck: true, luckBase: 14, fee: 150e6 },
+};
 
 // Big settings for the whole game
 const CONFIG = {
@@ -1400,7 +1490,7 @@ const Profiles = {
 
   // Type a name to start a new character or continue an old one.
   // Returns { data, isNew }.
-  signIn(name) {
+  signIn(name, avatar) {
     const clean = String(name).trim().slice(0, 20) || 'Player';
     const key = this.key(clean);
     let isNew = false;
@@ -1414,12 +1504,14 @@ const Profiles = {
         if (legacy) { data = legacy; isNew = false; }
       }
       data.name = clean;
+      if (avatar) data.avatar = avatar;
       this.store.players[key] = { name: clean, data };
     }
     this.store.current = key;
     this._write();
     State.data = this.store.players[key].data;
     State.data.name = clean;                 // keep the label fresh
+    if (!State.data.avatar) State.data.avatar = AVATARS[0];
     if (!JOBS[State.data.path.jobId]) State.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     State.ensureOffers();
     return { data: State.data, isNew };
@@ -1455,9 +1547,9 @@ const Profiles = {
 
   // Sign in AND check the cloud so a character saved on another device
   // comes back. Returns { isNew, source: 'cloud' | 'local' }.
-  async signInAsync(name) {
+  async signInAsync(name, avatar) {
     const hadLocal = this.exists(name);          // real local progress under this name?
-    const { isNew } = this.signIn(name);         // instant local (creates if new)
+    const { isNew } = this.signIn(name, avatar); // instant local (creates if new)
     let source = 'local';
     if (Cloud.on()) {
       Cloud.start();
@@ -1518,6 +1610,7 @@ const State = {
   fresh() {
     return {
       name: null,
+      avatar: AVATARS[0],
       wealth: CONFIG.startWealth,
       day: 1,
       path: { jobId: 'fisherman', rank: 0, career: 0 },
@@ -1575,6 +1668,8 @@ const State = {
     this.save();
     return true;
   },
+
+  avatar() { return (this.data && this.data.avatar) || AVATARS[0]; },
 
   // ---- your job & path ---------------------------------------
   job() { return JOBS[this.data.path.jobId]; },
@@ -1896,7 +1991,7 @@ const UI = {
       <nav>${links.map(([id, label, href]) =>
         `<a href="${href}" data-nav="${id}" class="${id === activePage ? 'active' : ''}">${label}</a>`).join('')}
       </nav>
-      <button class="player-pill" id="player-pill" title="Switch player">👤 <b>${esc(player)}</b> ▾</button>
+      <button class="player-pill" id="player-pill" title="Switch player">${esc(State.avatar())} <b>${esc(player)}</b> ▾</button>
       <span class="wealth-pill" title="Your wealth">💰 <b id="wealth-pill">${fmtMoney(State.data.wealth)}</b></span>`;
     const pill = header.querySelector('#player-pill');
     if (pill) pill.addEventListener('click', () => UI.switchPlayer());
@@ -1913,7 +2008,7 @@ const UI = {
            <div class="signin-players">${players.map(p => {
              const job = JOBS[p.data.path.jobId];
              return `<button class="signin-player" data-name="${esc(p.name)}">
-               <span class="signin-avatar">${job ? job.emoji : '🙂'}</span>
+               <span class="signin-avatar">${p.data.avatar || (job ? job.emoji : '🙂')}</span>
                <span class="signin-who"><b>${esc(p.name)}</b>
                <small>Day ${p.data.day} · ${fmtMoney(p.data.wealth)}</small></span>
              </button>`;
@@ -1925,6 +2020,9 @@ const UI = {
       <div class="signin-logo"><span data-spiky>JOB</span> <span class="signin-logo2" data-spiky>APPLICATION</span></div>
       <h2 class="signin-title" data-spiky>WHO'S PLAYING?</h2>
       ${returning}
+      <div class="signin-avatars" role="radiogroup" aria-label="Pick your character">
+        ${AVATARS.map((a, i) => `<button type="button" class="signin-pick${i === 0 ? ' picked' : ''}" data-avatar="${a}">${a}</button>`).join('')}
+      </div>
       <form class="signin-form" autocomplete="off">
         <input class="signin-input" id="signin-name" type="text" maxlength="20"
                placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
@@ -1934,7 +2032,14 @@ const UI = {
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
-    const finish = async name => {
+    let avatar = AVATARS[0];
+    box.querySelectorAll('.signin-pick').forEach(b => b.addEventListener('click', () => {
+      box.querySelectorAll('.signin-pick').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      avatar = b.dataset.avatar;
+    }));
+
+    const finish = async (name, chosenAvatar) => {
       // brief "loading" state while we check the cloud for this character
       const loading = el('div', 'signin');
       loading.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
@@ -1942,7 +2047,7 @@ const UI = {
       box.innerHTML = '';
       box.appendChild(loading);
       UI.spikyAll(box);
-      const res = await Profiles.signInAsync(name);
+      const res = await Profiles.signInAsync(name, chosenAvatar);
       modal.close();
       const who = Profiles.currentName();
       const msg = res.isNew ? `New character — good luck, ${who}!`
@@ -1960,7 +2065,7 @@ const UI = {
       e.preventDefault();
       const name = input.value.trim();
       if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
-      finish(name);
+      finish(name, avatar);
     });
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
   },
@@ -2254,22 +2359,30 @@ function defineShift(spec) {
     spec,
     running: false,
 
-    start(root) {
+    // opts.trial = { seconds, goal, onResult } runs a short SKILL TRIAL
+    // (for a job application): no danger, no real pay — just hit the goal.
+    start(root, opts = {}) {
       this.root = root;
       this.running = true;
+      this.trial = opts.trial || null;
       this.job = State.job();
       this.rank = State.data.path.rank;
       this.diff = 1 + this.rank * 0.4;                 // 1.0, 1.4, 1.8, 2.2 — harder as you rank up
-      this.duration = spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds;
+      this.duration = this.trial ? this.trial.seconds : (spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds);
       this.timeLeft = this.duration;
       this.earned = 0;
       this.flashT = 0;
       this.flashColor = null;
       this.dangerActive = null;
 
-      // How many danger moments today? More fatality = more danger.
-      const expected = this.job.fatality / 35;
-      this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+      // No danger during a trial (it's an audition). Otherwise: more
+      // fatality = more danger moments.
+      if (this.trial) {
+        this.dangersLeft = 0;
+      } else {
+        const expected = this.job.fatality / 35;
+        this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+      }
       this.nextDangerAt = 0.18 + Math.random() * 0.4;  // as a fraction of the day (0..1)
 
       this._renderShell();
@@ -2311,32 +2424,43 @@ function defineShift(spec) {
       window.removeEventListener('keydown', this._key);
     },
 
-    // Bank money mid-game, with a floating "+$" and a running total.
+    // Earn money mid-game (a trial doesn't bank real money — it only
+    // counts toward the goal), with a floating "+$" and a running total.
     earn(n) {
       n = Math.floor(n);
       if (n <= 0) return;
       this.earned += n;
-      State.addWealth(n);
-      State.addCareerEarnings(n);
+      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); }
       UI.moneyPop(n);
       const t = this.root.querySelector('#g-earned');
-      if (t) t.textContent = fmtMoney(this.earned);
+      if (t) t.textContent = this.trial ? `${fmtMoney(this.earned)} / ${fmtMoney(this.trial.goal)}` : fmtMoney(this.earned);
+      if (this.trial) {
+        const fill = this.root.querySelector('#g-goal-fill');
+        if (fill) fill.style.width = Math.min(100, this.earned / this.trial.goal * 100) + '%';
+      }
     },
 
     flash(color) { this.flashColor = color; this.flashT = 0.25; },
 
     _renderShell() {
       const job = this.job;
+      const trial = this.trial;
+      const topCard = trial
+        ? `<h3>🧪 SKILL TRIAL</h3>
+           <div class="hud-job">${esc(job.name)}</div>
+           <div class="hud-line">Power: <b>${State.power()}%</b></div>
+           <div class="hud-line">GOAL: earn <b>${fmtMoney(trial.goal)}</b></div>
+           <div class="hud-line">So far: <b id="g-earned">$0</b></div>
+           <div class="shift-bar small"><div class="shift-fill" id="g-goal-fill" style="width:0%"></div></div>`
+        : `<h3>CURRENT JOB</h3>
+           <div class="hud-job">${esc(State.rankName())}</div>
+           <div class="hud-line">Power: <b>${State.power()}%</b></div>
+           <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+           <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>`;
       this.root.innerHTML = `
         <div class="work-layout">
           <aside class="fishing-side">
-            <div class="card hud-card">
-              <h3>CURRENT JOB</h3>
-              <div class="hud-job">${esc(State.rankName())}</div>
-              <div class="hud-line">Power: <b>${State.power()}%</b></div>
-              <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
-              <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>
-            </div>
+            <div class="card hud-card">${topCard}</div>
             <div class="card hud-card">
               <h3>HOW TO PLAY</h3>
               <p class="hud-line">${spec.hint || 'Do your job before the day ends!'}</p>
@@ -2347,7 +2471,7 @@ function defineShift(spec) {
             <div class="canvas-frame card" id="g-frame">
               <canvas id="g-canvas" width="${GW}" height="${GH}"></canvas>
             </div>
-            <p class="hint">Watch out for: <b>${esc(job.danger)}</b> — tap fast to dodge it!</p>
+            <p class="hint">${trial ? 'Hit the goal before time runs out to <b>pass the trial</b>!' : `Watch out for: <b>${esc(job.danger)}</b> — tap fast to dodge it!`}</p>
           </div>
         </div>`;
     },
@@ -2383,7 +2507,7 @@ function defineShift(spec) {
       const timer = this.root.querySelector('#g-timer');
       if (timer) timer.style.width = (this.timeLeft / this.duration * 100) + '%';
       const clock = this.root.querySelector('#g-clock');
-      if (clock) clock.textContent = `Day ${State.data.day} · ${Math.ceil(this.timeLeft)}s`;
+      if (clock) clock.textContent = (this.trial ? 'TRIAL' : `Day ${State.data.day}`) + ` · ${Math.ceil(this.timeLeft)}s`;
 
       requestAnimationFrame(t => this._loop(t));
     },
@@ -2438,6 +2562,13 @@ function defineShift(spec) {
 
     _endDay() {
       this.running = false;
+      // A trial ends by reporting pass/fail to the application — no
+      // payday, no new day, no real money changed hands.
+      if (this.trial) {
+        const t = this.trial; this.trial = null;
+        t.onResult(this.earned >= t.goal, this.earned);
+        return;
+      }
       const total = this.earned;
       const promo = State.data.pendingPromotion;
       State.data.pendingPromotion = null;
@@ -4807,6 +4938,262 @@ GAMES.king = defineShift({
 
 ;
 /* ============================================================
+   THE JOB APPLICATION — your avatar applies for a job.
+   Fill out the paperwork, then (for better jobs) pass a SKILL
+   TRIAL and a LUCK DRAW to actually get hired. Harder the more
+   the job pays. Rejected? Re-apply for a (large) fee.
+
+   Apply.start(jobId, onDone) runs the whole flow.
+   onDone(hired, consumed) — remove the offer when `consumed`.
+   ============================================================ */
+
+// shuffle a copy of `arr` and take the first `n`
+function shuffleTake(arr, n) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, n);
+}
+
+// A two-slice luck wheel: a green HIRE wedge (greenPct of the circle)
+// and a red DENIED wedge. A spin lands the pointer randomly, so the
+// chance of hire is exactly greenPct%.
+const LuckWheel = {
+  draw(canvas, greenPct, rotation) {
+    const ctx = canvas.getContext('2d');
+    const r = canvas.width / 2;
+    const arc = Math.PI * 2 * (greenPct / 100);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(r, r);
+    ctx.rotate(rotation);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#2b2b33';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r - 6, -arc / 2, arc / 2); ctx.closePath();
+    ctx.fillStyle = '#3fa555'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r - 6, arc / 2, Math.PI * 2 - arc / 2); ctx.closePath();
+    ctx.fillStyle = '#d9534f'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 22px "Trebuchet MS", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (greenPct > 12) ctx.fillText('HIRE', r * 0.55, 0);
+    ctx.save(); ctx.rotate(Math.PI); ctx.fillText('DENIED', r * 0.5, 0); ctx.restore();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(r, r, r - 5, 0, Math.PI * 2); ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 6; ctx.stroke();
+  },
+  spin(canvas, greenPct, onDone) {
+    const arc = Math.PI * 2 * (greenPct / 100);
+    const target = Math.random() * Math.PI * 2;
+    const extra = REDUCED_MOTION ? 0 : (4 + Math.floor(Math.random() * 3)) * Math.PI * 2;
+    const finalRot = target + extra;
+    const dur = REDUCED_MOTION ? 500 : 3200;
+    const t0 = performance.now();
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / dur);
+      const rot = finalRot * (1 - Math.pow(1 - t, 3));
+      this.draw(canvas, greenPct, rot);
+      if (t < 1) { requestAnimationFrame(tick); return; }
+      const pointer = -Math.PI / 2;                              // the ▼ at the top
+      const d = Math.atan2(Math.sin(pointer - rot), Math.cos(pointer - rot));
+      onDone(Math.abs(d) <= arc / 2);
+    };
+    requestAnimationFrame(tick);
+  },
+};
+
+const Apply = {
+  start(jobId, onDone) {
+    this.jobId = jobId;
+    this.job = JOBS[jobId];
+    this.cfg = APPLICATION[this.job.rarity] || APPLICATION.common;
+    this.onDone = onDone || function () {};
+    this.origPath = State.data.path;
+    this.attempted = false;
+    this._paperwork();
+  },
+
+  _finish(hired) {
+    if (!hired) State.data.path = this.origPath;   // undo any "pretend" job
+    this.onDone(hired, this.attempted || hired);
+  },
+
+  _gauntlet() {
+    const steps = ['📝 Paperwork'];
+    if (this.cfg.trial) steps.push('🧪 Skill trial');
+    if (this.cfg.luck) steps.push('🍀 Luck draw');
+    return steps.join('  →  ');
+  },
+
+  // ---- step 1: the paperwork ----------------------------------
+  _paperwork() {
+    const job = this.job;
+    const rar = RARITY[job.rarity];
+    const box = el('div', 'apply');
+    box.innerHTML = `
+      <div class="apply-head">
+        <span class="apply-avatar">${State.avatar()}</span>
+        <div class="apply-title">
+          <h2 data-spiky>APPLICATION</h2>
+          <div class="apply-job">${esc(job.name)} <span class="rarity-chip" style="--chip:${rar.color}">${rar.label}</span></div>
+        </div>
+      </div>
+      <div class="apply-form card">
+        <div class="apply-row">Applicant: <b>${esc(State.data.name)}</b></div>
+        <div class="apply-row">Salary: <b>${job.special === 'fishing' ? 'depends on fish' : fmtMoney(job.salary) + ' / day'}</b></div>
+        <div class="apply-row">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+        <div class="apply-q">Why should we hire you?</div>
+        <div class="apply-reasons"></div>
+      </div>
+      <div class="apply-gauntlet">To get hired: ${this._gauntlet()}</div>
+      <div class="summary-actions">
+        <button class="btn btn-go apply-submit" disabled>✍️ Stamp &amp; submit</button>
+        <button class="btn apply-cancel">Never mind</button>
+      </div>`;
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+
+    const reasons = ['I was born for this.', 'I really need the money.', 'My mum said I should.', 'For the glory!', 'No idea, honestly.', 'I am the best there is.'];
+    const rwrap = box.querySelector('.apply-reasons');
+    shuffleTake(reasons, 3).forEach(r => {
+      const b = el('button', 'btn apply-reason', esc(r));
+      b.addEventListener('click', () => {
+        rwrap.querySelectorAll('.apply-reason').forEach(x => x.classList.remove('picked'));
+        b.classList.add('picked');
+        box.querySelector('.apply-submit').disabled = false;
+      });
+      rwrap.appendChild(b);
+    });
+
+    box.querySelector('.apply-submit').addEventListener('click', () => {
+      this.attempted = true;
+      Sound.ding();
+      modal.close();
+      if (this.cfg.trial) this._trial();
+      else this._luckOrHire();
+    });
+    box.querySelector('.apply-cancel').addEventListener('click', () => { modal.close(); this._finish(false); });
+  },
+
+  // ---- step 2: the skill trial --------------------------------
+  _trial() {
+    const job = this.job, cfg = this.cfg;
+    const engine = GAMES[this.jobId];
+    if (!engine) { this._luckOrHire(); return; }
+    const goal = Math.max(50, Math.floor(job.salary * cfg.goalMult));
+
+    const intro = el('div', 'apply');
+    intro.innerHTML = `
+      <h2 data-spiky>🧪 SKILL TRIAL</h2>
+      <p>Prove you can do the job! Earn <b>${fmtMoney(goal)}</b> in <b>${cfg.seconds} seconds</b> of <b>${esc(job.name)}</b> work.</p>
+      <p class="hint">(It's just a test — no real pay, no danger.)</p>
+      <div class="summary-actions"><button class="btn btn-go" id="trial-go">Start the trial</button></div>`;
+    const introModal = UI.openModal(intro, { locked: true });
+    UI.spikyAll(intro);
+    intro.querySelector('#trial-go').addEventListener('click', () => {
+      introModal.close();
+      // pretend to BE this job so the game's stats are calibrated to it
+      State.data.path = { jobId: this.jobId, rank: 0, career: 0 };
+      const overlay = el('div', 'overlay trial-overlay');
+      const stage = el('div', 'trial-stage');
+      overlay.appendChild(stage);
+      document.body.appendChild(overlay);
+      engine.start(stage, {
+        trial: {
+          seconds: cfg.seconds, goal,
+          onResult: (passed, earned) => {
+            engine.stop();
+            overlay.remove();
+            State.data.path = this.origPath;      // stop pretending
+            if (passed) { Sound.jackpot(); this._luckOrHire(); }
+            else this._verdict(false, 'skill', earned, goal);
+          },
+        },
+      });
+    });
+  },
+
+  _luckOrHire() {
+    if (this.cfg.luck) this._luck();
+    else this._hire();
+  },
+
+  // ---- step 3: the luck draw ----------------------------------
+  _luck() {
+    const cfg = this.cfg;
+    const greenPct = Math.max(5, Math.min(92, cfg.luckBase + State.luck() * 0.5));
+    const box = el('div', 'apply');
+    box.innerHTML = `
+      <h2 data-spiky>🍀 THE LUCK DRAW</h2>
+      <p>Your luck <b>+${State.luck()}%</b> gives a <b>${Math.round(greenPct)}%</b> chance of hire. Spin!</p>
+      <div class="luck-stage">
+        <canvas width="340" height="340"></canvas>
+        <div class="wheel-pointer">▼</div>
+      </div>
+      <div class="summary-actions"><button class="btn btn-go" id="luck-spin">SPIN</button></div>`;
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+    const canvas = box.querySelector('canvas');
+    LuckWheel.draw(canvas, greenPct, 0);
+    const btn = box.querySelector('#luck-spin');
+    btn.addEventListener('click', () => {
+      btn.disabled = true; btn.textContent = '...';
+      LuckWheel.spin(canvas, greenPct, hired => {
+        setTimeout(() => { modal.close(); hired ? this._hire() : this._verdict(false, 'luck'); }, 650);
+      });
+    });
+  },
+
+  _hire() {
+    State.switchJob(this.jobId);
+    this._verdict(true);
+  },
+
+  // ---- the verdict --------------------------------------------
+  _verdict(hired, reason, earned, goal) {
+    const box = el('div', 'apply day-summary');
+    if (hired) {
+      box.innerHTML = `
+        <div class="stamp stamp-approved">APPROVED</div>
+        <h2 data-spiky>YOU'RE HIRED!</h2>
+        <div class="card job-card">${UI.jobCardHTML(this.jobId)}</div>
+        <p>You start as <b>${esc(State.rankName())}</b>.</p>
+        <div class="summary-actions">
+          <a class="btn btn-go" href="levels.html" data-nav="levels">▶ Start working</a>
+          <button class="btn" id="apply-done">Keep browsing</button>
+        </div>`;
+    } else {
+      const msg = reason === 'skill'
+        ? `You earned <b>${fmtMoney(earned)}</b> but needed <b>${fmtMoney(goal)}</b>. Not quite good enough... yet.`
+        : reason === 'luck' ? `The luck draw landed on <b>DENIED</b>. So close!`
+          : 'Application denied.';
+      const canAfford = State.data.wealth >= this.cfg.fee;
+      box.innerHTML = `
+        <div class="stamp stamp-denied">DENIED</div>
+        <h2 data-spiky>NOT HIRED</h2>
+        <p>${msg}</p>
+        <div class="summary-actions">
+          <button class="btn btn-money" id="apply-retry" ${canAfford ? '' : 'disabled'}>Apply again · ${fmtMoney(this.cfg.fee)}</button>
+          <button class="btn" id="apply-give">Give up</button>
+        </div>
+        ${canAfford ? '' : '<p class="hint">You can’t afford the re-application fee right now.</p>'}`;
+    }
+    const modal = UI.openModal(box, { locked: true });
+    UI.spikyAll(box);
+    if (hired) { UI.confetti(30); Sound.jackpot(); } else Sound.thud();
+
+    const done = box.querySelector('#apply-done');
+    if (done) done.addEventListener('click', () => { modal.close(); this._finish(true); });
+    box.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => { modal.close(); this._finish(true); }));
+    const retry = box.querySelector('#apply-retry');
+    if (retry) retry.addEventListener('click', () => {
+      if (!State.spend(this.cfg.fee)) return;
+      UI.moneyPop(-this.cfg.fee); UI.refreshWealth();
+      modal.close();
+      this._paperwork();
+    });
+    const give = box.querySelector('#apply-give');
+    if (give) give.addEventListener('click', () => { modal.close(); this._finish(false); });
+  },
+};
+
+;
+/* ============================================================
    HOME — the title screen. JOB APPLICATION: what job will
    YOU get? By Jing & Ash Games.
    ============================================================ */
@@ -5032,7 +5419,7 @@ PAGES.applications = {
       card.innerHTML = `
         ${UI.jobCardHTML(offer.jobId)}
         <div class="offer-actions">
-          <button class="btn btn-go" data-accept="${i}">Accept</button>
+          <button class="btn btn-go" data-accept="${i}">Apply</button>
           <button class="btn btn-danger" data-decline="${i}">Decline</button>
         </div>`;
       box.appendChild(card);
@@ -5048,26 +5435,14 @@ PAGES.applications = {
       UI.toast(`You are already a ${JOBS[offer.jobId].name}!`, '🤨');
       return;
     }
-    const job = JOBS[offer.jobId];
-    State.removeOffer(index);
-    State.switchJob(offer.jobId);
-    UI.confetti(24);
-    Sound.jackpot();
-
-    const content = el('div', 'day-summary');
-    content.innerHTML = `
-      <h2 data-spiky>YOU GOT THE JOB!</h2>
-      <div class="card job-card">${UI.jobCardHTML(offer.jobId)}</div>
-      <p>You start as <b>${esc(State.rankName())}</b>.${job.fatality >= 40 ? ' Try not to die.' : ''}</p>
-      <div class="summary-actions">
-        <a class="btn btn-go" href="levels.html" data-nav="levels">▶ Start working</a>
-        <button class="btn" id="apps-stay">Keep browsing</button>
-      </div>`;
-    const modal = UI.openModal(content, { locked: true });
-    UI.spikyAll(content);
-    content.querySelector('#apps-stay').addEventListener('click', () => { modal.close(); this.renderOffers(); });
-    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
-    this.renderOffers();
+    // Run the full application: paperwork -> (skill trial) -> (luck draw).
+    Apply.start(offer.jobId, (hired, consumed) => {
+      if (consumed) {
+        const i = State.data.offers.indexOf(offer);
+        if (i >= 0) State.removeOffer(i);
+      }
+      this.renderOffers();
+    });
   },
 
   decline(index) {

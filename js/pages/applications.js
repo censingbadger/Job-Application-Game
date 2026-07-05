@@ -52,7 +52,7 @@ PAGES.applications = {
       card.innerHTML = `
         ${UI.jobCardHTML(offer.jobId)}
         <div class="offer-actions">
-          <button class="btn btn-go" data-accept="${i}">Accept</button>
+          <button class="btn btn-go" data-accept="${i}">Apply</button>
           <button class="btn btn-danger" data-decline="${i}">Decline</button>
         </div>`;
       box.appendChild(card);
@@ -68,26 +68,14 @@ PAGES.applications = {
       UI.toast(`You are already a ${JOBS[offer.jobId].name}!`, '🤨');
       return;
     }
-    const job = JOBS[offer.jobId];
-    State.removeOffer(index);
-    State.switchJob(offer.jobId);
-    UI.confetti(24);
-    Sound.jackpot();
-
-    const content = el('div', 'day-summary');
-    content.innerHTML = `
-      <h2 data-spiky>YOU GOT THE JOB!</h2>
-      <div class="card job-card">${UI.jobCardHTML(offer.jobId)}</div>
-      <p>You start as <b>${esc(State.rankName())}</b>.${job.fatality >= 40 ? ' Try not to die.' : ''}</p>
-      <div class="summary-actions">
-        <a class="btn btn-go" href="levels.html" data-nav="levels">▶ Start working</a>
-        <button class="btn" id="apps-stay">Keep browsing</button>
-      </div>`;
-    const modal = UI.openModal(content, { locked: true });
-    UI.spikyAll(content);
-    content.querySelector('#apps-stay').addEventListener('click', () => { modal.close(); this.renderOffers(); });
-    content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
-    this.renderOffers();
+    // Run the full application: paperwork -> (skill trial) -> (luck draw).
+    Apply.start(offer.jobId, (hired, consumed) => {
+      if (consumed) {
+        const i = State.data.offers.indexOf(offer);
+        if (i >= 0) State.removeOffer(i);
+      }
+      this.renderOffers();
+    });
   },
 
   decline(index) {

@@ -39,6 +39,7 @@ JS_FILES = [
     'js/games/jobapplicator.js',
     'js/games/frogkeeper.js',
     'js/games/king.js',
+    'js/apply.js',
     'js/pages/home.js',
     'js/pages/paths.js',
     'js/pages/applications.js',

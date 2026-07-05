@@ -8,6 +8,27 @@
    - Add a job to JOBS and it appears on the wheel + applications.
    ============================================================ */
 
+// Boy avatar faces you can pick when you create your character.
+const AVATARS = ['👦', '👦🏻', '👦🏼', '👦🏽', '👦🏾', '👦🏿', '🧒'];
+
+// ------------------------------------------------------------
+// THE JOB APPLICATION — a paperwork + skill + luck gauntlet to
+// get hired, scaled by the job's rarity (better jobs = harder).
+//   paperwork : always — fill the form and stamp it
+//   trial     : play the job's game for `seconds`, earning at least
+//               (base salary * goalMult) to pass the skill test
+//   luck      : a spinner whose HIRE zone starts at luckBase% and
+//               grows with your Luck stat (rarer job = smaller zone)
+//   fee       : what it costs to APPLY AGAIN after a rejection
+// ------------------------------------------------------------
+const APPLICATION = {
+  common:    { trial: false, luck: false, fee: 1e3 },
+  uncommon:  { trial: true, goalMult: 0.30, seconds: 22, luck: false, fee: 50e3 },
+  rare:      { trial: true, goalMult: 0.45, seconds: 24, luck: true, luckBase: 42, fee: 1e6 },
+  epic:      { trial: true, goalMult: 0.60, seconds: 26, luck: true, luckBase: 26, fee: 20e6 },
+  legendary: { trial: true, goalMult: 0.85, seconds: 28, luck: true, luckBase: 14, fee: 150e6 },
+};
+
 // Big settings for the whole game
 const CONFIG = {
   startWealth: 0,            // what a brand-new player starts with
