@@ -1897,9 +1897,20 @@ const UI = {
 
 ;
 /* ============================================================
-   FISHING — the Lowly Fisherman's day at sea.
-   Cast → wait for the "!" → REEL! Watch out for the shark.
-   Salary: depends on fish caught.
+   MINI-GAME ENGINE — the shared harness every job game uses.
+
+   It handles the boring-but-important parts so each game only
+   has to describe its own fun:
+     - the HUD (job, power, fatality, money earned today)
+     - the shift timer
+     - DANGER events (the job's fatality rate becomes a dodge —
+       miss it and you're knocked out, just like Asher designed)
+     - the PAYDAY / KNOCKED-OUT summary at the end of the day
+     - difficulty that grows as you climb the ranks
+
+   A single job game is written with defineShift({ ...hooks }).
+   Games register themselves into GAMES by job id, e.g.
+     GAMES.chef = defineShift({ ... }).
    ============================================================ */
 
 // Tiny sound effects (no files needed — we sing the notes ourselves)
@@ -1927,7 +1938,286 @@ const Sound = {
   danger()    { this.play([[220, 0.12], [180, 0.16]]); },
   splash()    { this.play([[300, 0.08], [200, 0.12]]); },
   ding()      { this.play([[780, 0.12]]); },
+  coin()      { this.play([[660, 0.06], [880, 0.10]]); },
+  zap()       { this.play([[900, 0.05], [1200, 0.06]]); },
+  thud()      { this.play([[150, 0.12]]); },
 };
+
+// job id -> game engine. Each game file adds itself here.
+const GAMES = {};
+
+// The whole canvas is drawn at this size, then scaled to fit.
+const GW = 900, GH = 540;
+
+// ------------------------------------------------------------
+// defineShift(spec) — build one job's playable day.
+// spec hooks (all optional except init/update/draw for a real game):
+//   hint            HTML string shown in the "HOW TO PLAY" card
+//   duration(rank)  seconds the day lasts (default from CONFIG)
+//   init(g)         set up game state (g is the engine instance)
+//   update(g, dt)   advance the game a frame (dt = seconds)
+//   draw(g, t)      draw the scene (t = seconds, always increasing)
+//   pointer(g,x,y)  a tap/click at canvas coords x,y
+//   move(g,x,y)     the pointer moved to canvas coords x,y (for sliding)
+//   key(g, e)       a key was pressed
+// Handy things on g: g.ctx, g.rank (0..3), g.diff (grows with rank),
+//   g.earn(n) to bank money with a little pop, g.flash(color).
+// ------------------------------------------------------------
+function defineShift(spec) {
+  return {
+    spec,
+    running: false,
+
+    start(root) {
+      this.root = root;
+      this.running = true;
+      this.job = State.job();
+      this.rank = State.data.path.rank;
+      this.diff = 1 + this.rank * 0.4;                 // 1.0, 1.4, 1.8, 2.2 — harder as you rank up
+      this.duration = spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds;
+      this.timeLeft = this.duration;
+      this.earned = 0;
+      this.flashT = 0;
+      this.flashColor = null;
+      this.dangerActive = null;
+
+      // How many danger moments today? More fatality = more danger.
+      const expected = this.job.fatality / 35;
+      this.dangersLeft = Math.floor(expected) + (Math.random() < (expected % 1) ? 1 : 0);
+      this.nextDangerAt = 0.18 + Math.random() * 0.4;  // as a fraction of the day (0..1)
+
+      this._renderShell();
+      this.canvas = root.querySelector('#g-canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.frame = root.querySelector('#g-frame');
+
+      // input — translate screen taps into canvas coordinates
+      const toCanvas = e => {
+        const r = this.canvas.getBoundingClientRect();
+        return [(e.clientX - r.left) * (GW / r.width), (e.clientY - r.top) * (GH / r.height)];
+      };
+      this._down = e => {
+        if (!this.running || this.dangerActive) return;
+        e.preventDefault();
+        const [x, y] = toCanvas(e);
+        if (spec.pointer) spec.pointer(this, x, y);
+      };
+      this._move = e => {
+        if (!this.running || this.dangerActive || !spec.move) return;
+        const [x, y] = toCanvas(e);
+        spec.move(this, x, y);
+      };
+      this._key = e => {
+        if (!this.running || this.dangerActive || !spec.key) return;
+        spec.key(this, e);
+      };
+      this.canvas.addEventListener('pointerdown', this._down);
+      this.canvas.addEventListener('pointermove', this._move);
+      window.addEventListener('keydown', this._key);
+
+      if (spec.init) spec.init(this);
+      this.lastTime = performance.now();
+      requestAnimationFrame(t => this._loop(t));
+    },
+
+    stop() {
+      this.running = false;
+      window.removeEventListener('keydown', this._key);
+    },
+
+    // Bank money mid-game, with a floating "+$" and a running total.
+    earn(n) {
+      n = Math.floor(n);
+      if (n <= 0) return;
+      this.earned += n;
+      State.addWealth(n);
+      State.addCareerEarnings(n);
+      UI.moneyPop(n);
+      const t = this.root.querySelector('#g-earned');
+      if (t) t.textContent = fmtMoney(this.earned);
+    },
+
+    flash(color) { this.flashColor = color; this.flashT = 0.25; },
+
+    _renderShell() {
+      const job = this.job;
+      this.root.innerHTML = `
+        <div class="work-layout">
+          <aside class="fishing-side">
+            <div class="card hud-card">
+              <h3>CURRENT JOB</h3>
+              <div class="hud-job">${esc(State.rankName())}</div>
+              <div class="hud-line">Power: <b>${State.power()}%</b></div>
+              <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
+              <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>
+            </div>
+            <div class="card hud-card">
+              <h3>HOW TO PLAY</h3>
+              <p class="hud-line">${spec.hint || 'Do your job before the day ends!'}</p>
+            </div>
+          </aside>
+          <div class="fishing-main">
+            <div class="shift-bar"><div class="shift-fill" id="g-timer"></div><span id="g-clock"></span></div>
+            <div class="canvas-frame card" id="g-frame">
+              <canvas id="g-canvas" width="${GW}" height="${GH}"></canvas>
+            </div>
+            <p class="hint">Watch out for: <b>${esc(job.danger)}</b> — tap fast to dodge it!</p>
+          </div>
+        </div>`;
+    },
+
+    _loop(now) {
+      if (!this.running) return;
+      const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+      this.lastTime = now;
+
+      if (!this.dangerActive) {
+        this.timeLeft -= dt;
+        if (this.timeLeft <= 0) { this.timeLeft = 0; this._endDay(); return; }
+        const progress = 1 - this.timeLeft / this.duration;
+        if (this.dangersLeft > 0 && progress >= this.nextDangerAt && progress < 0.95) this._startDanger();
+        if (spec.update) spec.update(this, dt);
+      } else {
+        this.dangerActive.timeLeft -= dt;
+        const fill = this.frame.querySelector('.danger-timer-fill');
+        if (fill) fill.style.width = Math.max(0, this.dangerActive.timeLeft / this.dangerActive.total * 100) + '%';
+        if (this.dangerActive.timeLeft <= 0) { this._knockout(); return; }
+      }
+
+      if (this.flashT > 0) this.flashT -= dt;
+      if (spec.draw) spec.draw(this, now / 1000);
+      if (this.flashT > 0 && this.flashColor) {
+        this.ctx.save();
+        this.ctx.globalAlpha = Math.min(0.5, this.flashT * 2);
+        this.ctx.fillStyle = this.flashColor;
+        this.ctx.fillRect(0, 0, GW, GH);
+        this.ctx.restore();
+      }
+
+      const timer = this.root.querySelector('#g-timer');
+      if (timer) timer.style.width = (this.timeLeft / this.duration * 100) + '%';
+      const clock = this.root.querySelector('#g-clock');
+      if (clock) clock.textContent = `Day ${State.data.day} · ${Math.ceil(this.timeLeft)}s`;
+
+      requestAnimationFrame(t => this._loop(t));
+    },
+
+    // ---- DANGER: the fatality rate, live ----------------------
+    _startDanger() {
+      this.dangersLeft -= 1;
+      const done = 1 - this.timeLeft / this.duration;
+      this.nextDangerAt = Math.min(0.95, done + 0.25 + Math.random() * 0.3);
+      const total = Math.max(0.6, 1.5 - this.rank * 0.22);   // shorter window at higher ranks
+      this.dangerActive = { timeLeft: total, total };
+      Sound.danger();
+      const overlay = el('div', 'danger-overlay');
+      overlay.innerHTML = `
+        <div class="danger-word">⚠️ ${esc(this.job.danger)}</div>
+        <button class="btn btn-danger danger-tap">TAP TO DODGE!</button>
+        <div class="danger-timer"><div class="danger-timer-fill"></div></div>`;
+      this.frame.appendChild(overlay);
+      const dodge = () => { this.dangerActive = null; overlay.remove(); Sound.ding(); UI.toast('Phew! Dodged it.', '😅'); };
+      overlay.querySelector('.danger-tap').addEventListener('pointerdown', e => { e.preventDefault(); dodge(); });
+    },
+
+    _knockout() {
+      this.running = false;
+      Sound.thud();
+      const bill = Math.max(5, Math.floor(State.data.wealth * CONFIG.hospitalBillPercent / 100));
+      State.addWealth(-bill);
+      State.data.stats.knockouts += 1;
+      const oldJob = State.rankName();
+      const danger = this.job.danger;
+      State.switchJob('fisherman');
+      State.nextDay();
+
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>💥 KNOCKED OUT!</h2>
+        <p><b>${esc(danger)}</b> got you. The hospital patched you up.</p>
+        <ul class="collection">
+          <li>💰 Kept what you earned <b>${fmtMoney(this.earned)}</b></li>
+          <li>🏥 Hospital bill <b>−${fmtMoney(bill)}</b></li>
+          <li>😢 Lost your job as <b>${esc(oldJob)}</b></li>
+        </ul>
+        <p>Back to the fishing boat with you...</p>
+        <div class="summary-actions">
+          <a class="btn btn-go" href="levels.html" data-nav="levels">🎣 Go fishing</a>
+          <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>
+        </div>`;
+      const modal = UI.openModal(content, { locked: true });
+      UI.spikyAll(content);
+      content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    },
+
+    _endDay() {
+      this.running = false;
+      const total = this.earned;
+      const promo = State.data.pendingPromotion;
+      State.data.pendingPromotion = null;
+      State.nextDay();
+      if (total > 0) Sound.catchFish();
+
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>${total > 0 ? 'PAYDAY!' : 'DAY OVER'}</h2>
+        ${promo ? `<div class="promo-banner">🎉 PROMOTED! You are now <b>${esc(promo)}</b>!</div>` : ''}
+        <div class="summary-salary">Earned today: <b>${fmtMoney(total)}</b></div>
+        ${total > 0 ? '' : '<p>Rough day — nothing earned. Try again!</p>'}
+        <div class="summary-actions">
+          <button class="btn btn-go" id="g-again">▶ Work again</button>
+          <a class="btn" href="applications.html" data-nav="applications">📋 Applications</a>
+          <a class="btn" href="index.html" data-nav="home">🏠 Home</a>
+        </div>`;
+      const modal = UI.openModal(content, { locked: true });
+      UI.spikyAll(content);
+      if (promo) { UI.confetti(30); Sound.jackpot(); }
+      content.querySelector('#g-again').addEventListener('click', () => { modal.close(); this.start(this.root); });
+      content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    },
+  };
+}
+
+// ------------------------------------------------------------
+// Shared drawing helpers so every game keeps the pencil look.
+// ------------------------------------------------------------
+const Draw = {
+  // A wobbly hand-drawn rectangle.
+  panel(ctx, x, y, w, h, fill) {
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = '#2b2b33';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.fill();
+    ctx.stroke();
+  },
+  emoji(ctx, ch, x, y, size) {
+    ctx.font = `${size}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ch, x, y);
+  },
+  bigText(ctx, text, x, y, size, color) {
+    ctx.font = `bold ${size}px "Trebuchet MS", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#fff';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  },
+};
+
+;
+/* ============================================================
+   FISHING — the Lowly Fisherman's day at sea.
+   Cast → wait for the "!" → REEL! Watch out for the shark.
+   Salary: depends on fish caught.
+   ============================================================ */
+
+// (The Sound kit now lives in engine.js so every game shares it.)
 
 const Fishing = {
   running: false,
@@ -2343,6 +2633,8 @@ const Fishing = {
   },
 };
 
+GAMES.fisherman = Fishing;
+
 ;
 /* ============================================================
    WORK SHIFT — a day at any job that isn't fishing.
@@ -2532,6 +2824,420 @@ const WorkShift = {
     content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
   },
 };
+
+;
+/* ============================================================
+   CHEF 🍳 — PERFECT TIMING.
+   Each pan cooks a dish. Tap the pan the instant the bar hits
+   the GREEN zone for a perfect plate. Too late = grease fire!
+   Danger: Grease fire! (dodge or you're knocked out)
+   ============================================================ */
+
+function chefResetPan(g, p) {
+  p.cook = -0.15 - Math.random() * 0.2;   // a beat of empty pan before the next dish
+  p.dish = g.dishes[Math.floor(Math.random() * g.dishes.length)];
+  p.burnt = 0;
+  p.pop = 0;
+  p.popText = '';
+  p.shake = 0;
+}
+
+GAMES.chef = defineShift({
+  hint: 'Tap a pan the moment its food is <b>perfectly cooked</b> — when the bar reaches the <b>green</b>! Too late and it catches fire. 🔥',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.dishes = ['🍳', '🥞', '🍔', '🍕', '🥩', '🌭', '🧇', '🥓'];
+    const count = 2 + (g.rank >= 1 ? 1 : 0) + (g.rank >= 3 ? 1 : 0);   // 2..4 pans
+    g.rate = 0.26 * g.diff;                                            // cook speed (faster as you rank up)
+    g.unit = Math.max(2, Math.floor(State.salary() / 9));
+    g.perfect = 0;
+    g.pans = [];
+    const gap = GW / (count + 1);
+    for (let i = 0; i < count; i++) {
+      g.pans.push({ x: gap * (i + 1), y: 350, cook: Math.random() * 0.3, dish: g.dishes[i % g.dishes.length], burnt: 0, pop: 0, popText: '', shake: 0 });
+    }
+  },
+
+  update(g, dt) {
+    g.pans.forEach(p => {
+      if (p.pop > 0) p.pop -= dt;
+      if (p.shake > 0) p.shake -= dt;
+      if (p.burnt > 0) { p.burnt -= dt; if (p.burnt <= 0) chefResetPan(g, p); return; }
+      p.cook += g.rate * dt;
+      if (p.cook >= 1.16) { p.burnt = 0.9; Sound.thud(); g.flash('#d9534f'); }
+    });
+  },
+
+  pointer(g, x, y) {
+    let best = null, bd = 95;
+    g.pans.forEach(p => { const d = Math.abs(p.x - x); if (d < bd && Math.abs(p.y - y) < 130) { bd = d; best = p; } });
+    if (!best || best.burnt > 0) return;
+    const c = best.cook;
+    if (c >= 0.72 && c <= 0.99) {          // PERFECT
+      g.earn(g.unit); g.perfect++;
+      best.pop = 0.6; best.popText = 'PERFECT!'; Sound.coin();
+      chefResetPan(g, best);
+    } else if (c >= 0.48 && c < 0.72) {    // a bit early but okay
+      g.earn(Math.floor(g.unit * 0.4));
+      best.pop = 0.5; best.popText = 'ok!'; Sound.ding();
+      chefResetPan(g, best);
+    } else if (c > 0.99) {                 // served it burnt
+      best.burnt = 0.9; g.flash('#d9534f'); Sound.thud();
+    } else {                               // way too early
+      best.shake = 0.3;
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // kitchen
+    ctx.fillStyle = '#f6ead6'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#e5d3b3'; ctx.fillRect(0, 250, GW, GH - 250);          // counter
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 250); ctx.lineTo(GW, 250); ctx.stroke();
+    // wall tiles
+    ctx.strokeStyle = 'rgba(43,43,51,.08)';
+    ctx.lineWidth = 2;
+    for (let x = 0; x < GW; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 250); ctx.stroke(); }
+    for (let y = 0; y < 250; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke(); }
+    Draw.bigText(ctx, "CHEF'S KITCHEN", GW / 2, 46, 34, '#c98a5b');
+
+    g.pans.forEach(p => {
+      const shake = p.shake > 0 ? Math.sin(t * 60) * 4 : 0;
+      const px = p.x + shake;
+      // stove burner
+      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.fillStyle = '#3a3a44';
+      ctx.beginPath(); ctx.arc(px, p.y + 30, 60, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // skillet
+      ctx.fillStyle = p.burnt > 0 ? '#5a3320' : '#2b2b33';
+      ctx.beginPath(); ctx.ellipse(px, p.y + 26, 54, 20, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(px + 52, p.y + 26); ctx.lineTo(px + 96, p.y + 20); ctx.lineWidth = 8; ctx.strokeStyle = '#2b2b33'; ctx.stroke();
+      // the dish (or fire / empty)
+      if (p.burnt > 0) { Draw.emoji(ctx, '🔥', px, p.y + 14, 52); }
+      else if (p.cook >= 0) { Draw.emoji(ctx, p.dish, px, p.y + 12, 44 + Math.min(10, p.cook * 10)); }
+      // cook bar
+      const bw = 108, bx = px - bw / 2, by = p.y - 78;
+      Draw.panel(ctx, bx, by, bw, 16, '#fffdf6');
+      // green perfect zone
+      ctx.fillStyle = '#cdeccf'; ctx.fillRect(bx + bw * 0.72, by, bw * 0.27, 16);
+      // fill
+      const c = Math.max(0, Math.min(1, p.cook));
+      ctx.fillStyle = p.cook > 0.99 ? '#d9534f' : (p.cook >= 0.72 ? '#3fa555' : '#e8b830');
+      ctx.fillRect(bx, by, bw * c, 16);
+      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.strokeRect(bx, by, bw, 16);
+      // green zone outline marker
+      ctx.strokeStyle = '#2f7d3f'; ctx.lineWidth = 2;
+      ctx.strokeRect(bx + bw * 0.72, by, bw * 0.27, 16);
+      // perfect pop
+      if (p.pop > 0) Draw.bigText(ctx, p.popText, px, p.y - 108, 26, p.popText === 'PERFECT!' ? '#2f7d3f' : '#9a7714');
+    });
+
+    // score
+    Draw.bigText(ctx, `Perfect plates: ${g.perfect}`, GW / 2, GH - 22, 22, '#2b2b33');
+  },
+});
+
+;
+/* ============================================================
+   MINER ⛏️ — CATCH FALLING STUFF.
+   Slide your cart to catch gems and ore. Dodge the falling
+   rocks — and when the "Cave-in!" hits, tap fast to dodge.
+   ============================================================ */
+
+const MINER_GEMS = [
+  { emoji: '🪨', worth: 0,    rock: true, r: 26 },
+  { emoji: '🟤', worth: 0.4,  r: 20 },   // ore
+  { emoji: '💎', worth: 1,    r: 22 },   // diamond
+  { emoji: '💚', worth: 1.6,  r: 22 },   // emerald
+  { emoji: '💛', worth: 2.4,  r: 22 },   // gold gem
+];
+
+GAMES.miner = defineShift({
+  hint: 'Slide the <b>cart</b> (move your finger/mouse, or ← →) to catch gems. Dodge the falling <b>rocks</b>! 🪨',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.cart = { x: GW / 2, target: GW / 2, w: 150 };
+    g.items = [];
+    g.spawnEvery = 0.85 / g.diff;      // faster spawns as you rank up
+    g.spawnT = 0;
+    g.fall = 150 + g.rank * 45;        // faster falls as you rank up
+    g.unit = Math.max(2, Math.floor(State.salary() / 16));
+    g.gems = 0;
+    g.stun = 0;
+  },
+
+  move(g, x) { g.cart.target = Math.max(g.cart.w / 2, Math.min(GW - g.cart.w / 2, x)); },
+  key(g, e) {
+    if (e.code === 'ArrowLeft') g.cart.target = Math.max(g.cart.w / 2, g.cart.target - 60);
+    if (e.code === 'ArrowRight') g.cart.target = Math.min(GW - g.cart.w / 2, g.cart.target + 60);
+  },
+
+  update(g, dt) {
+    // cart eases toward where you point
+    g.cart.x += (g.cart.target - g.cart.x) * Math.min(1, dt * 14);
+    if (g.stun > 0) g.stun -= dt;
+
+    // spawn
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      // more rocks at higher fatality/rank
+      const rockChance = 0.28 + g.rank * 0.05;
+      const kind = Math.random() < rockChance
+        ? MINER_GEMS[0]
+        : MINER_GEMS[1 + Math.floor(Math.random() * (MINER_GEMS.length - 1))];
+      g.items.push({ ...kind, x: 40 + Math.random() * (GW - 80), y: -30, vy: g.fall * (0.85 + Math.random() * 0.5), spin: 0 });
+    }
+
+    const catchY = GH - 96;
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i];
+      it.y += it.vy * dt;
+      it.spin += dt * 3;
+      // caught?
+      if (it.y >= catchY && it.y <= catchY + 46 && Math.abs(it.x - g.cart.x) < g.cart.w / 2) {
+        if (it.rock) { g.stun = 0.5; g.flash('#d9534f'); Sound.thud(); UI.toast('Ouch! A rock!', '🪨'); }
+        else { g.earn(g.unit * it.worth); g.gems++; Sound.coin(); }
+        g.items.splice(i, 1);
+        continue;
+      }
+      if (it.y > GH + 40) g.items.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // cave
+    ctx.fillStyle = '#3a2f28'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#4a3d33';
+    for (let i = 0; i < 8; i++) { const x = (i * 137 + 40) % GW; Draw.emoji(ctx, '⬤', x, 40 + (i % 3) * 30, 26); }
+    ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, GW, 60); ctx.globalAlpha = 1;
+    Draw.bigText(ctx, '⛏️ THE MINE', GW / 2, 40, 30, '#e8b830');
+
+    // falling items
+    g.items.forEach(it => {
+      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(it.spin) * 0.3);
+      Draw.emoji(ctx, it.emoji, 0, 0, it.r * 2);
+      ctx.restore();
+    });
+
+    // the cart
+    const cx = g.cart.x, cy = GH - 70, w = g.cart.w;
+    if (g.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    ctx.fillStyle = '#8a5a3a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2, cy);
+    ctx.lineTo(cx + w / 2, cy);
+    ctx.lineTo(cx + w / 2 - 18, cy + 46);
+    ctx.lineTo(cx - w / 2 + 18, cy + 46);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // slats
+    for (let i = 1; i < 4; i++) { const x = cx - w / 2 + (w / 4) * i; ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, cy + 46); ctx.stroke(); }
+    // wheels
+    ctx.fillStyle = '#2b2b33';
+    ctx.beginPath(); ctx.arc(cx - w / 3, cy + 50, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + w / 3, cy + 50, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Gems: ${g.gems}`, GW / 2, GH - 18, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   PRISONER ⛓️ — DODGE & SURVIVE.
+   Run for the fence! Tap the top/bottom of the screen (or ↑ ↓)
+   to switch lanes. Grab money bags, dodge guards & searchlights.
+   Danger: Jailbreak! (tap fast or you're caught for good)
+   ============================================================ */
+
+GAMES.prisoner = defineShift({
+  hint: 'Tap the <b>top</b> or <b>bottom</b> of the screen (or ↑ ↓) to switch lanes. Grab 💰, dodge the 👮 guards and 🔦 lights!',
+  duration: r => 44 + r * 6,
+
+  init(g) {
+    g.lanes = [180, 300, 420];
+    g.lane = 1;
+    g.py = g.lanes[1];
+    g.things = [];
+    g.spawnEvery = 0.7 / g.diff;
+    g.spawnT = 0.5;
+    g.speed = 260 + g.rank * 70;
+    g.unit = Math.max(2, Math.floor(State.salary() / 7));
+    g.grabbed = 0;
+    g.stun = 0;
+    g.run = 0;
+  },
+
+  key(g, e) {
+    if (e.code === 'ArrowUp') g.lane = Math.max(0, g.lane - 1);
+    if (e.code === 'ArrowDown') g.lane = Math.min(2, g.lane + 1);
+  },
+  pointer(g, x, y) {
+    if (y < GH / 2) g.lane = Math.max(0, g.lane - 1);
+    else g.lane = Math.min(2, g.lane + 1);
+  },
+
+  update(g, dt) {
+    g.run += dt;
+    g.py += (g.lanes[g.lane] - g.py) * Math.min(1, dt * 16);
+    if (g.stun > 0) g.stun -= dt;
+
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const lane = Math.floor(Math.random() * 3);
+      const roll = Math.random();
+      const type = roll < 0.5 ? 'money' : (roll < 0.8 ? 'guard' : 'light');
+      g.things.push({ x: GW + 40, lane, y: g.lanes[lane], type });
+    }
+
+    const px = 150;
+    for (let i = g.things.length - 1; i >= 0; i--) {
+      const th = g.things[i];
+      th.x -= g.speed * dt;
+      const hit = Math.abs(th.x - px) < 42 && th.lane === g.lane && g.stun <= 0;
+      if (hit) {
+        if (th.type === 'money') { g.earn(g.unit); g.grabbed++; Sound.coin(); }
+        else { g.stun = 0.7; g.flash('#d9534f'); Sound.thud(); UI.toast(th.type === 'guard' ? 'A guard grabbed you!' : 'Spotted!', '🚨'); }
+        g.things.splice(i, 1);
+        continue;
+      }
+      if (th.x < -50) g.things.splice(i, 1);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // prison yard at night
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(0, 0, GW, GH);
+    // lanes
+    g.lanes.forEach((ly, i) => {
+      ctx.fillStyle = i % 2 ? '#343a45' : '#3b414d';
+      ctx.fillRect(0, ly - 60, GW, 120);
+      ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 2;
+      const off = (g.run * g.speed) % 80;
+      for (let x = -off; x < GW; x += 80) { ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + 40, ly); ctx.stroke(); }
+    });
+    // fence (goal) on the right
+    ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 3;
+    for (let x = GW - 60; x < GW; x += 14) { ctx.beginPath(); ctx.moveTo(x, 90); ctx.lineTo(x, GH - 30); ctx.stroke(); }
+    Draw.bigText(ctx, '⛓️ THE BIG ESCAPE', GW / 2, 40, 28, '#e8b830');
+
+    // obstacles & loot
+    g.things.forEach(th => {
+      const e = th.type === 'money' ? '💰' : (th.type === 'guard' ? '👮' : '🔦');
+      Draw.emoji(ctx, e, th.x, th.y, 46);
+    });
+
+    // the prisoner
+    const px = 150;
+    if (g.stun > 0) ctx.globalAlpha = 0.4 + Math.sin(t * 40) * 0.3;
+    Draw.emoji(ctx, '🏃', px, g.py, 56);
+    ctx.globalAlpha = 1;
+
+    Draw.bigText(ctx, `Money bags: ${g.grabbed}`, GW / 2, GH - 18, 22, '#e8b830');
+  },
+});
+
+;
+/* ============================================================
+   SOLDIER 🪖 — AIM & SHOOT.
+   Tap the targets as they pop up — before they disappear and
+   fire back. Bullseyes pay the most.
+   Danger: Incoming! (tap fast to take cover)
+   ============================================================ */
+
+GAMES.soldier = defineShift({
+  hint: 'Tap the targets 🎯 as they pop up — before they shoot back! The smaller the target, the more it pays.',
+  duration: r => 44 + r * 6,
+
+  init(g) {
+    g.targets = [];
+    g.spawnEvery = 0.9 / g.diff;         // pop up faster as you rank up
+    g.spawnT = 0.4;
+    g.life = Math.max(0.75, 1.7 - g.rank * 0.25);   // less time to react at higher ranks
+    g.unit = Math.max(2, Math.floor(State.salary() / 12));
+    g.hits = 0;
+    g.aim = { x: GW / 2, y: GH / 2 };
+    g.shotT = 0;
+  },
+
+  move(g, x, y) { g.aim.x = x; g.aim.y = y; },
+
+  pointer(g, x, y) {
+    g.aim.x = x; g.aim.y = y; g.shotT = 0.12;
+    Sound.zap();
+    for (let i = g.targets.length - 1; i >= 0; i--) {
+      const tg = g.targets[i];
+      if (Math.hypot(tg.x - x, tg.y - y) <= tg.r) {
+        const bull = Math.hypot(tg.x - x, tg.y - y) <= tg.r * 0.4;
+        g.earn(g.unit * (bull ? 2 : 1) * tg.mult);
+        g.hits++;
+        g.targets.splice(i, 1);
+        Sound.coin();
+        return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.shotT > 0) g.shotT -= dt;
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.6 + Math.random() * 0.7);
+      const r = 34 + Math.random() * 30;                 // smaller = worth more
+      g.targets.push({
+        x: 70 + Math.random() * (GW - 140),
+        y: 90 + Math.random() * (GH - 200),
+        r, mult: r < 44 ? 2 : 1, life: g.life, max: g.life, born: 0,
+      });
+    }
+    for (let i = g.targets.length - 1; i >= 0; i--) {
+      const tg = g.targets[i];
+      tg.born += dt;
+      tg.life -= dt;
+      if (tg.life <= 0) { g.targets.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }   // it fired back
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // battlefield
+    ctx.fillStyle = '#c9c07a'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#b3a95f'; ctx.fillRect(0, GH - 90, GW, 90);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 90); ctx.lineTo(GW, GH - 90); ctx.stroke();
+    // sandbags
+    ctx.fillStyle = '#9a8f4f';
+    for (let x = 20; x < GW; x += 70) { ctx.beginPath(); ctx.ellipse(x, GH - 70, 34, 20, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    Draw.bigText(ctx, '🪖 THE FRONT LINE', GW / 2, 40, 28, '#5a5320');
+
+    // targets (pop in, pulse)
+    g.targets.forEach(tg => {
+      const pop = Math.min(1, tg.born * 6);
+      const r = tg.r * pop;
+      const warn = tg.life < tg.max * 0.35;
+      ctx.lineWidth = 4; ctx.strokeStyle = '#2b2b33';
+      ctx.fillStyle = warn ? '#f6cccb' : '#fff';
+      ctx.beginPath(); ctx.arc(tg.x, tg.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d9534f'; ctx.beginPath(); ctx.arc(tg.x, tg.y, r * 0.66, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(tg.x, tg.y, r * 0.33, 0, Math.PI * 2); ctx.fill();
+      if (warn) Draw.emoji(ctx, '⚠️', tg.x, tg.y - r - 16, 26);
+    });
+
+    // crosshair
+    const a = g.aim;
+    ctx.strokeStyle = g.shotT > 0 ? '#d9534f' : '#2b2b33';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 20, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a.x - 30, a.y); ctx.lineTo(a.x - 8, a.y); ctx.moveTo(a.x + 8, a.y); ctx.lineTo(a.x + 30, a.y);
+    ctx.moveTo(a.x, a.y - 30); ctx.lineTo(a.x, a.y - 8); ctx.moveTo(a.x, a.y + 8); ctx.lineTo(a.x, a.y + 30); ctx.stroke();
+
+    Draw.bigText(ctx, `Targets hit: ${g.hits}`, GW / 2, GH - 16, 22, '#5a5320');
+  },
+});
 
 ;
 /* ============================================================
@@ -2997,7 +3703,9 @@ PAGES.levels = {
   init(root) {
     UI.spikyAll(root);
     const gameRoot = root.querySelector('#game-root');
-    this.engine = State.job().special === 'fishing' ? Fishing : WorkShift;
+    // Each job picks its own game from the registry; jobs without a
+    // custom game yet fall back to the shared work-day game.
+    this.engine = GAMES[State.data.path.jobId] || WorkShift;
     this.engine.start(gameRoot);
   },
 
