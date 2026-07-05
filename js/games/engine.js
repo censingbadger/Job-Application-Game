@@ -126,6 +126,7 @@ function defineShift(spec) {
       window.addEventListener('keydown', this._key);
 
       if (spec.init) spec.init(this);
+      if (!this.trial) this._renderGear();
       this.lastTime = performance.now();
       requestAnimationFrame(t => this._loop(t));
     },
@@ -138,10 +139,11 @@ function defineShift(spec) {
     // Earn money mid-game (a trial doesn't bank real money — it only
     // counts toward the goal), with a floating "+$" and a running total.
     earn(n) {
-      n = Math.floor(n);
+      // Better equipment earns more (but not during a no-pay skill trial).
+      n = Math.floor(n * (this.trial ? 1 : State.gearMult(State.data.path.jobId)));
       if (n <= 0) return;
       this.earned += n;
-      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); }
+      if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); this._maybeRefreshGear(); }
       UI.moneyPop(n);
       const t = this.root.querySelector('#g-earned');
       if (t) t.textContent = this.trial ? `${fmtMoney(this.earned)} / ${fmtMoney(this.trial.goal)}` : fmtMoney(this.earned);
@@ -149,6 +151,43 @@ function defineShift(spec) {
         const fill = this.root.querySelector('#g-goal-fill');
         if (fill) fill.style.width = Math.min(100, this.earned / this.trial.goal * 100) + '%';
       }
+    },
+
+    // ---- gear: better equipment earns you more ----------------
+    _renderGear() {
+      const box = this.root && this.root.querySelector('#g-gear');
+      if (!box) return;
+      const jobId = State.data.path.jobId;
+      const cur = State.gear(jobId);
+      if (!cur) { box.hidden = true; return; }
+      const next = State.nextGear(jobId);
+      const can = next ? State.data.wealth >= next.cost : false;
+      this._gearAffordable = can;
+      const mult = String(cur.mult).replace(/\.0$/, '');
+      box.innerHTML = `
+        <h3>YOUR GEAR</h3>
+        <div class="gear-now"><span class="gear-emoji">${cur.emoji}</span> <b>${esc(cur.name)}</b></div>
+        <div class="hud-line">Earnings <b>×${mult}</b></div>
+        ${next
+          ? `<button class="btn btn-money gear-buy" ${can ? '' : 'disabled'}>Upgrade → ${next.emoji} ${esc(next.name)} · ${fmtMoney(next.cost)}</button>
+             ${can ? '' : '<p class="hint rod-hint">Earn more to afford it!</p>'}`
+          : '<div class="rod-max">✦ Best gear there is! ✦</div>'}`;
+      const btn = box.querySelector('.gear-buy');
+      if (btn) btn.addEventListener('click', () => {
+        if (!State.buyGear(jobId)) return;
+        Sound.jackpot(); UI.confetti(14);
+        UI.moneyPop(-next.cost); UI.refreshWealth();
+        UI.toast(`Upgraded to the ${next.name}!`, next.emoji);
+        this._renderGear();
+      });
+    },
+
+    // Re-render only when you cross the "can afford the next tier" line,
+    // so the button doesn't get rebuilt (and un-clickable) every earn.
+    _maybeRefreshGear() {
+      const next = State.nextGear(State.data.path.jobId);
+      const can = next ? State.data.wealth >= next.cost : false;
+      if (can !== this._gearAffordable) this._renderGear();
     },
 
     flash(color) { this.flashColor = color; this.flashT = 0.25; },
@@ -172,6 +211,7 @@ function defineShift(spec) {
         <div class="work-layout">
           <aside class="fishing-side">
             <div class="card hud-card">${topCard}</div>
+            ${trial ? '' : '<div class="card hud-card gear-card" id="g-gear"></div>'}
             <div class="card hud-card">
               <h3>HOW TO PLAY</h3>
               <p class="hud-line">${spec.hint || 'Do your job before the day ends!'}</p>

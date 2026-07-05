@@ -253,6 +253,32 @@ const State = {
     return true;
   },
 
+  // ---- equipment for the OTHER (non-fishing) games -----------
+  // Gear is stored per job in the same `gear` map: gear[jobId] = tier.
+  gearLevel(jobId = this.data.path.jobId) { return (this.data.gear && this.data.gear[jobId]) || 0; },
+
+  // The gear you're using for a job, resolved to { emoji, name, mult, cost, tier }.
+  gear(jobId = this.data.path.jobId) { return this._gearAt(jobId, this.gearLevel(jobId)); },
+  nextGear(jobId = this.data.path.jobId) { return this._gearAt(jobId, this.gearLevel(jobId) + 1); },
+  gearMult(jobId = this.data.path.jobId) { const g = this.gear(jobId); return g ? g.mult : 1; },
+
+  _gearAt(jobId, tier) {
+    const list = GEAR[jobId];
+    if (!list || tier < 0 || tier >= list.length) return null;
+    const t = GEAR_TIERS[tier] || GEAR_TIERS[0];
+    return { emoji: list[tier][0], name: list[tier][1], mult: t.mult, cost: Math.floor(JOBS[jobId].salary * t.costMult), tier };
+  },
+
+  // Buy the next gear tier for a job (if affordable). Returns true on success.
+  buyGear(jobId = this.data.path.jobId) {
+    const next = this.nextGear(jobId);
+    if (!next || !this.spend(next.cost)) return false;
+    if (!this.data.gear) this.data.gear = {};
+    this.data.gear[jobId] = this.gearLevel(jobId) + 1;
+    this.save();
+    return true;
+  },
+
   // ---- your job & path ---------------------------------------
   job() { return JOBS[this.data.path.jobId]; },
 
