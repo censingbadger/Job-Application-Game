@@ -1239,6 +1239,23 @@ u { text-decoration-thickness: 3px; }
   .lb-score { font-size: 16px; }
 }
 
+/* ---- peasant lottery (payday bonus) --------------------------------- */
+.lottery-card {
+  margin: 16px 0 4px;
+  padding: 14px 16px;
+  border: 3px dashed #c98a00;
+  border-radius: var(--wobble);
+  background: var(--money-light);
+  text-align: center;
+}
+.lottery-head { font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; color: #9a6b00; margin-bottom: 6px; }
+.lottery-card p { font-size: 15px; margin-bottom: 10px; }
+.lotto-reveal { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.lotto-ticket { font-size: 15px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); }
+.lotto-ticket.win { background: #fff2b8; border-color: #c98a00; font-size: 17px; box-shadow: 2px 2px 0 #c98a00; }
+.lotto-dud { color: var(--pencil); }
+.lotto-none { font-size: 14px; color: var(--pencil); margin-top: 4px; }
+
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
