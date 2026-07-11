@@ -371,6 +371,8 @@ function defineShift(spec) {
       if (promo) { UI.confetti(30); Sound.jackpot(); }
       content.querySelector('#g-again').addEventListener('click', () => { modal.close(); this.start(this.root); });
       content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+      // let a game bolt extra stuff onto the payday screen (e.g. peasant's lottery)
+      if (spec.payday) spec.payday(this, content, modal);
     },
   };
 }

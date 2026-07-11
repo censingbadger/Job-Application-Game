@@ -88,7 +88,7 @@ const UI = {
     header.hidden = false;
     const links = [
       ['paths', 'PATHS', 'paths.html'],
-      ['levels', 'LEVELS', 'levels.html'],
+      ['levels', 'WORK', 'levels.html'],
       ['applications', 'APPLICATIONS', 'applications.html'],
       ['leaderboard', '🏆', 'leaderboard.html'],
     ];

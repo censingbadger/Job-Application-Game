@@ -90,4 +90,54 @@ GAMES.peasant = defineShift({
 
     Draw.bigText(ctx, `Crops: ${g.caught}`, GW / 2, GH - 16, 22, '#3a5a1f');
   },
+
+  // Peasant pay is humble — but a GOOD harvest earns golden LOTTERY
+  // tickets. Each is a rare 3% shot at a life-changing $30 BILLION.
+  // (That long-shot dream is the whole reason to keep farming!)
+  payday(g, content) {
+    const caught = g.caught || 0;
+    if (caught < 8) return;                          // only when you actually did well
+    const tickets = 1 + Math.floor(caught / 20);     // a ticket for a good day, more for a bumper crop
+    const card = el('div', 'lottery-card');
+    card.innerHTML = `
+      <div class="lottery-head">🎟️ GOLDEN HARVEST TICKET${tickets > 1 ? 'S' : ''}!</div>
+      <p>Bumper crop! You earned <b>${tickets}</b> lottery ticket${tickets > 1 ? 's' : ''} —
+         each a <b>3%</b> shot at <b>${fmtMoney(30e9)}</b>! 🤞</p>
+      <button class="btn btn-money lotto-go">🎟️ SCRATCH ${tickets > 1 ? 'THEM' : 'IT'}!</button>
+      <div class="lotto-reveal"></div>`;
+    const actions = content.querySelector('.summary-actions');
+    if (actions) content.insertBefore(card, actions); else content.appendChild(card);
+
+    const go = card.querySelector('.lotto-go');
+    const reveal = card.querySelector('.lotto-reveal');
+    go.addEventListener('click', () => {
+      go.disabled = true;
+      let i = 0, won = 0;
+      const drawOne = () => {
+        if (i >= tickets) {
+          const s = State.data.stats;
+          s.lotteryTickets = (s.lotteryTickets || 0) + tickets;
+          if (won) s.lotteryWins = (s.lotteryWins || 0) + won;
+          State.save();
+          if (!won) {
+            const none = el('div', 'lotto-none');
+            none.textContent = 'No jackpot this time — plant more, harvest more, try again! 🌱';
+            reveal.appendChild(none);
+          }
+          return;
+        }
+        i++;
+        const win = Math.random() < 0.03;            // 3% — the promise of great riches
+        const row = el('div', 'lotto-ticket' + (win ? ' win' : ''));
+        row.innerHTML = win
+          ? `🎉 <b>JACKPOT!</b> Ticket ${i} wins <b>${fmtMoney(30e9)}</b>!`
+          : `🎫 Ticket ${i}: <span class="lotto-dud">no luck</span>`;
+        reveal.appendChild(row);
+        if (win) { won++; State.addWealth(30e9); UI.refreshWealth(); Sound.jackpot(); UI.confetti(50); }
+        else Sound.ding();
+        setTimeout(drawOne, 700);
+      };
+      drawOne();
+    });
+  },
 });

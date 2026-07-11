@@ -34,6 +34,7 @@ JS_FILES = [
     'js/games/engineer.js',
     'js/games/executioner.js',
     'js/games/bountyhunter.js',
+    'js/games/firefighter.js',
     'js/games/dungeoneer.js',
     'js/games/deadshot.js',
     'js/games/jobapplicator.js',

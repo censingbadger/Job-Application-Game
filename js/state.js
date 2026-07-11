@@ -187,7 +187,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
-      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0 },
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0 },
     };
   },
 
