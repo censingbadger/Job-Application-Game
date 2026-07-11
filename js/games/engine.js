@@ -82,6 +82,9 @@ function defineShift(spec) {
       this.duration = this.trial ? this.trial.seconds : (spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds);
       this.timeLeft = this.duration;
       this.earned = 0;
+      // flop this shift (earn under the quota) and your boss fires you.
+      // fishing has no salary → quota 0 → you can never be fired from it.
+      this.fireQuota = this.trial ? 0 : Math.floor(State.salary() * CONFIG.fireQuotaMult);
       this.flashT = 0;
       this.flashColor = null;
       this.dangerActive = null;
@@ -209,6 +212,7 @@ function defineShift(spec) {
            <div class="hud-line">Power: <b>${State.power()}%</b></div>
            <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
            <div class="hud-line hp-line">Health: <span class="hearts" id="g-hp"></span></div>
+           ${this.fireQuota > 0 ? `<div class="hud-line">Keep the job: earn <b>≥ ${fmtMoney(this.fireQuota)}</b></div>` : ''}
            <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>`;
       this.root.innerHTML = `
         <div class="work-layout">
@@ -340,6 +344,39 @@ function defineShift(spec) {
       content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
     },
 
+    // FIRED — a bad day's work. You keep every cent but lose the job and
+    // wash back onto the fishing boat. Much softer than dying.
+    _fire() {
+      this.running = false;
+      Sound.thud();
+      const oldJob = State.rankName();
+      const kept = State.data.wealth;
+      const reason = (typeof FIRE_REASONS !== 'undefined' && FIRE_REASONS[State.data.path.jobId])
+        || 'Your boss decided to let you go.';
+      State.data.stats.timesFired = (State.data.stats.timesFired || 0) + 1;
+      State.switchJob('fisherman');
+      State.save();
+      State.nextDay();
+      UI.refreshWealth();
+
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>🧹 YOU'RE FIRED!</h2>
+        <p><b>${esc(reason)}</b></p>
+        <ul class="collection">
+          <li>😞 Lost your job as <b>${esc(oldJob)}</b></li>
+          <li>💰 You keep your money <b>${fmtMoney(kept)}</b></li>
+        </ul>
+        <p>You drift back to the fishing docks. Land a new job — or just fish it out!</p>
+        <div class="summary-actions">
+          <a class="btn btn-go" href="levels.html" data-nav="levels">🎣 Go fishing</a>
+          <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>
+        </div>`;
+      const modal = UI.openModal(content, { locked: true });
+      UI.spikyAll(content);
+      content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    },
+
     _endDay() {
       this.running = false;
       // A trial ends by reporting pass/fail to the application — no
@@ -349,6 +386,9 @@ function defineShift(spec) {
         t.onResult(this.earned >= t.goal, this.earned);
         return;
       }
+      // FIRED? a flop shift (earned under the boss's quota) costs you the
+      // job — but NOT your money. Fishing has quota 0, so it's exempt.
+      if (this.fireQuota > 0 && this.earned < this.fireQuota) { this._fire(); return; }
       const total = this.earned;
       const promo = State.data.pendingPromotion;
       State.data.pendingPromotion = null;

@@ -185,9 +185,10 @@ const UI = {
   },
 
   refreshWealth() {
+    const debt = State.data.wealth < 0;
     const pill = document.getElementById('wealth-pill');
-    if (pill) pill.textContent = fmtMoney(State.data.wealth);
-    document.querySelectorAll('[data-wealth]').forEach(n => { n.textContent = fmtMoney(State.data.wealth); });
+    if (pill) { pill.textContent = fmtMoney(State.data.wealth); pill.classList.toggle('in-debt', debt); }
+    document.querySelectorAll('[data-wealth]').forEach(n => { n.textContent = fmtMoney(State.data.wealth); n.classList.toggle('in-debt', debt); });
   },
 
   // A floating "+$500" that drifts up from the wealth pill.

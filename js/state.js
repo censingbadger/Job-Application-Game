@@ -187,7 +187,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
-      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0 },
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
   },
 
@@ -228,8 +228,11 @@ const State = {
   },
 
   // ---- money ------------------------------------------------
+  // Wealth is a SIGNED balance now — it can go negative (debt). Earning
+  // always climbs it back up; the only thing that pushes it below zero is
+  // the peasant lottery (see spendDebt).
   addWealth(n) {
-    this.data.wealth = Math.max(0, Math.floor(this.data.wealth + n));
+    this.data.wealth = Math.floor(this.data.wealth + n);
     // remember the most money you've ever had — that's your leaderboard score
     if (this.data.stats && this.data.wealth > (this.data.stats.peakWealth || 0)) {
       this.data.stats.peakWealth = this.data.wealth;
@@ -237,9 +240,18 @@ const State = {
     this.save();
   },
 
+  // Normal spending — refuses if you can't afford it (never goes into debt).
   spend(n) {
     if (this.data.wealth < n) return false;
     this.data.wealth -= n;
+    this.save();
+    return true;
+  },
+
+  // Spending that CAN push you into the red. The peasant lottery uses this
+  // so you can chase the jackpot even when you're broke.
+  spendDebt(n) {
+    this.data.wealth = Math.floor(this.data.wealth - n);
     this.save();
     return true;
   },
@@ -385,17 +397,20 @@ function weightedPick(entries) {
 }
 
 // $50 → "$50",  $1,000 → "$1,000",  800000 → "$800K",  20000000 → "$20M"
+// Negatives (debt) come back as "-$10", "-$1.2M", etc.
 function fmtMoney(n) {
-  n = Math.floor(Math.max(0, n));
-  if (n < 100e3) return '$' + n.toLocaleString('en-US');
+  n = Math.floor(n);
+  const sign = n < 0 ? '-' : '';
+  n = Math.abs(n);
+  if (n < 100e3) return sign + '$' + n.toLocaleString('en-US');
   const units = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
   for (const [size, letter] of units) {
     if (n >= size) {
       const x = n / size;
       let str = x >= 100 ? String(Math.round(x)) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
       str = str.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
-      return '$' + str + letter;
+      return sign + '$' + str + letter;
     }
   }
-  return '$' + n.toLocaleString('en-US');
+  return sign + '$' + n.toLocaleString('en-US');
 }
