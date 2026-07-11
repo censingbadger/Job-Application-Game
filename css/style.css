@@ -1213,6 +1213,7 @@ u { text-decoration-thickness: 3px; }
   vertical-align: middle;
   letter-spacing: 1px;
 }
+.lb-badge.lb-founder { background: #c98a00; color: #fff; }
 .lb-row.lb-top { background: var(--money-light); }
 .lb-row.lb-top .lb-rank { font-size: 28px; }
 .lb-row.lb-me { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }

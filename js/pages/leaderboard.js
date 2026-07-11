@@ -6,6 +6,14 @@
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+// The game's makers — Jing & Ash. Their names wear a FOUNDER badge on the
+// board, however they type them (matched by the same normalised key the
+// cloud uses, so "Asher"/"asher" both count). Add a name here to crown it.
+const FOUNDER_NAMES = ['asher', 'hamham3745', 'jinghe'];
+function isFounder(name) {
+  return name != null && FOUNDER_NAMES.includes(Cloud._key(name));
+}
+
 PAGES.leaderboard = {
   init(root) {
     this.root = root;
@@ -85,12 +93,15 @@ PAGES.leaderboard = {
     const job = JOBS[r.jobId];
     const rank = r.place <= 3 ? MEDALS[r.place - 1] : '#' + r.place;
     const cls = 'lb-row' + (r.me ? ' lb-me' : '') + (r.place <= 3 ? ' lb-top' : '');
+    const badges =
+      (isFounder(r.name) ? ' <span class="lb-badge lb-founder">👑 FOUNDER</span>' : '') +
+      (r.me ? ' <span class="lb-badge">YOU</span>' : '');
     return `
       <div class="${cls}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-emoji">${job.emoji}</div>
         <div class="lb-who">
-          <div class="lb-name">${esc(r.name)}${r.me ? ' <span class="lb-badge">YOU</span>' : ''}</div>
+          <div class="lb-name">${esc(r.name)}${badges}</div>
           <div class="lb-job">${esc(job.name)}</div>
         </div>
         <div class="lb-score">${fmtMoney(r.score)}</div>
