@@ -187,7 +187,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
-      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1 },
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0 },
     };
   },
 
@@ -203,6 +203,8 @@ const State = {
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     if (!this.data.gear) this.data.gear = { rod: 0 };   // older saves had no equipment
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
+    if (!this.data.stats) this.data.stats = {};
+    if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
     this.ensureOffers();
     return this.data;
   },
@@ -228,6 +230,10 @@ const State = {
   // ---- money ------------------------------------------------
   addWealth(n) {
     this.data.wealth = Math.max(0, Math.floor(this.data.wealth + n));
+    // remember the most money you've ever had — that's your leaderboard score
+    if (this.data.stats && this.data.wealth > (this.data.stats.peakWealth || 0)) {
+      this.data.stats.peakWealth = this.data.wealth;
+    }
     this.save();
   },
 

@@ -1170,6 +1170,63 @@ u { text-decoration-thickness: 3px; }
   .collection { max-height: 150px; }
 }
 
+/* ---- leaderboard ----------------------------------------------------- */
+.lb-subtitle { text-align: center; font-size: 17px; margin: -6px 0 14px; color: var(--pencil); }
+.lb-status { text-align: center; font-size: 14px; color: var(--pencil); margin-bottom: 14px; min-height: 20px; }
+.lb-list { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.lb-rank {
+  flex: 0 0 46px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+.lb-emoji { flex: 0 0 auto; font-size: 32px; line-height: 1; }
+.lb-who { flex: 1 1 auto; min-width: 0; }
+.lb-name { font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-job { font-size: 13px; color: var(--pencil); }
+.lb-score {
+  flex: 0 0 auto;
+  font-size: 19px;
+  font-weight: bold;
+  color: #9a7714;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lb-badge {
+  font-size: 11px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  letter-spacing: 1px;
+}
+.lb-row.lb-top { background: var(--money-light); }
+.lb-row.lb-top .lb-rank { font-size: 28px; }
+.lb-row.lb-me { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }
+.lb-gap { text-align: center; color: var(--pencil); letter-spacing: 4px; font-size: 20px; }
+.lb-empty { text-align: center; color: var(--pencil); padding: 30px 10px; font-size: 16px; }
+
+@media (max-width: 560px) {
+  .lb-row { gap: 10px; padding: 9px 12px; }
+  .lb-rank { flex-basis: 34px; font-size: 18px; }
+  .lb-emoji { font-size: 26px; }
+  .lb-name { font-size: 16px; }
+  .lb-score { font-size: 16px; }
+}
+
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

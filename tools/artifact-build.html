@@ -1172,6 +1172,63 @@ u { text-decoration-thickness: 3px; }
   .collection { max-height: 150px; }
 }
 
+/* ---- leaderboard ----------------------------------------------------- */
+.lb-subtitle { text-align: center; font-size: 17px; margin: -6px 0 14px; color: var(--pencil); }
+.lb-status { text-align: center; font-size: 14px; color: var(--pencil); margin-bottom: 14px; min-height: 20px; }
+.lb-list { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: var(--wobble);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.lb-rank {
+  flex: 0 0 46px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+.lb-emoji { flex: 0 0 auto; font-size: 32px; line-height: 1; }
+.lb-who { flex: 1 1 auto; min-width: 0; }
+.lb-name { font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-job { font-size: 13px; color: var(--pencil); }
+.lb-score {
+  flex: 0 0 auto;
+  font-size: 19px;
+  font-weight: bold;
+  color: #9a7714;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lb-badge {
+  font-size: 11px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  letter-spacing: 1px;
+}
+.lb-row.lb-top { background: var(--money-light); }
+.lb-row.lb-top .lb-rank { font-size: 28px; }
+.lb-row.lb-me { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }
+.lb-gap { text-align: center; color: var(--pencil); letter-spacing: 4px; font-size: 20px; }
+.lb-empty { text-align: center; color: var(--pencil); padding: 30px 10px; font-size: 16px; }
+
+@media (max-width: 560px) {
+  .lb-row { gap: 10px; padding: 9px 12px; }
+  .lb-rank { flex-basis: 34px; font-size: 18px; }
+  .lb-emoji { font-size: 26px; }
+  .lb-name { font-size: 16px; }
+  .lb-score { font-size: 16px; }
+}
+
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1209,6 +1266,9 @@ u { text-decoration-thickness: 3px; }
         </a>
         <a class="hex-nav" href="applications.html" data-nav="applications">
           <span class="hex"><span>💼</span></span><b>APPLICATIONS</b>
+        </a>
+        <a class="hex-nav" href="leaderboard.html" data-nav="leaderboard">
+          <span class="hex"><span>🏆</span></span><b>LEADERBOARD</b>
         </a>
       </nav>
 
@@ -1280,6 +1340,14 @@ u { text-decoration-thickness: 3px; }
         <div class="card mythical" id="shop-mythical"></div>
       </section>
     </div>
+  </main>
+</section>
+<section class="page" data-page="leaderboard" hidden>
+<main>
+    <h1 data-spiky>LEADERBOARD</h1>
+    <p class="lb-subtitle">The <b>top 15</b> richest players ever! 🏆</p>
+    <div class="lb-status" id="lb-status"></div>
+    <div class="lb-list" id="lb-list"></div>
   </main>
 </section>
 <script>
@@ -1722,7 +1790,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
-      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1 },
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0 },
     };
   },
 
@@ -1738,6 +1806,8 @@ const State = {
     if (!JOBS[this.data.path.jobId]) this.data.path = { jobId: 'fisherman', rank: 0, career: 0 };
     if (!this.data.gear) this.data.gear = { rod: 0 };   // older saves had no equipment
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
+    if (!this.data.stats) this.data.stats = {};
+    if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
     this.ensureOffers();
     return this.data;
   },
@@ -1763,6 +1833,10 @@ const State = {
   // ---- money ------------------------------------------------
   addWealth(n) {
     this.data.wealth = Math.max(0, Math.floor(this.data.wealth + n));
+    // remember the most money you've ever had — that's your leaderboard score
+    if (this.data.stats && this.data.wealth > (this.data.stats.peakWealth || 0)) {
+      this.data.stats.peakWealth = this.data.wealth;
+    }
     this.save();
   },
 
@@ -1990,6 +2064,18 @@ const Cloud = {
     } catch (e) { return null; }
   },
 
+  // Fetch EVERY player (for the leaderboard). Returns { key: character }
+  // or null if offline / empty.
+  async loadAll() {
+    if (!this.on()) return null;
+    try {
+      const res = await this._fetch(`${this.base()}/players.json`, { cache: 'no-store' }, 8000);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data && typeof data === 'object' ? data : null;
+    } catch (e) { return null; }
+  },
+
   // Save a character to the cloud. Returns true on success.
   async save(name, data) {
     if (!this.on()) return false;
@@ -2130,6 +2216,7 @@ const UI = {
       ['paths', 'PATHS', 'paths.html'],
       ['levels', 'LEVELS', 'levels.html'],
       ['applications', 'APPLICATIONS', 'applications.html'],
+      ['leaderboard', '🏆', 'leaderboard.html'],
     ];
     const player = Profiles.currentName() || 'Player';
     header.innerHTML = `
@@ -6087,6 +6174,107 @@ PAGES.levels = {
   leave() {
     if (this.engine) this.engine.stop();
     this.engine = null;
+  },
+};
+
+;
+/* ============================================================
+   LEADERBOARD — the top 15 richest players ever, pulled live
+   from the cloud. "Richest ever" = the most money you've ever
+   held (your peak), so it never drops when you spend or die.
+   ============================================================ */
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+PAGES.leaderboard = {
+  init(root) {
+    this.root = root;
+    UI.spikyAll(root);
+    const status = root.querySelector('#lb-status');
+    const list = root.querySelector('#lb-list');
+    list.innerHTML = '';
+    status.textContent = 'Loading the leaderboard…';
+
+    if (!Cloud.on()) {
+      status.innerHTML = 'The leaderboard needs cloud sync (it\'s on by default). Playing offline — here\'s just you:';
+      this.render(list, this.rank({}));
+      return;
+    }
+    // fire-and-forget: make sure our latest score is in the cloud, then read
+    if (Cloud.pushNow) Cloud.pushNow();
+    this.load(root, status, list);
+  },
+
+  async load(root, status, list) {
+    const all = await Cloud.loadAll();
+    // guard against the page having been left while we waited
+    if (this.root !== root || !document.body.contains(status)) return;
+    if (all === null) {
+      status.innerHTML = '⚠️ Couldn\'t reach the leaderboard (offline?). <button class="linkish" id="lb-retry">Try again</button>';
+      const retry = status.querySelector('#lb-retry');
+      if (retry) retry.addEventListener('click', () => this.init(root));
+      this.render(list, this.rank({}));   // still show yourself
+      return;
+    }
+    const rows = this.rank(all);
+    const n = rows.length;
+    status.textContent = `${n} player${n === 1 ? '' : 's'} competing · ranked by richest ever 💰`;
+    this.render(list, rows);
+  },
+
+  // Build the ranked list. Always overlays YOUR real local score so you
+  // see your true standing even if the cloud copy is a little stale.
+  rank(all) {
+    const name = Profiles.currentName() || '';
+    const meKey = Cloud.on() ? Cloud._key(name) : '__me__';
+    const map = Object.assign({}, all);
+    const myScore = (State.data.stats && State.data.stats.peakWealth) || State.data.wealth || 0;
+    const mine = map[meKey] || {};
+    map[meKey] = Object.assign({}, mine, {
+      name: name || mine.name || 'You',
+      path: State.data.path,
+      stats: Object.assign({}, mine.stats, {
+        peakWealth: Math.max(myScore, (mine.stats && mine.stats.peakWealth) || 0),
+      }),
+    });
+
+    const rows = Object.entries(map).map(([key, p]) => {
+      const score = (p.stats && p.stats.peakWealth) || p.wealth || 0;
+      const jobId = p.path && JOBS[p.path.jobId] ? p.path.jobId : 'fisherman';
+      return { name: p.name || key, score, jobId, me: key === meKey };
+    })
+      .filter(r => r.score > 0 || r.me)     // hide brand-new $0 players, but never hide you
+      .sort((a, b) => b.score - a.score);
+    rows.forEach((r, i) => { r.place = i + 1; });
+    return rows;
+  },
+
+  render(list, rows) {
+    if (!rows.length) {
+      list.innerHTML = '<div class="lb-empty">No players on the board yet. Be the first — go get rich! 💰</div>';
+      return;
+    }
+    let html = rows.slice(0, 15).map(r => this.rowHTML(r)).join('');
+    // if you didn't make the top 15, show your rank pinned at the bottom
+    const me = rows.find(r => r.me);
+    if (me && me.place > 15) html += '<div class="lb-gap">· · ·</div>' + this.rowHTML(me);
+    list.innerHTML = html;
+  },
+
+  rowHTML(r) {
+    const job = JOBS[r.jobId];
+    const rank = r.place <= 3 ? MEDALS[r.place - 1] : '#' + r.place;
+    const cls = 'lb-row' + (r.me ? ' lb-me' : '') + (r.place <= 3 ? ' lb-top' : '');
+    return `
+      <div class="${cls}">
+        <div class="lb-rank">${rank}</div>
+        <div class="lb-emoji">${job.emoji}</div>
+        <div class="lb-who">
+          <div class="lb-name">${esc(r.name)}${r.me ? ' <span class="lb-badge">YOU</span>' : ''}</div>
+          <div class="lb-job">${esc(job.name)}</div>
+        </div>
+        <div class="lb-score">${fmtMoney(r.score)}</div>
+      </div>`;
   },
 };
 

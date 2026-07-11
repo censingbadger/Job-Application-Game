@@ -44,6 +44,7 @@ JS_FILES = [
     'js/pages/paths.js',
     'js/pages/applications.js',
     'js/pages/levels.js',
+    'js/pages/leaderboard.js',
 ]
 
 PAGES = [
@@ -51,6 +52,7 @@ PAGES = [
     ('paths', 'paths.html'),
     ('levels', 'levels.html'),
     ('applications', 'applications.html'),
+    ('leaderboard', 'leaderboard.html'),
 ]
 
 TITLE = 'Job Application — What Job Will YOU Get?'

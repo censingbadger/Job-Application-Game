@@ -3,41 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paths — Job Application</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎣</text></svg>">
+  <title>Leaderboard — Job Application</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-page="paths">
+<body data-page="leaderboard">
   <header id="site-header"></header>
   <main>
-    <h1 data-spiky>PATHS</h1>
-    <div class="paths-layout">
-      <aside class="paths-side">
-        <div class="card your-path-card">
-          <h3>Your Path:</h3>
-          <div class="path-name" id="pt-name">Fishing</div>
-          <div class="path-emoji" id="pt-emoji">🎣</div>
-        </div>
-        <div class="card">
-          <h3>NEXT PROMOTION</h3>
-          <p id="pt-progress-text" class="hud-line"></p>
-          <div class="shift-bar small"><div class="shift-fill" id="pt-progress"></div></div>
-        </div>
-        <div class="card change-card">
-          <h3>Change your path?</h3>
-          <p class="hud-line">Spin the wheel of jobs. You get what you get!</p>
-          <button class="btn btn-money" id="pt-change">change · 45 M 💰</button>
-        </div>
-      </aside>
-      <div class="trail card" id="pt-trail">
-        <div class="trail-watermark" id="pt-watermark">FISHING</div>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path id="pt-line" d="M 46 90 Q 18 78 26 66 Q 34 56 46 52 Q 60 47 56 42 Q 50 34 44 26 Q 38 18 40 12"
-                fill="none" stroke="#2b2b33" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="0.2 3.4" opacity="0.55"></path>
-        </svg>
-        <div class="trail-nodes" id="pt-nodes"></div>
-      </div>
-    </div>
+    <h1 data-spiky>LEADERBOARD</h1>
+    <p class="lb-subtitle">The <b>top 15</b> richest players ever! 🏆</p>
+    <div class="lb-status" id="lb-status"></div>
+    <div class="lb-list" id="lb-list"></div>
   </main>
 
   <script src="js/data.js"></script>

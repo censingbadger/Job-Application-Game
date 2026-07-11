@@ -58,6 +58,18 @@ const Cloud = {
     } catch (e) { return null; }
   },
 
+  // Fetch EVERY player (for the leaderboard). Returns { key: character }
+  // or null if offline / empty.
+  async loadAll() {
+    if (!this.on()) return null;
+    try {
+      const res = await this._fetch(`${this.base()}/players.json`, { cache: 'no-store' }, 8000);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data && typeof data === 'object' ? data : null;
+    } catch (e) { return null; }
+  },
+
   // Save a character to the cloud. Returns true on success.
   async save(name, data) {
     if (!this.on()) return false;
