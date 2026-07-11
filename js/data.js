@@ -38,6 +38,7 @@ const CONFIG = {
   offersPerDay: 3,           // how many job offers appear in a batch
   offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
   workHP: 3,                 // hearts you have per work day; run out and you die
+  fireQuotaMult: 0.15,       // flop a shift (earn under salary×this) and you're FIRED
 };
 
 // ------------------------------------------------------------
@@ -191,6 +192,37 @@ const JOBS = {
   jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
   frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
   king:         { name: 'King',           emoji: '👑', rarity: 'legendary', power: 50, salary: 50e6,  fatality: 15, danger: 'A coup!' },
+};
+
+// ------------------------------------------------------------
+// GETTING FIRED — survive the day but do a BAD job (earn less than
+// your boss's quota, salary × CONFIG.fireQuotaMult) and you're sacked:
+// you KEEP your money but lose the job and drift back to fishing. Each
+// job has its own reason for the pink slip. Fishing is the fallback —
+// you can't be fired from it (it has no salary / no quota).
+// ASHER: reword any of these!
+// ------------------------------------------------------------
+const FIRE_REASONS = {
+  peasant:      'You let the crops rot — the landlord evicted you!',
+  prisoner:     'You slacked on the chain gang — work detail revoked!',
+  teacher:      'The class revolted — the principal let you go!',
+  chef:         'You burned the signature dish — the head chef sacked you!',
+  nomad:        'You lost the trail — the caravan moved on without you!',
+  gamer:        'You went on a losing streak — benched and dropped!',
+  beekeeper:    'The hive absconded on your watch — you were let go!',
+  soldier:      'You abandoned your post — dishonorable discharge!',
+  criminal:     'You botched the heist — the crew cut you loose!',
+  miner:        'You came up empty — the foreman laid you off!',
+  bodyguard:    'You let danger slip through — the client dropped you!',
+  engineer:     'Your bridge wobbled once too often — laid off!',
+  executioner:  'Cold feet on the job — you were dismissed!',
+  bountyhunter: 'You let the target walk — license revoked!',
+  firefighter:  'You let it burn — suspended by the fire chief!',
+  dungeoneer:   'You came back empty-handed — the guild expelled you!',
+  deadshot:     'You kept missing — banned from the range!',
+  jobapplicator:'Your application to keep applying was... rejected!',
+  frogkeeper:   'The frogs all hopped away — you were let go!',
+  king:         'The people revolted — you were overthrown!',
 };
 
 // ------------------------------------------------------------

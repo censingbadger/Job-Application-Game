@@ -1239,7 +1239,7 @@ u { text-decoration-thickness: 3px; }
   .lb-score { font-size: 16px; }
 }
 
-/* ---- peasant lottery (payday bonus) --------------------------------- */
+/* ---- peasant lottery (payday) --------------------------------------- */
 .lottery-card {
   margin: 16px 0 4px;
   padding: 14px 16px;
@@ -1250,11 +1250,19 @@ u { text-decoration-thickness: 3px; }
 }
 .lottery-head { font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; color: #9a6b00; margin-bottom: 6px; }
 .lottery-card p { font-size: 15px; margin-bottom: 10px; }
-.lotto-reveal { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.lotto-odds { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 14px; margin: 0 0 12px; padding: 0; font-size: 14px; }
+.lotto-odds .odd-pct { display: inline-block; min-width: 34px; font-weight: bold; color: #9a6b00; }
+.lotto-buy-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.lotto-reveal { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.lotto-reveal:empty { margin-top: 0; }
 .lotto-ticket { font-size: 15px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); }
-.lotto-ticket.win { background: #fff2b8; border-color: #c98a00; font-size: 17px; box-shadow: 2px 2px 0 #c98a00; }
-.lotto-dud { color: var(--pencil); }
-.lotto-none { font-size: 14px; color: var(--pencil); margin-top: 4px; }
+.lotto-ticket.dud { color: var(--pencil); }
+.lotto-ticket.meh { background: #eef4fb; }
+.lotto-ticket.big { background: #fff2b8; border-color: #c98a00; font-size: 16px; }
+.lotto-ticket.mega { background: #ffe08a; border-color: #c98a00; font-size: 18px; box-shadow: 2px 2px 0 #c98a00; }
+
+/* debt — wealth in the red */
+.in-debt { color: #d9534f !important; }
 
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

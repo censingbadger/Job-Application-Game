@@ -1241,7 +1241,7 @@ u { text-decoration-thickness: 3px; }
   .lb-score { font-size: 16px; }
 }
 
-/* ---- peasant lottery (payday bonus) --------------------------------- */
+/* ---- peasant lottery (payday) --------------------------------------- */
 .lottery-card {
   margin: 16px 0 4px;
   padding: 14px 16px;
@@ -1252,11 +1252,19 @@ u { text-decoration-thickness: 3px; }
 }
 .lottery-head { font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; color: #9a6b00; margin-bottom: 6px; }
 .lottery-card p { font-size: 15px; margin-bottom: 10px; }
-.lotto-reveal { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.lotto-odds { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 14px; margin: 0 0 12px; padding: 0; font-size: 14px; }
+.lotto-odds .odd-pct { display: inline-block; min-width: 34px; font-weight: bold; color: #9a6b00; }
+.lotto-buy-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.lotto-reveal { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.lotto-reveal:empty { margin-top: 0; }
 .lotto-ticket { font-size: 15px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); }
-.lotto-ticket.win { background: #fff2b8; border-color: #c98a00; font-size: 17px; box-shadow: 2px 2px 0 #c98a00; }
-.lotto-dud { color: var(--pencil); }
-.lotto-none { font-size: 14px; color: var(--pencil); margin-top: 4px; }
+.lotto-ticket.dud { color: var(--pencil); }
+.lotto-ticket.meh { background: #eef4fb; }
+.lotto-ticket.big { background: #fff2b8; border-color: #c98a00; font-size: 16px; }
+.lotto-ticket.mega { background: #ffe08a; border-color: #c98a00; font-size: 18px; box-shadow: 2px 2px 0 #c98a00; }
+
+/* debt — wealth in the red */
+.in-debt { color: #d9534f !important; }
 
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -1427,6 +1435,7 @@ const CONFIG = {
   offersPerDay: 3,           // how many job offers appear in a batch
   offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
   workHP: 3,                 // hearts you have per work day; run out and you die
+  fireQuotaMult: 0.15,       // flop a shift (earn under salary×this) and you're FIRED
 };
 
 // ------------------------------------------------------------
@@ -1580,6 +1589,37 @@ const JOBS = {
   jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
   frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
   king:         { name: 'King',           emoji: '👑', rarity: 'legendary', power: 50, salary: 50e6,  fatality: 15, danger: 'A coup!' },
+};
+
+// ------------------------------------------------------------
+// GETTING FIRED — survive the day but do a BAD job (earn less than
+// your boss's quota, salary × CONFIG.fireQuotaMult) and you're sacked:
+// you KEEP your money but lose the job and drift back to fishing. Each
+// job has its own reason for the pink slip. Fishing is the fallback —
+// you can't be fired from it (it has no salary / no quota).
+// ASHER: reword any of these!
+// ------------------------------------------------------------
+const FIRE_REASONS = {
+  peasant:      'You let the crops rot — the landlord evicted you!',
+  prisoner:     'You slacked on the chain gang — work detail revoked!',
+  teacher:      'The class revolted — the principal let you go!',
+  chef:         'You burned the signature dish — the head chef sacked you!',
+  nomad:        'You lost the trail — the caravan moved on without you!',
+  gamer:        'You went on a losing streak — benched and dropped!',
+  beekeeper:    'The hive absconded on your watch — you were let go!',
+  soldier:      'You abandoned your post — dishonorable discharge!',
+  criminal:     'You botched the heist — the crew cut you loose!',
+  miner:        'You came up empty — the foreman laid you off!',
+  bodyguard:    'You let danger slip through — the client dropped you!',
+  engineer:     'Your bridge wobbled once too often — laid off!',
+  executioner:  'Cold feet on the job — you were dismissed!',
+  bountyhunter: 'You let the target walk — license revoked!',
+  firefighter:  'You let it burn — suspended by the fire chief!',
+  dungeoneer:   'You came back empty-handed — the guild expelled you!',
+  deadshot:     'You kept missing — banned from the range!',
+  jobapplicator:'Your application to keep applying was... rejected!',
+  frogkeeper:   'The frogs all hopped away — you were let go!',
+  king:         'The people revolted — you were overthrown!',
 };
 
 // ------------------------------------------------------------
@@ -1827,7 +1867,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       lastPlayed: 0,            // when this character last played (for sorting)
-      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0 },
+      stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
   },
 
@@ -1868,8 +1908,11 @@ const State = {
   },
 
   // ---- money ------------------------------------------------
+  // Wealth is a SIGNED balance now — it can go negative (debt). Earning
+  // always climbs it back up; the only thing that pushes it below zero is
+  // the peasant lottery (see spendDebt).
   addWealth(n) {
-    this.data.wealth = Math.max(0, Math.floor(this.data.wealth + n));
+    this.data.wealth = Math.floor(this.data.wealth + n);
     // remember the most money you've ever had — that's your leaderboard score
     if (this.data.stats && this.data.wealth > (this.data.stats.peakWealth || 0)) {
       this.data.stats.peakWealth = this.data.wealth;
@@ -1877,9 +1920,18 @@ const State = {
     this.save();
   },
 
+  // Normal spending — refuses if you can't afford it (never goes into debt).
   spend(n) {
     if (this.data.wealth < n) return false;
     this.data.wealth -= n;
+    this.save();
+    return true;
+  },
+
+  // Spending that CAN push you into the red. The peasant lottery uses this
+  // so you can chase the jackpot even when you're broke.
+  spendDebt(n) {
+    this.data.wealth = Math.floor(this.data.wealth - n);
     this.save();
     return true;
   },
@@ -2025,19 +2077,22 @@ function weightedPick(entries) {
 }
 
 // $50 → "$50",  $1,000 → "$1,000",  800000 → "$800K",  20000000 → "$20M"
+// Negatives (debt) come back as "-$10", "-$1.2M", etc.
 function fmtMoney(n) {
-  n = Math.floor(Math.max(0, n));
-  if (n < 100e3) return '$' + n.toLocaleString('en-US');
+  n = Math.floor(n);
+  const sign = n < 0 ? '-' : '';
+  n = Math.abs(n);
+  if (n < 100e3) return sign + '$' + n.toLocaleString('en-US');
   const units = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
   for (const [size, letter] of units) {
     if (n >= size) {
       const x = n / size;
       let str = x >= 100 ? String(Math.round(x)) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
       str = str.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
-      return '$' + str + letter;
+      return sign + '$' + str + letter;
     }
   }
-  return '$' + n.toLocaleString('en-US');
+  return sign + '$' + n.toLocaleString('en-US');
 }
 
 ;
@@ -2348,9 +2403,10 @@ const UI = {
   },
 
   refreshWealth() {
+    const debt = State.data.wealth < 0;
     const pill = document.getElementById('wealth-pill');
-    if (pill) pill.textContent = fmtMoney(State.data.wealth);
-    document.querySelectorAll('[data-wealth]').forEach(n => { n.textContent = fmtMoney(State.data.wealth); });
+    if (pill) { pill.textContent = fmtMoney(State.data.wealth); pill.classList.toggle('in-debt', debt); }
+    document.querySelectorAll('[data-wealth]').forEach(n => { n.textContent = fmtMoney(State.data.wealth); n.classList.toggle('in-debt', debt); });
   },
 
   // A floating "+$500" that drifts up from the wealth pill.
@@ -2641,6 +2697,9 @@ function defineShift(spec) {
       this.duration = this.trial ? this.trial.seconds : (spec.duration ? spec.duration(this.rank) : CONFIG.workShiftSeconds);
       this.timeLeft = this.duration;
       this.earned = 0;
+      // flop this shift (earn under the quota) and your boss fires you.
+      // fishing has no salary → quota 0 → you can never be fired from it.
+      this.fireQuota = this.trial ? 0 : Math.floor(State.salary() * CONFIG.fireQuotaMult);
       this.flashT = 0;
       this.flashColor = null;
       this.dangerActive = null;
@@ -2768,6 +2827,7 @@ function defineShift(spec) {
            <div class="hud-line">Power: <b>${State.power()}%</b></div>
            <div class="hud-line">Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
            <div class="hud-line hp-line">Health: <span class="hearts" id="g-hp"></span></div>
+           ${this.fireQuota > 0 ? `<div class="hud-line">Keep the job: earn <b>≥ ${fmtMoney(this.fireQuota)}</b></div>` : ''}
            <div class="hud-line">Earned today: <b id="g-earned">$0</b></div>`;
       this.root.innerHTML = `
         <div class="work-layout">
@@ -2899,6 +2959,39 @@ function defineShift(spec) {
       content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
     },
 
+    // FIRED — a bad day's work. You keep every cent but lose the job and
+    // wash back onto the fishing boat. Much softer than dying.
+    _fire() {
+      this.running = false;
+      Sound.thud();
+      const oldJob = State.rankName();
+      const kept = State.data.wealth;
+      const reason = (typeof FIRE_REASONS !== 'undefined' && FIRE_REASONS[State.data.path.jobId])
+        || 'Your boss decided to let you go.';
+      State.data.stats.timesFired = (State.data.stats.timesFired || 0) + 1;
+      State.switchJob('fisherman');
+      State.save();
+      State.nextDay();
+      UI.refreshWealth();
+
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>🧹 YOU'RE FIRED!</h2>
+        <p><b>${esc(reason)}</b></p>
+        <ul class="collection">
+          <li>😞 Lost your job as <b>${esc(oldJob)}</b></li>
+          <li>💰 You keep your money <b>${fmtMoney(kept)}</b></li>
+        </ul>
+        <p>You drift back to the fishing docks. Land a new job — or just fish it out!</p>
+        <div class="summary-actions">
+          <a class="btn btn-go" href="levels.html" data-nav="levels">🎣 Go fishing</a>
+          <a class="btn" href="applications.html" data-nav="applications">📋 Find a new job</a>
+        </div>`;
+      const modal = UI.openModal(content, { locked: true });
+      UI.spikyAll(content);
+      content.querySelectorAll('a[data-nav]').forEach(a => a.addEventListener('click', () => modal.close()));
+    },
+
     _endDay() {
       this.running = false;
       // A trial ends by reporting pass/fail to the application — no
@@ -2908,6 +3001,9 @@ function defineShift(spec) {
         t.onResult(this.earned >= t.goal, this.earned);
         return;
       }
+      // FIRED? a flop shift (earned under the boss's quota) costs you the
+      // job — but NOT your money. Fishing has quota 0, so it's exempt.
+      if (this.fireQuota > 0 && this.earned < this.fireQuota) { this._fire(); return; }
       const total = this.earned;
       const promo = State.data.pendingPromotion;
       State.data.pendingPromotion = null;
@@ -4202,54 +4298,58 @@ GAMES.peasant = defineShift({
     Draw.bigText(ctx, `Crops: ${g.caught}`, GW / 2, GH - 16, 22, '#3a5a1f');
   },
 
-  // Peasant pay is humble — but a GOOD harvest earns golden LOTTERY
-  // tickets. Each is a rare 3% shot at a life-changing $30 BILLION.
-  // (That long-shot dream is the whole reason to keep farming!)
+  // THE VILLAGE LOTTERY. Peasant wages are tiny — so on payday you can
+  // gamble on lottery tickets ($10 each) for a shot at real riches. You
+  // can keep buying even when you're broke: tickets push you into DEBT.
+  //   1% → $1B  ·  5% → $10M  ·  10% → $1M  ·  50% → your $10 back
   payday(g, content) {
-    const caught = g.caught || 0;
-    if (caught < 8) return;                          // only when you actually did well
-    const tickets = 1 + Math.floor(caught / 20);     // a ticket for a good day, more for a bumper crop
     const card = el('div', 'lottery-card');
     card.innerHTML = `
-      <div class="lottery-head">🎟️ GOLDEN HARVEST TICKET${tickets > 1 ? 'S' : ''}!</div>
-      <p>Bumper crop! You earned <b>${tickets}</b> lottery ticket${tickets > 1 ? 's' : ''} —
-         each a <b>3%</b> shot at <b>${fmtMoney(30e9)}</b>! 🤞</p>
-      <button class="btn btn-money lotto-go">🎟️ SCRATCH ${tickets > 1 ? 'THEM' : 'IT'}!</button>
+      <div class="lottery-head">🎟️ THE VILLAGE LOTTERY</div>
+      <p>Tickets are <b>$10</b> each — buy as many as you dare. You can even
+         go into <b>debt</b> chasing the big one!</p>
+      <ul class="lotto-odds">
+        <li><span class="odd-pct">1%</span> win <b>$1B</b> 💎</li>
+        <li><span class="odd-pct">5%</span> win <b>$10M</b></li>
+        <li><span class="odd-pct">10%</span> win <b>$1M</b></li>
+        <li><span class="odd-pct">50%</span> your money back</li>
+      </ul>
+      <div class="lotto-buy-row">
+        <button class="btn btn-money lotto-buy" data-n="1">Buy 1 · $10</button>
+        <button class="btn lotto-buy" data-n="10">Buy 10 · $100</button>
+      </div>
       <div class="lotto-reveal"></div>`;
     const actions = content.querySelector('.summary-actions');
     if (actions) content.insertBefore(card, actions); else content.appendChild(card);
-
-    const go = card.querySelector('.lotto-go');
     const reveal = card.querySelector('.lotto-reveal');
-    go.addEventListener('click', () => {
-      go.disabled = true;
-      let i = 0, won = 0;
-      const drawOne = () => {
-        if (i >= tickets) {
-          const s = State.data.stats;
-          s.lotteryTickets = (s.lotteryTickets || 0) + tickets;
-          if (won) s.lotteryWins = (s.lotteryWins || 0) + won;
-          State.save();
-          if (!won) {
-            const none = el('div', 'lotto-none');
-            none.textContent = 'No jackpot this time — plant more, harvest more, try again! 🌱';
-            reveal.appendChild(none);
-          }
-          return;
-        }
-        i++;
-        const win = Math.random() < 0.03;            // 3% — the promise of great riches
-        const row = el('div', 'lotto-ticket' + (win ? ' win' : ''));
-        row.innerHTML = win
-          ? `🎉 <b>JACKPOT!</b> Ticket ${i} wins <b>${fmtMoney(30e9)}</b>!`
-          : `🎫 Ticket ${i}: <span class="lotto-dud">no luck</span>`;
-        reveal.appendChild(row);
-        if (win) { won++; State.addWealth(30e9); UI.refreshWealth(); Sound.jackpot(); UI.confetti(50); }
-        else Sound.ding();
-        setTimeout(drawOne, 700);
-      };
-      drawOne();
-    });
+
+    const buyOne = () => {
+      State.spendDebt(10);                              // costs $10 — can go into the red
+      const s = State.data.stats;
+      s.lotteryTickets = (s.lotteryTickets || 0) + 1;
+      const r = Math.random();
+      let prize, label, cls;
+      if (r < 0.01)      { prize = 1e9; label = '💎 JACKPOT — $1 BILLION!'; cls = 'mega'; }
+      else if (r < 0.06) { prize = 1e7; label = '🎉 $10 MILLION!';          cls = 'big'; }
+      else if (r < 0.16) { prize = 1e6; label = '✨ $1 MILLION!';           cls = 'big'; }
+      else if (r < 0.66) { prize = 10;  label = '↩️ Money back';            cls = 'meh'; }
+      else               { prize = 0;   label = '🌾 No luck';               cls = 'dud'; }
+      if (prize > 0) State.addWealth(prize);            // spendDebt already took the $10
+      if (prize >= 1e6) { s.lotteryWins = (s.lotteryWins || 0) + 1; Sound.jackpot(); UI.confetti(prize >= 1e9 ? 70 : 30); }
+      else if (prize > 0) Sound.coin();
+      else Sound.thud();
+      State.save();
+      UI.refreshWealth();
+      const row = el('div', 'lotto-ticket ' + cls);
+      row.innerHTML = `${label}${prize > 10 ? ` <b>+${fmtMoney(prize)}</b>` : ''}`;
+      reveal.insertBefore(row, reveal.firstChild);      // newest ticket on top
+      while (reveal.children.length > 12) reveal.removeChild(reveal.lastChild);
+    };
+
+    card.querySelectorAll('.lotto-buy').forEach(btn => btn.addEventListener('click', () => {
+      const n = parseInt(btn.dataset.n, 10) || 1;
+      for (let k = 0; k < n; k++) buyOne();
+    }));
   },
 });
 
@@ -5790,7 +5890,7 @@ PAGES.home = {
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
-    if (wealth) wealth.textContent = fmtMoney(State.data.wealth);
+    if (wealth) { wealth.textContent = fmtMoney(State.data.wealth); wealth.classList.toggle('in-debt', State.data.wealth < 0); }
     const badge = root.querySelector('#home-mythical');
     if (badge) badge.hidden = !State.data.mythicalOwned;
 

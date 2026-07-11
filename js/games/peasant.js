@@ -91,53 +91,57 @@ GAMES.peasant = defineShift({
     Draw.bigText(ctx, `Crops: ${g.caught}`, GW / 2, GH - 16, 22, '#3a5a1f');
   },
 
-  // Peasant pay is humble — but a GOOD harvest earns golden LOTTERY
-  // tickets. Each is a rare 3% shot at a life-changing $30 BILLION.
-  // (That long-shot dream is the whole reason to keep farming!)
+  // THE VILLAGE LOTTERY. Peasant wages are tiny — so on payday you can
+  // gamble on lottery tickets ($10 each) for a shot at real riches. You
+  // can keep buying even when you're broke: tickets push you into DEBT.
+  //   1% → $1B  ·  5% → $10M  ·  10% → $1M  ·  50% → your $10 back
   payday(g, content) {
-    const caught = g.caught || 0;
-    if (caught < 8) return;                          // only when you actually did well
-    const tickets = 1 + Math.floor(caught / 20);     // a ticket for a good day, more for a bumper crop
     const card = el('div', 'lottery-card');
     card.innerHTML = `
-      <div class="lottery-head">🎟️ GOLDEN HARVEST TICKET${tickets > 1 ? 'S' : ''}!</div>
-      <p>Bumper crop! You earned <b>${tickets}</b> lottery ticket${tickets > 1 ? 's' : ''} —
-         each a <b>3%</b> shot at <b>${fmtMoney(30e9)}</b>! 🤞</p>
-      <button class="btn btn-money lotto-go">🎟️ SCRATCH ${tickets > 1 ? 'THEM' : 'IT'}!</button>
+      <div class="lottery-head">🎟️ THE VILLAGE LOTTERY</div>
+      <p>Tickets are <b>$10</b> each — buy as many as you dare. You can even
+         go into <b>debt</b> chasing the big one!</p>
+      <ul class="lotto-odds">
+        <li><span class="odd-pct">1%</span> win <b>$1B</b> 💎</li>
+        <li><span class="odd-pct">5%</span> win <b>$10M</b></li>
+        <li><span class="odd-pct">10%</span> win <b>$1M</b></li>
+        <li><span class="odd-pct">50%</span> your money back</li>
+      </ul>
+      <div class="lotto-buy-row">
+        <button class="btn btn-money lotto-buy" data-n="1">Buy 1 · $10</button>
+        <button class="btn lotto-buy" data-n="10">Buy 10 · $100</button>
+      </div>
       <div class="lotto-reveal"></div>`;
     const actions = content.querySelector('.summary-actions');
     if (actions) content.insertBefore(card, actions); else content.appendChild(card);
-
-    const go = card.querySelector('.lotto-go');
     const reveal = card.querySelector('.lotto-reveal');
-    go.addEventListener('click', () => {
-      go.disabled = true;
-      let i = 0, won = 0;
-      const drawOne = () => {
-        if (i >= tickets) {
-          const s = State.data.stats;
-          s.lotteryTickets = (s.lotteryTickets || 0) + tickets;
-          if (won) s.lotteryWins = (s.lotteryWins || 0) + won;
-          State.save();
-          if (!won) {
-            const none = el('div', 'lotto-none');
-            none.textContent = 'No jackpot this time — plant more, harvest more, try again! 🌱';
-            reveal.appendChild(none);
-          }
-          return;
-        }
-        i++;
-        const win = Math.random() < 0.03;            // 3% — the promise of great riches
-        const row = el('div', 'lotto-ticket' + (win ? ' win' : ''));
-        row.innerHTML = win
-          ? `🎉 <b>JACKPOT!</b> Ticket ${i} wins <b>${fmtMoney(30e9)}</b>!`
-          : `🎫 Ticket ${i}: <span class="lotto-dud">no luck</span>`;
-        reveal.appendChild(row);
-        if (win) { won++; State.addWealth(30e9); UI.refreshWealth(); Sound.jackpot(); UI.confetti(50); }
-        else Sound.ding();
-        setTimeout(drawOne, 700);
-      };
-      drawOne();
-    });
+
+    const buyOne = () => {
+      State.spendDebt(10);                              // costs $10 — can go into the red
+      const s = State.data.stats;
+      s.lotteryTickets = (s.lotteryTickets || 0) + 1;
+      const r = Math.random();
+      let prize, label, cls;
+      if (r < 0.01)      { prize = 1e9; label = '💎 JACKPOT — $1 BILLION!'; cls = 'mega'; }
+      else if (r < 0.06) { prize = 1e7; label = '🎉 $10 MILLION!';          cls = 'big'; }
+      else if (r < 0.16) { prize = 1e6; label = '✨ $1 MILLION!';           cls = 'big'; }
+      else if (r < 0.66) { prize = 10;  label = '↩️ Money back';            cls = 'meh'; }
+      else               { prize = 0;   label = '🌾 No luck';               cls = 'dud'; }
+      if (prize > 0) State.addWealth(prize);            // spendDebt already took the $10
+      if (prize >= 1e6) { s.lotteryWins = (s.lotteryWins || 0) + 1; Sound.jackpot(); UI.confetti(prize >= 1e9 ? 70 : 30); }
+      else if (prize > 0) Sound.coin();
+      else Sound.thud();
+      State.save();
+      UI.refreshWealth();
+      const row = el('div', 'lotto-ticket ' + cls);
+      row.innerHTML = `${label}${prize > 10 ? ` <b>+${fmtMoney(prize)}</b>` : ''}`;
+      reveal.insertBefore(row, reveal.firstChild);      // newest ticket on top
+      while (reveal.children.length > 12) reveal.removeChild(reveal.lastChild);
+    };
+
+    card.querySelectorAll('.lotto-buy').forEach(btn => btn.addEventListener('click', () => {
+      const n = parseInt(btn.dataset.n, 10) || 1;
+      for (let k = 0; k < n; k++) buyOne();
+    }));
   },
 });

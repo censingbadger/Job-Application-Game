@@ -10,7 +10,7 @@ PAGES.home = {
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
-    if (wealth) wealth.textContent = fmtMoney(State.data.wealth);
+    if (wealth) { wealth.textContent = fmtMoney(State.data.wealth); wealth.classList.toggle('in-debt', State.data.wealth < 0); }
     const badge = root.querySelector('#home-mythical');
     if (badge) badge.hidden = !State.data.mythicalOwned;
 
