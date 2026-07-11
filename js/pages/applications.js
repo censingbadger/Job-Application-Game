@@ -135,10 +135,11 @@ PAGES.applications = {
       lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
     }
 
-    // APPLICATIONS section
+    // APPLICATIONS section — a ROTATING shelf of extras (just like the lucky
+    // charms): buy one and a different option rotates into its place.
     const apps = root.querySelector('#shop-apps');
     apps.innerHTML = '';
-    ['avgwheel', 'epicchest', 'anything', 'frogcard'].forEach(id => {
+    State.appShelf(SHOP_APP_SHOWN).forEach(id => {
       const item = SHOP_EXTRAS[id];
       const card = el('div', 'card shop-item');
       card.innerHTML = `
@@ -266,10 +267,12 @@ PAGES.applications = {
   buyExtra(id) {
     const item = SHOP_EXTRAS[id];
     if (State.data.wealth < item.cost) return this.cantAfford(item.cost);
+    State.spend(item.cost);
+    UI.moneyPop(-item.cost);
+    State.rotateShelf(id);        // consumed → a DIFFERENT extra rotates into its slot
+    this.renderShop();           // the shelf visibly refreshes right away
 
     if (id === 'avgwheel') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       const commons = Object.keys(JOBS).filter(jid => JOBS[jid].rarity === 'common' && !JOBS[jid].shopOnly);
       UI.spinWheel({
         title: 'THE AVERAGE WHEEL',
@@ -280,17 +283,28 @@ PAGES.applications = {
           this.renderOffers();
         },
       });
-    } else if (id === 'epicchest') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
-      this.openChest('EPIC CHEST', '🎁', () => this.rollEpicLoot());
+    } else if (id === 'resume') {
+      const j1 = State.rollOfferJob(), j2 = State.rollOfferJob();
+      State.addOffer(j1); State.addOffer(j2);
+      UI.toast(`Résumés out! ${JOBS[j1].name} & ${JOBS[j2].name} added to your offers.`, '📨');
+      this.renderOffers();
     } else if (id === 'anything') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       this.openChest('COULD-BE-ANYTHING BOX', '❓', () => this.rollAnythingLoot());
+    } else if (id === 'headhunter') {
+      const pool = Object.keys(JOBS).filter(jid => ['rare', 'epic'].includes(JOBS[jid].rarity) && !JOBS[jid].shopOnly);
+      const jobId = pool[Math.floor(Math.random() * pool.length)] || 'bodyguard';
+      State.addOffer(jobId);
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>📞 HEADHUNTER!</h2>
+        <div class="card job-card">${UI.jobCardHTML(jobId)}</div>
+        <p>A recruiter lined up a <b>${esc(JOBS[jobId].name)}</b> — it's waiting in your Daily offers.</p>`;
+      UI.openModal(content);
+      UI.spikyAll(content);
+      this.renderOffers();
+    } else if (id === 'epicchest') {
+      this.openChest('EPIC CHEST', '🎁', () => this.rollEpicLoot());
     } else if (id === 'frogcard') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       State.addOffer('frogkeeper');
       const content = el('div', 'day-summary');
       content.innerHTML = `

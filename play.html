@@ -1676,14 +1676,24 @@ const POTIONS = {
   bubbling: { name: 'Bubbling Brew',  emoji: '🧫', cost: 10000, tier: 2 },
 };
 
-// SHOP — APPLICATIONS section
+// SHOP — APPLICATIONS section. The repeatable extras sit on a rotating
+// SHELF (like the lucky charms): only a few show at once, and buying one
+// sends it to the back so a DIFFERENT option rotates into its place.
 const SHOP_EXTRAS = {
   avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 6e6,   blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
-  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
+  resume:    { name: 'Résumé Blast',           emoji: '📨', cost: 20e6,  blurb: 'Mails out applications — 2 random job offers appear.' },
   anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 120e6, blurb: 'Could be ANYTHING.' },
+  headhunter:{ name: 'Headhunter Call',        emoji: '📞', cost: 300e6, blurb: 'A recruiter lines up a guaranteed RARE (or better) job offer.' },
+  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
   frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 2e9,   blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
   mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 3e12, blurb: 'The rarest chest ever made.' },
 };
+
+// The repeatable extras, in shelf order (cheapest first). The shop shows
+// the first few and rotates a fresh one in after each purchase. (mythical
+// is NOT here — it's a one-time buy with its own spot.)
+const SHOP_APP_POOL = ['avgwheel', 'resume', 'anything', 'headhunter', 'epicchest', 'frogcard'];
+const SHOP_APP_SHOWN = 4;   // how many shelf slots are visible at once
 
 ;
 /* ============================================================
@@ -1874,6 +1884,7 @@ const State = {
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
+      appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
@@ -1893,6 +1904,13 @@ const State = {
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
     if (!this.data.stats) this.data.stats = {};
     if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
+    // keep the applications-shop shelf in sync with the current pool
+    // (adds any newly-added extras, drops any that were removed)
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    else {
+      SHOP_APP_POOL.forEach(id => { if (!this.data.appShelf.includes(id)) this.data.appShelf.push(id); });
+      this.data.appShelf = this.data.appShelf.filter(id => SHOP_APP_POOL.includes(id));
+    }
     this.ensureOffers();
     return this.data;
   },
@@ -1942,6 +1960,20 @@ const State = {
     this.data.wealth = Math.floor(this.data.wealth - n);
     this.save();
     return true;
+  },
+
+  // ---- applications-shop shelf -------------------------------
+  // The extras you can buy right now (the first few of the shelf).
+  appShelf(count) {
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    return this.data.appShelf.slice(0, count);
+  },
+  // After buying an extra, send it to the BACK so a different one rotates up.
+  rotateShelf(id) {
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    const i = this.data.appShelf.indexOf(id);
+    if (i >= 0) { this.data.appShelf.splice(i, 1); this.data.appShelf.push(id); }
+    this.save();
   },
 
   avatar() { return (this.data && this.data.avatar) || AVATARS[0]; },
@@ -6213,10 +6245,11 @@ PAGES.applications = {
       lucky.querySelectorAll('[data-luck]').forEach(b => b.addEventListener('click', () => this.buyLuck(b.dataset.luck)));
     }
 
-    // APPLICATIONS section
+    // APPLICATIONS section — a ROTATING shelf of extras (just like the lucky
+    // charms): buy one and a different option rotates into its place.
     const apps = root.querySelector('#shop-apps');
     apps.innerHTML = '';
-    ['avgwheel', 'epicchest', 'anything', 'frogcard'].forEach(id => {
+    State.appShelf(SHOP_APP_SHOWN).forEach(id => {
       const item = SHOP_EXTRAS[id];
       const card = el('div', 'card shop-item');
       card.innerHTML = `
@@ -6344,10 +6377,12 @@ PAGES.applications = {
   buyExtra(id) {
     const item = SHOP_EXTRAS[id];
     if (State.data.wealth < item.cost) return this.cantAfford(item.cost);
+    State.spend(item.cost);
+    UI.moneyPop(-item.cost);
+    State.rotateShelf(id);        // consumed → a DIFFERENT extra rotates into its slot
+    this.renderShop();           // the shelf visibly refreshes right away
 
     if (id === 'avgwheel') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       const commons = Object.keys(JOBS).filter(jid => JOBS[jid].rarity === 'common' && !JOBS[jid].shopOnly);
       UI.spinWheel({
         title: 'THE AVERAGE WHEEL',
@@ -6358,17 +6393,28 @@ PAGES.applications = {
           this.renderOffers();
         },
       });
-    } else if (id === 'epicchest') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
-      this.openChest('EPIC CHEST', '🎁', () => this.rollEpicLoot());
+    } else if (id === 'resume') {
+      const j1 = State.rollOfferJob(), j2 = State.rollOfferJob();
+      State.addOffer(j1); State.addOffer(j2);
+      UI.toast(`Résumés out! ${JOBS[j1].name} & ${JOBS[j2].name} added to your offers.`, '📨');
+      this.renderOffers();
     } else if (id === 'anything') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       this.openChest('COULD-BE-ANYTHING BOX', '❓', () => this.rollAnythingLoot());
+    } else if (id === 'headhunter') {
+      const pool = Object.keys(JOBS).filter(jid => ['rare', 'epic'].includes(JOBS[jid].rarity) && !JOBS[jid].shopOnly);
+      const jobId = pool[Math.floor(Math.random() * pool.length)] || 'bodyguard';
+      State.addOffer(jobId);
+      const content = el('div', 'day-summary');
+      content.innerHTML = `
+        <h2 data-spiky>📞 HEADHUNTER!</h2>
+        <div class="card job-card">${UI.jobCardHTML(jobId)}</div>
+        <p>A recruiter lined up a <b>${esc(JOBS[jobId].name)}</b> — it's waiting in your Daily offers.</p>`;
+      UI.openModal(content);
+      UI.spikyAll(content);
+      this.renderOffers();
+    } else if (id === 'epicchest') {
+      this.openChest('EPIC CHEST', '🎁', () => this.rollEpicLoot());
     } else if (id === 'frogcard') {
-      State.spend(item.cost);
-      UI.moneyPop(-item.cost);
       State.addOffer('frogkeeper');
       const content = el('div', 'day-summary');
       content.innerHTML = `
