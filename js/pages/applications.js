@@ -329,11 +329,20 @@ PAGES.applications = {
       State.addOffer('king');
       const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
       missing.forEach(id => State.data.luckItems.push(id));
+      // ...and reel in a prize Black Sapphire Jingfish (a divine catch)
+      const bsj = FISH.find(f => f.name === 'Black Sapphire Jingfish');
+      const fishVal = bsj ? Math.floor(bsj.value * (1 + State.power() / 100)) : 0;
+      if (bsj) {
+        State.addWealth(fishVal);
+        State.data.stats.fishCaught = (State.data.stats.fishCaught || 0) + 1;
+        if (fishVal > (State.data.stats.biggestCatch || 0)) State.data.stats.biggestCatch = fishVal;
+      }
       State.save();
       UI.confetti(80);
       return [
         `💰 <b>${fmtMoney(prize)}</b> in rainbow black diamonds`,
         `👑 A <b>KING</b> job application`,
+        `${bsj ? bsj.emoji : '🐠'} A <b>Black Sapphire Jingfish</b> — worth <b>${fmtMoney(fishVal)}</b>!`,
         missing.length ? `🍀 Every lucky item you were missing` : `🍀 (You already had every lucky item)`,
       ];
     });
