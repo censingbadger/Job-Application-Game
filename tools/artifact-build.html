@@ -1215,6 +1215,7 @@ u { text-decoration-thickness: 3px; }
   vertical-align: middle;
   letter-spacing: 1px;
 }
+.lb-badge.lb-founder { background: #c98a00; color: #fff; }
 .lb-row.lb-top { background: var(--money-light); }
 .lb-row.lb-top .lb-rank { font-size: 28px; }
 .lb-row.lb-me { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }
@@ -6431,11 +6432,20 @@ PAGES.applications = {
       State.addOffer('king');
       const missing = Object.keys(LUCK_ITEMS).filter(id => !State.data.luckItems.includes(id));
       missing.forEach(id => State.data.luckItems.push(id));
+      // ...and reel in a prize Black Sapphire Jingfish (a divine catch)
+      const bsj = FISH.find(f => f.name === 'Black Sapphire Jingfish');
+      const fishVal = bsj ? Math.floor(bsj.value * (1 + State.power() / 100)) : 0;
+      if (bsj) {
+        State.addWealth(fishVal);
+        State.data.stats.fishCaught = (State.data.stats.fishCaught || 0) + 1;
+        if (fishVal > (State.data.stats.biggestCatch || 0)) State.data.stats.biggestCatch = fishVal;
+      }
       State.save();
       UI.confetti(80);
       return [
         `💰 <b>${fmtMoney(prize)}</b> in rainbow black diamonds`,
         `👑 A <b>KING</b> job application`,
+        `${bsj ? bsj.emoji : '🐠'} A <b>Black Sapphire Jingfish</b> — worth <b>${fmtMoney(fishVal)}</b>!`,
         missing.length ? `🍀 Every lucky item you were missing` : `🍀 (You already had every lucky item)`,
       ];
     });
@@ -6550,6 +6560,14 @@ PAGES.levels = {
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+// The game's makers — Jing & Ash. Their names wear a FOUNDER badge on the
+// board, however they type them (matched by the same normalised key the
+// cloud uses, so "Asher"/"asher" both count). Add a name here to crown it.
+const FOUNDER_NAMES = ['asher', 'hamham3745', 'jinghe'];
+function isFounder(name) {
+  return name != null && FOUNDER_NAMES.includes(Cloud._key(name));
+}
+
 PAGES.leaderboard = {
   init(root) {
     this.root = root;
@@ -6629,12 +6647,15 @@ PAGES.leaderboard = {
     const job = JOBS[r.jobId];
     const rank = r.place <= 3 ? MEDALS[r.place - 1] : '#' + r.place;
     const cls = 'lb-row' + (r.me ? ' lb-me' : '') + (r.place <= 3 ? ' lb-top' : '');
+    const badges =
+      (isFounder(r.name) ? ' <span class="lb-badge lb-founder">👑 FOUNDER</span>' : '') +
+      (r.me ? ' <span class="lb-badge">YOU</span>' : '');
     return `
       <div class="${cls}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-emoji">${job.emoji}</div>
         <div class="lb-who">
-          <div class="lb-name">${esc(r.name)}${r.me ? ' <span class="lb-badge">YOU</span>' : ''}</div>
+          <div class="lb-name">${esc(r.name)}${badges}</div>
           <div class="lb-job">${esc(job.name)}</div>
         </div>
         <div class="lb-score">${fmtMoney(r.score)}</div>
