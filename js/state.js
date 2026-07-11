@@ -186,6 +186,7 @@ const State = {
       pendingPromotion: null,   // rank name to celebrate next time you look
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
+      appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
@@ -205,6 +206,13 @@ const State = {
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
     if (!this.data.stats) this.data.stats = {};
     if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
+    // keep the applications-shop shelf in sync with the current pool
+    // (adds any newly-added extras, drops any that were removed)
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    else {
+      SHOP_APP_POOL.forEach(id => { if (!this.data.appShelf.includes(id)) this.data.appShelf.push(id); });
+      this.data.appShelf = this.data.appShelf.filter(id => SHOP_APP_POOL.includes(id));
+    }
     this.ensureOffers();
     return this.data;
   },
@@ -254,6 +262,20 @@ const State = {
     this.data.wealth = Math.floor(this.data.wealth - n);
     this.save();
     return true;
+  },
+
+  // ---- applications-shop shelf -------------------------------
+  // The extras you can buy right now (the first few of the shelf).
+  appShelf(count) {
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    return this.data.appShelf.slice(0, count);
+  },
+  // After buying an extra, send it to the BACK so a different one rotates up.
+  rotateShelf(id) {
+    if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
+    const i = this.data.appShelf.indexOf(id);
+    if (i >= 0) { this.data.appShelf.splice(i, 1); this.data.appShelf.push(id); }
+    this.save();
   },
 
   avatar() { return (this.data && this.data.avatar) || AVATARS[0]; },

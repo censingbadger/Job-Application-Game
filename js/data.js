@@ -271,11 +271,21 @@ const POTIONS = {
   bubbling: { name: 'Bubbling Brew',  emoji: '🧫', cost: 10000, tier: 2 },
 };
 
-// SHOP — APPLICATIONS section
+// SHOP — APPLICATIONS section. The repeatable extras sit on a rotating
+// SHELF (like the lucky charms): only a few show at once, and buying one
+// sends it to the back so a DIFFERENT option rotates into its place.
 const SHOP_EXTRAS = {
   avgwheel:  { name: 'Spin the Average Wheel', emoji: '🎡', cost: 6e6,   blurb: 'Spins a wheel of everyday jobs and adds the winner to your offers.' },
-  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
+  resume:    { name: 'Résumé Blast',           emoji: '📨', cost: 20e6,  blurb: 'Mails out applications — 2 random job offers appear.' },
   anything:  { name: 'Could-Be-Anything Box',  emoji: '❓', cost: 120e6, blurb: 'Could be ANYTHING.' },
+  headhunter:{ name: 'Headhunter Call',        emoji: '📞', cost: 300e6, blurb: 'A recruiter lines up a guaranteed RARE (or better) job offer.' },
+  epicchest: { name: 'Epic Chest',             emoji: '🎁', cost: 600e6, blurb: 'Wealth, a lucky item, or a rare job offer.' },
   frogcard:  { name: 'Frog Keeper Job Card',   emoji: '🐸', cost: 2e9,   blurb: 'Power 45% · Salary $8M · Fatality 1%.' },
   mythical:  { name: 'Rainbow Black Diamond Mythical Chest', emoji: '🌈', cost: 3e12, blurb: 'The rarest chest ever made.' },
 };
+
+// The repeatable extras, in shelf order (cheapest first). The shop shows
+// the first few and rotates a fresh one in after each purchase. (mythical
+// is NOT here — it's a one-time buy with its own spot.)
+const SHOP_APP_POOL = ['avgwheel', 'resume', 'anything', 'headhunter', 'epicchest', 'frogcard'];
+const SHOP_APP_SHOWN = 4;   // how many shelf slots are visible at once
