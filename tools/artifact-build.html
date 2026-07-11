@@ -687,7 +687,13 @@ u { text-decoration-thickness: 3px; }
   height: auto;
   border-radius: 12px;
   cursor: crosshair;
-  touch-action: manipulation;
+  /* The canvas owns every touch gesture on it: taps fire instantly and
+     finger-drags track properly, instead of the browser stealing them
+     for scrolling/zoom (which made games feel dead to the touch). */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .action-btn { font-size: 24px; padding: 14px 42px; min-width: 240px; }
