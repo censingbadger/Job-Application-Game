@@ -1227,6 +1227,18 @@ u { text-decoration-thickness: 3px; }
 .lb-gap { text-align: center; color: var(--pencil); letter-spacing: 4px; font-size: 20px; }
 .lb-empty { text-align: center; color: var(--pencil); padding: 30px 10px; font-size: 16px; }
 
+/* the compact "top players" preview on the home screen */
+.home-board { width: 100%; max-width: 440px; margin: 26px auto 4px; }
+.home-board-title { text-align: center; font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; margin: 0 0 12px; }
+.home-board .lb-list { gap: 8px; }
+.home-board .lb-row { padding: 7px 12px; gap: 10px; box-shadow: 2px 2px 0 var(--ink); }
+.home-board .lb-rank { flex-basis: 32px; font-size: 17px; }
+.home-board .lb-emoji { font-size: 24px; }
+.home-board .lb-name { font-size: 15px; }
+.home-board .lb-job { font-size: 12px; }
+.home-board .lb-score { font-size: 15px; }
+.home-board-link { display: inline-block; margin-top: 12px; font-size: 15px; }
+
 @media (max-width: 560px) {
   .lb-row { gap: 10px; padding: 9px 12px; }
   .lb-rank { flex-basis: 34px; font-size: 18px; }
@@ -1279,6 +1291,12 @@ u { text-decoration-thickness: 3px; }
           <span class="hex"><span>🏆</span></span><b>LEADERBOARD</b>
         </a>
       </nav>
+
+      <section class="home-board" id="home-board" hidden>
+        <h3 class="home-board-title" data-spiky>🏆 TOP PLAYERS</h3>
+        <div class="lb-list" id="home-board-list"></div>
+        <a class="home-board-link linkish" href="leaderboard.html" data-nav="leaderboard">See the full top 15 →</a>
+      </section>
 
       <footer class="home-footer">
         <div class="home-playing">👤 Playing as <b id="home-player">Player</b> · <button class="linkish" id="home-switch">switch player</button></div>
@@ -5594,6 +5612,7 @@ const Apply = {
 PAGES.home = {
   init(root) {
     UI.spikyAll(root);
+    this.renderBoard(root);
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
@@ -5635,6 +5654,23 @@ PAGES.home = {
         content.querySelector('#reset-no').addEventListener('click', () => modal.close());
       });
     }
+  },
+
+  // A little "top players" preview on the title screen. Only appears when
+  // there's real cloud data to show (no misleading solo board when offline).
+  renderBoard(root) {
+    const board = root.querySelector('#home-board');
+    const list = root.querySelector('#home-board-list');
+    if (!board || !list || !PAGES.leaderboard) return;
+    board.hidden = true;
+    if (!Cloud.on()) return;
+    Cloud.loadAll().then(all => {
+      if (!all || root.querySelector('#home-board') !== board) return;
+      const rows = PAGES.leaderboard.rank(all).slice(0, 5);
+      if (!rows.length) return;
+      list.innerHTML = rows.map(r => PAGES.leaderboard.rowHTML(r)).join('');
+      board.hidden = false;
+    });
   },
 };
 

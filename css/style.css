@@ -1219,6 +1219,18 @@ u { text-decoration-thickness: 3px; }
 .lb-gap { text-align: center; color: var(--pencil); letter-spacing: 4px; font-size: 20px; }
 .lb-empty { text-align: center; color: var(--pencil); padding: 30px 10px; font-size: 16px; }
 
+/* the compact "top players" preview on the home screen */
+.home-board { width: 100%; max-width: 440px; margin: 26px auto 4px; }
+.home-board-title { text-align: center; font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; margin: 0 0 12px; }
+.home-board .lb-list { gap: 8px; }
+.home-board .lb-row { padding: 7px 12px; gap: 10px; box-shadow: 2px 2px 0 var(--ink); }
+.home-board .lb-rank { flex-basis: 32px; font-size: 17px; }
+.home-board .lb-emoji { font-size: 24px; }
+.home-board .lb-name { font-size: 15px; }
+.home-board .lb-job { font-size: 12px; }
+.home-board .lb-score { font-size: 15px; }
+.home-board-link { display: inline-block; margin-top: 12px; font-size: 15px; }
+
 @media (max-width: 560px) {
   .lb-row { gap: 10px; padding: 9px 12px; }
   .lb-rank { flex-basis: 34px; font-size: 18px; }

@@ -6,6 +6,7 @@
 PAGES.home = {
   init(root) {
     UI.spikyAll(root);
+    this.renderBoard(root);
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
@@ -47,5 +48,22 @@ PAGES.home = {
         content.querySelector('#reset-no').addEventListener('click', () => modal.close());
       });
     }
+  },
+
+  // A little "top players" preview on the title screen. Only appears when
+  // there's real cloud data to show (no misleading solo board when offline).
+  renderBoard(root) {
+    const board = root.querySelector('#home-board');
+    const list = root.querySelector('#home-board-list');
+    if (!board || !list || !PAGES.leaderboard) return;
+    board.hidden = true;
+    if (!Cloud.on()) return;
+    Cloud.loadAll().then(all => {
+      if (!all || root.querySelector('#home-board') !== board) return;
+      const rows = PAGES.leaderboard.rank(all).slice(0, 5);
+      if (!rows.length) return;
+      list.innerHTML = rows.map(r => PAGES.leaderboard.rowHTML(r)).join('');
+      board.hidden = false;
+    });
   },
 };
