@@ -90,6 +90,7 @@ const UI = {
       ['paths', 'PATHS', 'paths.html'],
       ['levels', 'LEVELS', 'levels.html'],
       ['applications', 'APPLICATIONS', 'applications.html'],
+      ['leaderboard', '🏆', 'leaderboard.html'],
     ];
     const player = Profiles.currentName() || 'Player';
     header.innerHTML = `

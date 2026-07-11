@@ -35,7 +35,16 @@
         <a class="hex-nav" href="applications.html" data-nav="applications">
           <span class="hex"><span>💼</span></span><b>APPLICATIONS</b>
         </a>
+        <a class="hex-nav" href="leaderboard.html" data-nav="leaderboard">
+          <span class="hex"><span>🏆</span></span><b>LEADERBOARD</b>
+        </a>
       </nav>
+
+      <section class="home-board" id="home-board" hidden>
+        <h3 class="home-board-title" data-spiky>🏆 TOP PLAYERS</h3>
+        <div class="lb-list" id="home-board-list"></div>
+        <a class="home-board-link linkish" href="leaderboard.html" data-nav="leaderboard">See the full top 15 →</a>
+      </section>
 
       <footer class="home-footer">
         <div class="home-playing">👤 Playing as <b id="home-player">Player</b> · <button class="linkish" id="home-switch">switch player</button></div>
@@ -75,6 +84,7 @@
   <script src="js/pages/paths.js"></script>
   <script src="js/pages/applications.js"></script>
   <script src="js/pages/levels.js"></script>
+  <script src="js/pages/leaderboard.js"></script>
   <script>Boot();</script>
 </body>
 </html>
