@@ -39,6 +39,7 @@ const CONFIG = {
   offerRefreshMinutes: 10,   // a fresh batch of offers every this many real minutes
   workHP: 3,                 // hearts you have per work day; run out and you die
   fireQuotaMult: 0.15,       // flop a shift (earn under salary×this) and you're FIRED
+  lotteryPerDay: 3,          // most peasant lottery tickets you can buy in one day
 };
 
 // ------------------------------------------------------------
