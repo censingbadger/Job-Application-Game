@@ -187,6 +187,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
+      franchises: 0,            // hardware-store franchises owned (each boosts earnings)
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
@@ -206,6 +207,7 @@ const State = {
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
     if (!this.data.stats) this.data.stats = {};
     if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
+    if (this.data.franchises == null) this.data.franchises = 0;
     // keep the applications-shop shelf in sync with the current pool
     // (adds any newly-added extras, drops any that were removed)
     if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
