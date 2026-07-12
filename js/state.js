@@ -188,6 +188,8 @@ const State = {
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
       franchises: 0,            // hardware-store franchises owned (each boosts earnings)
+      lotteryDay: 0,            // which day the lottery-ticket count below belongs to
+      lotteryCount: 0,          // peasant lottery tickets bought so far today
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
@@ -262,6 +264,22 @@ const State = {
   // so you can chase the jackpot even when you're broke.
   spendDebt(n) {
     this.data.wealth = Math.floor(this.data.wealth - n);
+    this.save();
+    return true;
+  },
+
+  // ---- peasant lottery: capped at CONFIG.lotteryPerDay tickets a day ----
+  // How many lottery tickets you can still buy today (resets each new day).
+  lotteryLeft() {
+    if (this.data.lotteryDay !== this.data.day) return CONFIG.lotteryPerDay;
+    return Math.max(0, CONFIG.lotteryPerDay - (this.data.lotteryCount || 0));
+  },
+  // Try to spend one of today's ticket allowance. Returns false if you're
+  // out — this is the real cap, so spamming the buy button can't beat it.
+  useLotteryTicket() {
+    if (this.data.lotteryDay !== this.data.day) { this.data.lotteryDay = this.data.day; this.data.lotteryCount = 0; }
+    if ((this.data.lotteryCount || 0) >= CONFIG.lotteryPerDay) return false;
+    this.data.lotteryCount += 1;
     this.save();
     return true;
   },

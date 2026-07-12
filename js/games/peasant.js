@@ -93,31 +93,43 @@ GAMES.peasant = defineShift({
 
   // THE VILLAGE LOTTERY. Peasant wages are tiny — so on payday you can
   // gamble on lottery tickets ($10 each) for a shot at real riches. You
-  // can keep buying even when you're broke: tickets push you into DEBT.
+  // can go into DEBT, but only CONFIG.lotteryPerDay (3) tickets a DAY, so
+  // nobody can spam-buy their way to the jackpot.
   //   1% → $1B  ·  5% → $10M  ·  10% → $1M  ·  50% → your $10 back
   payday(g, content) {
     const card = el('div', 'lottery-card');
     card.innerHTML = `
       <div class="lottery-head">🎟️ THE VILLAGE LOTTERY</div>
-      <p>Tickets are <b>$10</b> each — buy as many as you dare. You can even
-         go into <b>debt</b> chasing the big one!</p>
+      <p>Tickets are <b>$10</b> each (you can even go into <b>debt</b>!) —
+         but only <b>${CONFIG.lotteryPerDay} a day</b>. You have <b class="lotto-left"></b> left today.</p>
       <ul class="lotto-odds">
         <li><span class="odd-pct">1%</span> win <b>$1B</b> 💎</li>
         <li><span class="odd-pct">5%</span> win <b>$10M</b></li>
         <li><span class="odd-pct">10%</span> win <b>$1M</b></li>
         <li><span class="odd-pct">50%</span> your money back</li>
       </ul>
-      <div class="lotto-buy-row">
-        <button class="btn btn-money lotto-buy" data-n="1">Buy 1 · $10</button>
-        <button class="btn lotto-buy" data-n="10">Buy 10 · $100</button>
-      </div>
+      <div class="lotto-buy-row"><button class="btn btn-money lotto-buy">Buy a ticket · $10</button></div>
       <div class="lotto-reveal"></div>`;
     const actions = content.querySelector('.summary-actions');
     if (actions) content.insertBefore(card, actions); else content.appendChild(card);
     const reveal = card.querySelector('.lotto-reveal');
+    const leftEl = card.querySelector('.lotto-left');
+    const btn = card.querySelector('.lotto-buy');
+
+    const sync = () => {
+      const left = State.lotteryLeft();
+      leftEl.textContent = left;
+      btn.disabled = left <= 0;
+      if (left <= 0 && !card.querySelector('.lotto-none')) {
+        const done = el('div', 'lotto-none');
+        done.textContent = `That's all ${CONFIG.lotteryPerDay} for today — come back tomorrow! 🌙`;
+        card.querySelector('.lotto-buy-row').insertAdjacentElement('afterend', done);
+      }
+    };
 
     const buyOne = () => {
-      State.spendDebt(10);                              // costs $10 — can go into the red
+      if (!State.useLotteryTicket()) { sync(); return; }   // hit the daily cap — no ticket, no charge
+      State.spendDebt(10);                                 // costs $10 — can go into the red
       const s = State.data.stats;
       s.lotteryTickets = (s.lotteryTickets || 0) + 1;
       const r = Math.random();
@@ -127,7 +139,7 @@ GAMES.peasant = defineShift({
       else if (r < 0.16) { prize = 1e6; label = '✨ $1 MILLION!';           cls = 'big'; }
       else if (r < 0.66) { prize = 10;  label = '↩️ Money back';            cls = 'meh'; }
       else               { prize = 0;   label = '🌾 No luck';               cls = 'dud'; }
-      if (prize > 0) State.addWealth(prize);            // spendDebt already took the $10
+      if (prize > 0) State.addWealth(prize);               // spendDebt already took the $10
       if (prize >= 1e6) { s.lotteryWins = (s.lotteryWins || 0) + 1; Sound.jackpot(); UI.confetti(prize >= 1e9 ? 70 : 30); }
       else if (prize > 0) Sound.coin();
       else Sound.thud();
@@ -135,13 +147,12 @@ GAMES.peasant = defineShift({
       UI.refreshWealth();
       const row = el('div', 'lotto-ticket ' + cls);
       row.innerHTML = `${label}${prize > 10 ? ` <b>+${fmtMoney(prize)}</b>` : ''}`;
-      reveal.insertBefore(row, reveal.firstChild);      // newest ticket on top
+      reveal.insertBefore(row, reveal.firstChild);         // newest ticket on top
       while (reveal.children.length > 12) reveal.removeChild(reveal.lastChild);
+      sync();
     };
 
-    card.querySelectorAll('.lotto-buy').forEach(btn => btn.addEventListener('click', () => {
-      const n = parseInt(btn.dataset.n, 10) || 1;
-      for (let k = 0; k < n; k++) buyOne();
-    }));
+    btn.addEventListener('click', buyOne);
+    sync();
   },
 });
