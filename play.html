@@ -1549,8 +1549,10 @@ const GEAR = {
   executioner:  [['🪓','Dull Axe'],      ['🪓','Sharp Axe'],     ['⚔️','Broadsword'],    ['🗡️','Great Axe'],      ['🔻','Guillotine']],
   bountyhunter: [['🪢','Lasso'],         ['🔫','Revolver'],      ['🥅','Net Gun'],        ['🛸','Tracker Drone'],  ['🚀','Bounty Rig']],
   firefighter:  [['🧤','Fire Gloves'],   ['🪣','Water Bucket'],  ['🧯','Extinguisher'],   ['🚿','Fire Hose'],      ['🚁','Water Bomber']],
+  hardware:     [['🔩','Loose Screws'],  ['🔨','Claw Hammer'],   ['🪚','Power Saw'],      ['🚚','Delivery Truck'], ['🏭','Warehouse']],
   dungeoneer:   [['🔦','Torch'],         ['🗡️','Short Sword'],   ['🛡️','Shield'],        ['⚔️','Enchanted Blade'],['🐉','Dragon Armor']],
   deadshot:     [['🪃','Slingshot'],     ['🔫','Pistol'],        ['🎯','Sniper Rifle'],   ['🔴','Laser Sight'],    ['🚀','Rail Gun']],
+  athlete:      [['👟','Worn Sneakers'], ['🏀','Team Ball'],     ['🦵','Knee Braces'],    ['💪','Personal Trainer'],['🏆','MVP Contract']],
   jobapplicator:[['✏️','Pencil'],        ['🖊️','Nice Pen'],      ['📄','Résumé Kit'],     ['💼','Briefcase'],      ['🏆','Golden Stapler']],
   frogkeeper:   [['🥅','Little Net'],    ['🪷','Lily Pad'],      ['🪟','Terrarium'],      ['🎵','Frog Whistle'],   ['🏅','Golden Pond']],
   king:         [['👑','Wooden Crown'],  ['👑','Silver Crown'],  ['👑','Gold Crown'],     ['🔱','Jeweled Scepter'],['💎','Diamond Throne']],
@@ -1593,8 +1595,10 @@ const JOBS = {
   executioner:  { name: 'Executioner',    emoji: '🪓', rarity: 'rare',      power: 24, salary: 800e3, fatality: 21, danger: 'Axe slipped!' },
   bountyhunter: { name: 'Bounty Hunter',  emoji: '🤠', rarity: 'rare',      power: 28, salary: 2e6,   fatality: 55, danger: 'Target fights back!' },
   firefighter:  { name: 'Firefighter',    emoji: '🚒', rarity: 'rare',      power: 26, salary: 1.5e6, fatality: 65, danger: 'Backdraft!' },
+  hardware:     { name: 'Hardware Store Owner', emoji: '🔨', rarity: 'rare', power: 24, salary: 600e3, fatality: 10, danger: 'Rusty nail!' },
   dungeoneer:   { name: 'Dungeoneer',     emoji: '🗝️', rarity: 'epic',      power: 32, salary: 5e6,   fatality: 57, danger: 'A dragon!' },
   deadshot:     { name: 'Deadshot',       emoji: '🎯', rarity: 'epic',      power: 35, salary: 8e6,   fatality: 60, danger: 'Return fire!' },
+  athlete:      { name: 'Athlete',        emoji: '🏀', rarity: 'epic',      power: 34, salary: 12e6,  fatality: 42, danger: 'Blown knee!' },
   jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
   frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
   king:         { name: 'King',           emoji: '👑', rarity: 'legendary', power: 50, salary: 50e6,  fatality: 15, danger: 'A coup!' },
@@ -1624,8 +1628,10 @@ const FIRE_REASONS = {
   executioner:  'Cold feet on the job — you were dismissed!',
   bountyhunter: 'You let the target walk — license revoked!',
   firefighter:  'You let it burn — suspended by the fire chief!',
+  hardware:     'A big-box rival undercut you — your store went bust!',
   dungeoneer:   'You came back empty-handed — the guild expelled you!',
   deadshot:     'You kept missing — banned from the range!',
+  athlete:      'Bad knees and a locker-room feud — your team traded you!',
   jobapplicator:'Your application to keep applying was... rejected!',
   frogkeeper:   'The frogs all hopped away — you were let go!',
   king:         'The people revolted — you were overthrown!',
@@ -1886,6 +1892,7 @@ const State = {
       mythicalOwned: false,
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
+      franchises: 0,            // hardware-store franchises owned (each boosts earnings)
       lastPlayed: 0,            // when this character last played (for sorting)
       stats: { fishCaught: 0, daysWorked: 0, knockouts: 0, biggestCatch: 0, jobsHeld: 1, peakWealth: 0, lotteryTickets: 0, lotteryWins: 0, timesFired: 0 },
     };
@@ -1905,6 +1912,7 @@ const State = {
     if (this.data.bonusLuck == null) this.data.bonusLuck = 0;
     if (!this.data.stats) this.data.stats = {};
     if (this.data.stats.peakWealth == null) this.data.stats.peakWealth = this.data.wealth || 0;
+    if (this.data.franchises == null) this.data.franchises = 0;
     // keep the applications-shop shelf in sync with the current pool
     // (adds any newly-added extras, drops any that were removed)
     if (!Array.isArray(this.data.appShelf)) this.data.appShelf = SHOP_APP_POOL.slice();
@@ -5251,6 +5259,199 @@ GAMES.firefighter = defineShift({
     Draw.emoji(ctx, '🚿', n.x, n.y, 34);
 
     Draw.bigText(ctx, `Fires out: ${g.out}`, GW / 2, GH - 22, 22, '#ff8a3c');
+  },
+});
+
+;
+/* ============================================================
+   HARDWARE STORE OWNER 🔨 — HAMMER IT OUT (steady hands).
+   Nails pop up across the workbench — TAP each one to hammer it
+   home for cash before it works loose. Watch for the Rusty nail!
+   And on payday you can FRANCHISE: open new stores that boost
+   your earnings for good — build an empire and get rich.
+   ============================================================ */
+
+GAMES.hardware = defineShift({
+  hint: 'TAP the <b>nails</b> 🔩 to hammer them home before they pop loose! Watch for the <b>Rusty nail!</b> On payday you can <b>franchise</b> to earn even more.',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.nails = [];
+    g.spawnEvery = 0.9 / g.diff;
+    g.spawnT = 0.3;
+    g.life = Math.max(1.4, 2.6 - g.rank * 0.25);
+    const fr = State.data.franchises || 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 9 * (1 + fr * 0.3)));   // each franchise: +30% earnings
+    g.built = 0;
+    g.pop = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.nails.length - 1; i >= 0; i--) {
+      const n = g.nails[i];
+      if (Math.hypot(n.x - x, n.y - y) <= n.r + 8) {
+        g.earn(g.unit);
+        g.built++;
+        g.pop = { x: n.x, y: n.y, t: 0 };
+        g.nails.splice(i, 1);
+        Sound.ding();
+        return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      g.nails.push({ x: 70 + Math.random() * (GW - 140), y: 140 + Math.random() * (GH - 230), r: 20, life: g.life, born: 0 });
+    }
+    for (let i = g.nails.length - 1; i >= 0; i--) {
+      const n = g.nails[i];
+      n.born += dt; n.life -= dt;
+      if (n.life <= 0) { g.nails.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // workshop wall + bench
+    ctx.fillStyle = '#e7d8bf'; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = '#a9743f'; ctx.fillRect(0, GH - 90, GW, 90);
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, GH - 90); ctx.lineTo(GW, GH - 90); ctx.stroke();
+    // pegboard dots
+    ctx.fillStyle = 'rgba(43,43,51,.12)';
+    for (let x = 40; x < GW - 20; x += 44) for (let y = 96; y < GH - 110; y += 44) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+    Draw.bigText(ctx, '🔨 HAMMER TIME', GW / 2, 40, 28, '#7a4a1c');
+    const fr = State.data.franchises || 0;
+    if (fr > 0) Draw.bigText(ctx, `🏪 ×${fr} franchises · +${fr * 30}% pay`, GW / 2, 70, 18, '#2f7d3f');
+
+    // nails to hammer
+    g.nails.forEach(n => {
+      const pop = Math.min(1, n.born * 6), warn = n.life < 0.7;
+      ctx.save(); ctx.translate(n.x, n.y); ctx.scale(pop, pop);
+      Draw.emoji(ctx, '🔩', 0, 0, n.r * 2);
+      ctx.restore();
+      if (warn) Draw.emoji(ctx, '⚠️', n.x, n.y - n.r - 14, 20);
+    });
+
+    if (g.pop) Draw.bigText(ctx, 'BANG!', g.pop.x, g.pop.y - 26, 20, '#7a4a1c');
+    Draw.bigText(ctx, `Built: ${g.built}`, GW / 2, GH - 16, 22, '#7a4a1c');
+  },
+
+  // FRANCHISE — invest at payday to permanently boost store earnings.
+  // Cost climbs each time; the more you own, the more every shift pays.
+  payday(g, content) {
+    const franchiseCost = n => Math.floor(2e6 * Math.pow(2.5, n));
+    const card = el('div', 'lottery-card');
+    const render = () => {
+      const owned = State.data.franchises || 0;
+      card.innerHTML = `
+        <div class="lottery-head">🏪 FRANCHISE EMPIRE</div>
+        <p>You own <b>${owned}</b> franchise${owned === 1 ? '' : 's'} — each adds <b>+30%</b> to your store
+           earnings. Open more to build an empire!</p>
+        <button class="btn btn-money franchise-buy">Open franchise #${owned + 1} · ${fmtMoney(franchiseCost(owned))}</button>
+        <div class="franchise-msg"></div>`;
+      card.querySelector('.franchise-buy').addEventListener('click', () => {
+        const have = State.data.franchises || 0;
+        const cost = franchiseCost(have);
+        if (!State.spend(cost)) { card.querySelector('.franchise-msg').textContent = `You need ${fmtMoney(cost)} to open it!`; Sound.danger(); return; }
+        State.data.franchises = have + 1;
+        State.save();
+        UI.moneyPop(-cost); UI.refreshWealth(); Sound.jackpot(); UI.confetti(24);
+        render();
+        card.querySelector('.franchise-msg').textContent = `🎉 Franchise #${State.data.franchises} opened! Every shift now pays more.`;
+      });
+    };
+    render();
+    const actions = content.querySelector('.summary-actions');
+    if (actions) content.insertBefore(card, actions); else content.appendChild(card);
+  },
+});
+
+;
+/* ============================================================
+   ATHLETE 🏀 — SCORE POINTS (fast hands, big money, short career).
+   Open shots pop up around the court — TAP to sink them for huge
+   money. Nail the swish (dead centre) for DOUBLE. Miss the shot
+   clock and it's a turnover — and dodge the Blown knee!, because
+   one bad landing can end a career. The pay is enormous, but
+   nobody plays forever.
+   ============================================================ */
+
+GAMES.athlete = defineShift({
+  hint: 'TAP the <b>open shots</b> 🏀 to score before the shot clock runs out — hit the <b>swish</b> centre for <b>DOUBLE</b>! Dodge the <b>Blown knee!</b>',
+  duration: r => 44 + r * 5,
+
+  init(g) {
+    g.shots = [];
+    g.spawnEvery = 1.2 / g.diff;
+    g.spawnT = 0.4;
+    g.life = Math.max(1.1, 2.2 - g.rank * 0.25);      // shot clock per open look
+    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.scored = 0;
+    g.pop = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.shots.length - 1; i >= 0; i--) {
+      const s = g.shots[i];
+      const d = Math.hypot(s.x - x, s.y - y);
+      if (d <= s.r) {
+        const swish = d <= s.r * 0.34;
+        g.earn(g.unit * (swish ? 2 : 1));
+        g.scored++;
+        g.pop = { x: s.x, y: s.y, swish, t: 0 };
+        g.shots.splice(i, 1);
+        Sound.coin();
+        return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const r = 26 + Math.random() * 14;
+      g.shots.push({ x: 90 + Math.random() * (GW - 180), y: 150 + Math.random() * (GH - 250), r, life: g.life, max: g.life, born: 0 });
+    }
+    for (let i = g.shots.length - 1; i >= 0; i--) {
+      const s = g.shots[i];
+      s.born += dt; s.life -= dt;
+      if (s.life <= 0) { g.shots.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }   // turnover!
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    // hardwood court
+    ctx.fillStyle = '#d69a54'; ctx.fillRect(0, 0, GW, GH);
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 4;
+    ctx.strokeRect(24, 80, GW - 48, GH - 104);
+    ctx.beginPath(); ctx.arc(GW / 2, GH - 24, 90, Math.PI, 0); ctx.stroke();
+    // backboard + hoop, top centre
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(GW / 2 - 60, 74, 120, 40); ctx.strokeRect(GW / 2 - 60, 74, 120, 40);
+    ctx.strokeStyle = '#e8760c'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(GW / 2, 122, 22, 0, Math.PI * 2); ctx.stroke();
+    Draw.bigText(ctx, '🏀 GAME TIME', GW / 2, 40, 28, '#7a3d0c');
+
+    // open shots
+    g.shots.forEach(s => {
+      const pop = Math.min(1, s.born * 6), r = s.r * pop, warn = s.life < s.max * 0.35;
+      Draw.emoji(ctx, '🏀', s.x, s.y, r * 2);
+      ctx.strokeStyle = warn ? '#d9534f' : 'rgba(255,255,255,.85)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(s.x, s.y, r + 4, 0, Math.PI * 2); ctx.stroke();
+      if (warn) Draw.emoji(ctx, '⏰', s.x, s.y - r - 16, 22);
+    });
+
+    if (g.pop) Draw.bigText(ctx, g.pop.swish ? 'SWISH! ×2' : 'SCORE!', g.pop.x, g.pop.y - 28, g.pop.swish ? 26 : 20, g.pop.swish ? '#2f7d3f' : '#7a3d0c');
+
+    Draw.bigText(ctx, `Points: ${g.scored}`, GW / 2, GH - 18, 22, '#7a3d0c');
   },
 });
 
