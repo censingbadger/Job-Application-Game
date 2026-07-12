@@ -1265,6 +1265,22 @@ u { text-decoration-thickness: 3px; }
 /* debt — wealth in the red */
 .in-debt { color: #d9534f !important; }
 
+/* ---- athlete: pick your sport --------------------------------------- */
+.sport-picker { text-align: center; padding: 26px 16px; max-width: 640px; margin: 0 auto; }
+.sport-picker h2 { font-size: 32px; }
+.sport-picker .hint { margin-bottom: 4px; }
+.sport-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; }
+.sport-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 22px 12px; background: var(--paper); border: 3px solid var(--ink);
+  border-radius: var(--wobble); box-shadow: 3px 3px 0 var(--ink); cursor: pointer;
+  font-family: var(--font-display); font-size: 19px; letter-spacing: 1px; color: var(--ink);
+}
+.sport-btn:hover { background: var(--money-light); }
+.sport-btn.current { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }
+.sport-emoji { font-size: 46px; line-height: 1; }
+@media (max-width: 560px) { .sport-emoji { font-size: 38px; } .sport-picker h2 { font-size: 26px; } }
+
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
