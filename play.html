@@ -5326,85 +5326,104 @@ GAMES.firefighter = defineShift({
 
 ;
 /* ============================================================
-   HARDWARE STORE OWNER 🔨 — HAMMER IT OUT (steady hands).
-   Nails pop up across the workbench — TAP each one to hammer it
-   home for cash before it works loose. Watch for the Rusty nail!
-   And on payday you can FRANCHISE: open new stores that boost
-   your earnings for good — build an empire and get rich.
+   HARDWARE STORE OWNER 🔨 — SORT THE STOCK (categorise + ring up).
+   Items come off the conveyor — TAP the right BIN for each one
+   (Tools · Fasteners · Paint) to ring up the sale before the
+   timer runs out. Sort fast, keep the register singing! And on
+   payday you can FRANCHISE to earn even more. Watch the Rusty nail!
    ============================================================ */
 
+const HW_KINDS = {
+  tool:     { name: 'Tools',     emoji: '🔨', items: ['🔨', '🪛', '🪚', '🔧', '🪓'] },
+  fastener: { name: 'Fasteners', emoji: '🔩', items: ['🔩', '🪝', '⛓️', '📌'] },
+  paint:    { name: 'Paint',     emoji: '🪣', items: ['🪣', '🎨', '🖌️', '🧴'] },
+};
+const HW_CATS = Object.keys(HW_KINDS);
+
 GAMES.hardware = defineShift({
-  hint: 'TAP the <b>nails</b> 🔩 to hammer them home before they pop loose! Watch for the <b>Rusty nail!</b> On payday you can <b>franchise</b> to earn even more.',
+  hint: 'TAP the right <b>bin</b> for each item — 🔨 Tools, 🔩 Fasteners, 🪣 Paint — to ring it up before the timer runs out! On payday you can <b>franchise</b>. Dodge the <b>Rusty nail!</b>',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.nails = [];
-    g.spawnEvery = 0.9 / g.diff;
-    g.spawnT = 0.3;
-    g.life = Math.max(1.4, 2.6 - g.rank * 0.25);
     const fr = State.data.franchises || 0;
-    g.unit = Math.max(2, Math.floor(State.salary() / 9 * (1 + fr * 0.3)));   // each franchise: +30% earnings
-    g.built = 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 9 * (1 + fr * 0.3)));   // each franchise +30%
+    g.bins = HW_CATS.map((cat, i) => ({ cat, x: 60 + i * ((GW - 120) / 3), w: (GW - 120) / 3 - 16 }));
+    g.binY = GH - 130; g.binH = 108;
+    g.sorted = 0;
+    g.register = 0;                                    // running "till" total
+    g.limit = Math.max(1.3, 2.4 - g.rank * 0.22);      // seconds to sort each item
     g.pop = null;
+    this.next(g);
+  },
+
+  next(g) {
+    const cat = HW_CATS[Math.floor(Math.random() * HW_CATS.length)];
+    const items = HW_KINDS[cat].items;
+    g.item = { cat, emoji: items[Math.floor(Math.random() * items.length)], t: 0 };
   },
 
   pointer(g, x, y) {
-    for (let i = g.nails.length - 1; i >= 0; i--) {
-      const n = g.nails[i];
-      if (Math.hypot(n.x - x, n.y - y) <= n.r + 8) {
-        g.earn(g.unit);
-        g.built++;
-        g.pop = { x: n.x, y: n.y, t: 0 };
-        g.nails.splice(i, 1);
-        Sound.ding();
-        return;
-      }
+    if (!g.item) return;
+    if (y < g.binY) return;                            // only bin taps count
+    const bin = g.bins.find(b => x >= b.x && x <= b.x + b.w);
+    if (!bin) return;
+    if (bin.cat === g.item.cat) {
+      g.earn(g.unit); g.sorted++; g.register += g.unit;
+      g.pop = { x: bin.x + bin.w / 2, y: g.binY - 10, ok: true, t: 0 };
+      Sound.coin();
+    } else {
+      g.flash('#d9534f'); Sound.thud();
+      g.pop = { x: bin.x + bin.w / 2, y: g.binY - 10, ok: false, t: 0 };
     }
+    this.next(g);
   },
 
   update(g, dt) {
-    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      g.nails.push({ x: 70 + Math.random() * (GW - 140), y: 140 + Math.random() * (GH - 230), r: 20, life: g.life, born: 0 });
-    }
-    for (let i = g.nails.length - 1; i >= 0; i--) {
-      const n = g.nails[i];
-      n.born += dt; n.life -= dt;
-      if (n.life <= 0) { g.nails.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.45) g.pop = null; }
+    if (g.item) {
+      g.item.t += dt;
+      if (g.item.t >= g.limit) { g.flash('#d9534f'); Sound.thud(); this.next(g); }   // too slow — item scrapped
     }
   },
 
   draw(g, t) {
     const ctx = g.ctx;
-    // workshop wall + bench
-    ctx.fillStyle = '#e7d8bf'; ctx.fillRect(0, 0, GW, GH);
-    ctx.fillStyle = '#a9743f'; ctx.fillRect(0, GH - 90, GW, 90);
-    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, GH - 90); ctx.lineTo(GW, GH - 90); ctx.stroke();
-    // pegboard dots
-    ctx.fillStyle = 'rgba(43,43,51,.12)';
-    for (let x = 40; x < GW - 20; x += 44) for (let y = 96; y < GH - 110; y += 44) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
-    Draw.bigText(ctx, '🔨 HAMMER TIME', GW / 2, 40, 28, '#7a4a1c');
-    const fr = State.data.franchises || 0;
-    if (fr > 0) Draw.bigText(ctx, `🏪 ×${fr} franchises · +${fr * 30}% pay`, GW / 2, 70, 18, '#2f7d3f');
+    ctx.fillStyle = '#efe2c8'; ctx.fillRect(0, 0, GW, GH);            // store wall
+    // pegboard
+    ctx.fillStyle = 'rgba(43,43,51,.10)';
+    for (let x = 40; x < GW - 20; x += 42) for (let y = 96; y < g.binY - 40; y += 42) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+    Draw.bigText(ctx, '🔨 SORT THE STOCK', GW / 2, 40, 26, '#7a4a1c');
+    // register readout
+    Draw.bigText(ctx, `🧾 Till: ${fmtMoney(g.register)}`, GW / 2, 74, 18, '#2f7d3f');
 
-    // nails to hammer
-    g.nails.forEach(n => {
-      const pop = Math.min(1, n.born * 6), warn = n.life < 0.7;
-      ctx.save(); ctx.translate(n.x, n.y); ctx.scale(pop, pop);
-      Draw.emoji(ctx, '🔩', 0, 0, n.r * 2);
-      ctx.restore();
-      if (warn) Draw.emoji(ctx, '⚠️', n.x, n.y - n.r - 14, 20);
+    // conveyor + the current item
+    const cx = GW / 2, cy = 250;
+    ctx.fillStyle = '#8a8a94'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(cx - 120, cy + 44, 240, 22); ctx.strokeRect(cx - 120, cy + 44, 240, 22);
+    for (let i = 0; i < 6; i++) { const lx = cx - 116 + i * 40 + (t * 40 % 40); ctx.strokeStyle = 'rgba(43,43,51,.3)'; ctx.beginPath(); ctx.moveTo(lx, cy + 46); ctx.lineTo(lx, cy + 64); ctx.stroke(); }
+    if (g.item) {
+      Draw.emoji(ctx, g.item.emoji, cx, cy, 76);
+      // countdown ring
+      const frac = 1 - g.item.t / g.limit;
+      ctx.strokeStyle = frac < 0.35 ? '#d9534f' : '#2f7d3f'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(cx, cy, 52, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); ctx.stroke();
+    }
+
+    // the three bins
+    g.bins.forEach(b => {
+      const k = HW_KINDS[b.cat];
+      ctx.fillStyle = '#c98a5b'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.fillRect(b.x, g.binY, b.w, g.binH); ctx.strokeRect(b.x, g.binY, b.w, g.binH);
+      ctx.fillStyle = 'rgba(43,43,51,.12)'; ctx.fillRect(b.x, g.binY, b.w, 30);
+      Draw.emoji(ctx, k.emoji, b.x + b.w / 2, g.binY + 52, 40);
+      Draw.bigText(ctx, k.name, b.x + b.w / 2, g.binY + 90, 16, '#5a3410');
     });
 
-    if (g.pop) Draw.bigText(ctx, 'BANG!', g.pop.x, g.pop.y - 26, 20, '#7a4a1c');
-    Draw.bigText(ctx, `Built: ${g.built}`, GW / 2, GH - 16, 22, '#7a4a1c');
+    if (g.pop) Draw.bigText(ctx, g.pop.ok ? 'SOLD!' : 'WRONG BIN!', g.pop.x, g.pop.y, 20, g.pop.ok ? '#2f7d3f' : '#d9534f');
+    Draw.bigText(ctx, `Sorted: ${g.sorted}`, GW / 2, GH - 12, 20, '#7a4a1c');
   },
 
   // FRANCHISE — invest at payday to permanently boost store earnings.
-  // Cost climbs each time; the more you own, the more every shift pays.
   payday(g, content) {
     const franchiseCost = n => Math.floor(2e6 * Math.pow(2.5, n));
     const card = el('div', 'lottery-card');
@@ -5435,49 +5454,26 @@ GAMES.hardware = defineShift({
 
 ;
 /* ============================================================
-   ATHLETE 🏀⚾🏒🏈 — SCORE POINTS (big money, short career).
-   Pick your sport, then tap the open plays before the clock runs
-   out — hit the dead-centre sweet spot for DOUBLE. Dodge the
-   Blown knee!: the pay is enormous, but nobody plays forever.
+   ATHLETE 🏀⚾🏒🏈 — PLAY YOUR SPORT (big money, short career).
+   Pick a sport, then actually PLAY it:
+     • Basketball — time the sweeping aim and shoot it in the hoop.
+     • Hockey     — snipe the puck past the sliding goalie.
+     • Football   — thread the kick between the goalposts.
+     • Baseball   — time your swing and crush the pitch.
+   Nail the sweet spot for DOUBLE. Dodge the Blown knee! — the pay
+   is enormous, but nobody plays forever.
    ============================================================ */
 
 const ATHLETE_SPORTS = [
-  { id: 'basketball', name: 'Basketball', emoji: '🏀', title: 'GAME TIME', score: 'SCORE!', bonus: 'SWISH! ×2',     unit: 'Points', field: '#d69a54', line: 'rgba(255,255,255,.55)', accent: '#7a3d0c' },
-  { id: 'baseball',   name: 'Baseball',   emoji: '⚾', title: 'PLAY BALL', score: 'HIT!',   bonus: 'HOME RUN! ×2',  unit: 'Runs',   field: '#7fb56a', line: 'rgba(255,255,255,.6)',  accent: '#3c6b2c' },
-  { id: 'hockey',     name: 'Hockey',     emoji: '🏒', title: 'FACE-OFF',  score: 'GOAL!',  bonus: 'TOP SHELF! ×2', unit: 'Goals',  field: '#dbeef7', line: 'rgba(40,80,110,.5)',   accent: '#1e5f8f' },
-  { id: 'football',   name: 'Football',   emoji: '🏈', title: 'KICKOFF',   score: 'CATCH!', bonus: 'TOUCHDOWN! ×2', unit: 'Points', field: '#5a9a4e', line: 'rgba(255,255,255,.6)',  accent: '#2f5a26' },
+  { id: 'basketball', name: 'Basketball', emoji: '🏀', mode: 'shoot', title: 'GAME TIME', unit: 'Points', field: '#d69a54', line: 'rgba(255,255,255,.55)', accent: '#7a3d0c', goalHalf: 58, sweep: 2.2, score: 'BUCKET!', bonus: 'SWISH! ×2' },
+  { id: 'baseball',   name: 'Baseball',   emoji: '⚾', mode: 'bat',   title: 'PLAY BALL', unit: 'Runs',   field: '#7fb56a', line: 'rgba(255,255,255,.6)',  accent: '#3c6b2c', score: 'BASE HIT!', bonus: 'HOME RUN! ×2' },
+  { id: 'hockey',     name: 'Hockey',     emoji: '🏒', mode: 'shoot', title: 'FACE-OFF',  unit: 'Goals',  field: '#dbeef7', line: 'rgba(40,80,110,.5)',   accent: '#1e5f8f', goalHalf: 132, goalieHalf: 48, sweep: 2.5, score: 'GOAL!', bonus: 'TOP SHELF! ×2' },
+  { id: 'football',   name: 'Football',   emoji: '🏈', mode: 'shoot', title: 'KICKOFF',   unit: 'Points', field: '#5a9a4e', line: 'rgba(255,255,255,.6)',  accent: '#2f5a26', goalHalf: 58, sweep: 3.0, score: "IT'S GOOD!", bonus: 'SPLIT THE POSTS! ×2' },
 ];
 function athleteSport() { return ATHLETE_SPORTS.find(s => s.id === State.data.sport) || ATHLETE_SPORTS[0]; }
 
-// Sport-specific goal drawn at the top-centre of the field.
-function athleteEmblem(ctx, sp) {
-  const cx = GW / 2;
-  ctx.lineWidth = 4;
-  if (sp.id === 'basketball') {
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-    ctx.fillRect(cx - 60, 74, 120, 40); ctx.strokeRect(cx - 60, 74, 120, 40);
-    ctx.strokeStyle = '#e8760c'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(cx, 122, 22, 0, Math.PI * 2); ctx.stroke();
-  } else if (sp.id === 'baseball') {
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx - 26, 88); ctx.lineTo(cx + 26, 88); ctx.lineTo(cx + 26, 106); ctx.lineTo(cx, 122); ctx.lineTo(cx - 26, 106);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  } else if (sp.id === 'hockey') {
-    ctx.strokeStyle = '#d9534f'; ctx.strokeRect(cx - 50, 84, 100, 40);
-    ctx.strokeStyle = 'rgba(43,43,51,.4)'; ctx.lineWidth = 1;
-    for (let x = cx - 44; x < cx + 50; x += 10) { ctx.beginPath(); ctx.moveTo(x, 86); ctx.lineTo(x, 122); ctx.stroke(); }
-    for (let y = 88; y < 124; y += 10) { ctx.beginPath(); ctx.moveTo(cx - 48, y); ctx.lineTo(cx + 48, y); ctx.stroke(); }
-  } else { // football goalposts
-    ctx.strokeStyle = '#f4d03f'; ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(cx - 40, 122); ctx.lineTo(cx - 40, 90); ctx.moveTo(cx + 40, 122); ctx.lineTo(cx + 40, 90);
-    ctx.moveTo(cx - 50, 90); ctx.lineTo(cx + 50, 90); ctx.moveTo(cx, 90); ctx.lineTo(cx, 76); ctx.stroke();
-  }
-}
-
 GAMES.athlete = defineShift({
-  hint: 'TAP the plays as they pop up to score before the clock runs out — hit the dead-centre <b>sweet spot</b> for <b>DOUBLE</b>! Dodge the <b>Blown knee!</b>',
+  hint: 'Actually play your sport — <b>shoot</b> at the goal (or <b>swing</b> the bat) at the right moment! Hit the <b>sweet spot</b> for <b>DOUBLE</b>. Dodge the <b>Blown knee!</b>',
   duration: r => 44 + r * 5,
 
   // CHOOSER — pick which sport to suit up for this shift.
@@ -5503,261 +5499,501 @@ GAMES.athlete = defineShift({
 
   init(g) {
     g.sport = athleteSport();
-    g.shots = [];
-    g.spawnEvery = 1.2 / g.diff;
-    g.spawnT = 0.4;
-    g.life = Math.max(1.1, 2.2 - g.rank * 0.25);
     g.unit = Math.max(2, Math.floor(State.salary() / 10));
     g.scored = 0;
     g.pop = null;
+    if (g.sport.mode === 'bat') ATH_initBat(g); else ATH_initShoot(g);
   },
-
-  pointer(g, x, y) {
-    for (let i = g.shots.length - 1; i >= 0; i--) {
-      const s = g.shots[i]; const d = Math.hypot(s.x - x, s.y - y);
-      if (d <= s.r) {
-        const sweet = d <= s.r * 0.34;
-        g.earn(g.unit * (sweet ? 2 : 1));
-        g.scored++;
-        g.pop = { x: s.x, y: s.y, sweet, t: 0 };
-        g.shots.splice(i, 1); Sound.coin(); return;
-      }
-    }
-  },
-
+  pointer(g) { if (g.sport.mode === 'bat') ATH_swing(g); else ATH_shoot(g); },
   update(g, dt) {
-    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      const r = 26 + Math.random() * 14;
-      g.shots.push({ x: 90 + Math.random() * (GW - 180), y: 150 + Math.random() * (GH - 250), r, life: g.life, max: g.life, born: 0 });
-    }
-    for (let i = g.shots.length - 1; i >= 0; i--) {
-      const s = g.shots[i]; s.born += dt; s.life -= dt;
-      if (s.life <= 0) { g.shots.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }   // turnover!
-    }
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.6) g.pop = null; }
+    if (g.sport.mode === 'bat') ATH_updateBat(g, dt); else ATH_updateShoot(g, dt);
   },
-
-  draw(g, t) {
-    const ctx = g.ctx, sp = g.sport;
-    ctx.fillStyle = sp.field; ctx.fillRect(0, 0, GW, GH);
-    ctx.strokeStyle = sp.line; ctx.lineWidth = 4;
-    ctx.strokeRect(24, 80, GW - 48, GH - 104);
-    ctx.beginPath(); ctx.arc(GW / 2, GH - 24, 90, Math.PI, 0); ctx.stroke();
-    athleteEmblem(ctx, sp);
-    Draw.bigText(ctx, `${sp.emoji} ${sp.title}`, GW / 2, 40, 28, sp.accent);
-
-    g.shots.forEach(s => {
-      const pop = Math.min(1, s.born * 6), r = s.r * pop, warn = s.life < s.max * 0.35;
-      Draw.emoji(ctx, sp.emoji, s.x, s.y, r * 2);
-      ctx.strokeStyle = warn ? '#d9534f' : 'rgba(255,255,255,.85)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(s.x, s.y, r + 4, 0, Math.PI * 2); ctx.stroke();
-      if (warn) Draw.emoji(ctx, '⏰', s.x, s.y - r - 16, 22);
-    });
-
-    if (g.pop) Draw.bigText(ctx, g.pop.sweet ? sp.bonus : sp.score, g.pop.x, g.pop.y - 28, g.pop.sweet ? 24 : 20, g.pop.sweet ? '#2f7d3f' : sp.accent);
-    Draw.bigText(ctx, `${sp.unit}: ${g.scored}`, GW / 2, GH - 18, 22, sp.accent);
-  },
+  draw(g, t) { if (g.sport.mode === 'bat') ATH_drawBat(g, t); else ATH_drawShoot(g, t); },
 });
+
+/* ---------- SHOOT: basketball · hockey · football ---------- */
+function ATH_initShoot(g) {
+  g.goalC = GW / 2; g.goalY = 130; g.goalHalf = g.sport.goalHalf;
+  g.aimT = 0; g.aim = GW / 2; g.span = GW / 2 - 120;
+  g.ball = null;
+  if (g.sport.id === 'hockey') { g.golT = 0; g.goalie = GW / 2; }
+}
+function ATH_shoot(g) {
+  if (g.ball) return;                                  // one shot at a time
+  g.ball = { toX: g.aim, t: 0, dur: 0.32, shotX: g.aim };
+  Sound.zap();
+}
+function ATH_resolveShot(g) {
+  const sp = g.sport, x = g.ball.shotX, c = g.goalC, half = g.goalHalf;
+  let scored = Math.abs(x - c) <= half, bonus = false;
+  if (sp.id === 'hockey' && scored) {
+    scored = Math.abs(x - g.goalie) > sp.goalieHalf;   // blocked if over the goalie
+    if (scored) {
+      const edge = Math.min(Math.abs(x - (g.goalie - sp.goalieHalf)), Math.abs(x - (g.goalie + sp.goalieHalf)));
+      bonus = edge < 26;                               // squeaked it just past him
+    }
+  } else if (scored) {
+    bonus = Math.abs(x - c) < 20;                      // dead centre
+  }
+  if (scored) {
+    g.earn(g.unit * (bonus ? 2 : 1)); g.scored++;
+    g.pop = { x, y: g.goalY + 46, txt: bonus ? sp.bonus : sp.score, good: true, big: bonus, t: 0 };
+    Sound.coin(); if (bonus) g.flash('#2f7d3f');
+  } else {
+    g.pop = { x, y: g.goalY + 46, txt: sp.id === 'hockey' ? 'SAVED!' : 'MISSED!', good: false, t: 0 };
+    g.flash('#d9534f'); Sound.thud();
+  }
+}
+function ATH_updateShoot(g, dt) {
+  g.aimT += dt;
+  g.aim = g.goalC + Math.sin(g.aimT * g.sport.sweep) * g.span;
+  if (g.sport.id === 'hockey') {
+    g.golT += dt;
+    g.goalie = g.goalC + Math.sin(g.golT * 1.7) * (g.goalHalf - g.sport.goalieHalf);
+  }
+  if (g.ball) { g.ball.t += dt; if (g.ball.t >= g.ball.dur) { ATH_resolveShot(g); g.ball = null; } }
+}
+function ATH_drawGoal(ctx, g) {
+  const sp = g.sport, c = g.goalC, half = g.goalHalf, y = g.goalY;
+  if (sp.id === 'basketball') {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(c - 74, y - 52, 148, 42); ctx.strokeRect(c - 74, y - 52, 148, 42);
+    ctx.strokeStyle = '#e8760c'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.ellipse(c, y, half, 12, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+    for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(c + i * half / 3.2, y + 4); ctx.lineTo(c + i * half / 5, y + 34); ctx.stroke(); }
+  } else if (sp.id === 'hockey') {
+    ctx.strokeStyle = '#d9534f'; ctx.lineWidth = 4; ctx.strokeRect(c - half, y - 18, half * 2, 46);
+    ctx.strokeStyle = 'rgba(40,80,110,.35)'; ctx.lineWidth = 1;
+    for (let x = c - half + 10; x < c + half; x += 13) { ctx.beginPath(); ctx.moveTo(x, y - 16); ctx.lineTo(x, y + 26); ctx.stroke(); }
+    ctx.fillStyle = '#3a6ea5'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2;
+    ctx.fillRect(g.goalie - sp.goalieHalf, y - 16, sp.goalieHalf * 2, 42); ctx.strokeRect(g.goalie - sp.goalieHalf, y - 16, sp.goalieHalf * 2, 42);
+    Draw.emoji(ctx, '🥅', g.goalie, y + 4, 30);
+  } else { // football goalposts
+    ctx.strokeStyle = '#f4d03f'; ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(c - half, y + 34); ctx.lineTo(c - half, y - 26); ctx.moveTo(c + half, y + 34); ctx.lineTo(c + half, y - 26);
+    ctx.moveTo(c - half - 10, y - 26); ctx.lineTo(c + half + 10, y - 26); ctx.moveTo(c, y - 26); ctx.lineTo(c, y - 44);
+    ctx.stroke();
+  }
+}
+function ATH_drawShoot(g, t) {
+  const ctx = g.ctx, sp = g.sport;
+  ctx.fillStyle = sp.field; ctx.fillRect(0, 0, GW, GH);
+  ctx.strokeStyle = sp.line; ctx.lineWidth = 4; ctx.strokeRect(24, 80, GW - 48, GH - 104);
+  ctx.beginPath(); ctx.arc(GW / 2, GH - 24, 90, Math.PI, 0); ctx.stroke();
+  ATH_drawGoal(ctx, g);
+  Draw.bigText(ctx, `${sp.emoji} ${sp.title}`, GW / 2, 40, 28, sp.accent);
+
+  // sweeping aim arrow
+  ctx.fillStyle = sp.accent;
+  ctx.beginPath(); ctx.moveTo(g.aim, g.goalY + 40); ctx.lineTo(g.aim - 11, g.goalY + 60); ctx.lineTo(g.aim + 11, g.goalY + 60); ctx.closePath(); ctx.fill();
+  ctx.setLineDash([6, 7]); ctx.strokeStyle = 'rgba(43,43,51,.35)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(GW / 2, GH - 62); ctx.lineTo(g.aim, g.goalY + 40); ctx.stroke(); ctx.setLineDash([]);
+
+  if (g.ball) {
+    const f = g.ball.t / g.ball.dur;
+    const bx = GW / 2 + (g.ball.toX - GW / 2) * f;
+    const by = (GH - 62) + (g.goalY - (GH - 62)) * f - Math.sin(f * Math.PI) * 80;
+    Draw.emoji(ctx, sp.emoji, bx, by, 34);
+  } else {
+    Draw.emoji(ctx, sp.emoji, GW / 2, GH - 58, 40);
+  }
+  if (g.pop) Draw.bigText(ctx, g.pop.txt, g.pop.x, g.pop.y, g.pop.big ? 24 : 20, g.pop.good ? (g.pop.big ? '#2f7d3f' : sp.accent) : '#d9534f');
+  Draw.bigText(ctx, `${sp.unit}: ${g.scored}`, GW / 2, GH - 16, 22, sp.accent);
+}
+
+/* ---------- BAT: baseball ---------- */
+function ATH_initBat(g) {
+  g.pitch = null; g.spawnT = 0.6;
+  g.plateY = GH - 128; g.plateH = 46;
+  g.swingT = 0; g.hitBall = null;
+}
+function ATH_newPitch(g) {
+  g.pitch = { x: GW / 2 + (Math.random() * 90 - 45), y: 150, speed: 300 + g.rank * 45 + Math.random() * 70 };
+}
+function ATH_swing(g) {
+  g.swingT = 0.18;
+  if (!g.pitch) return;
+  const dy = Math.abs(g.pitch.y - g.plateY);
+  if (dy <= g.plateH / 2) {
+    const homer = dy <= 12;
+    g.earn(g.unit * (homer ? 2 : 1)); g.scored++;
+    g.hitBall = { x: g.pitch.x, y: g.pitch.y, vx: (Math.random() * 2 - 1) * 220, vy: -380 };
+    g.pop = { x: GW / 2, y: g.plateY - 46, txt: homer ? g.sport.bonus : g.sport.score, good: true, big: homer, t: 0 };
+    Sound.coin(); if (homer) g.flash('#2f7d3f');
+    g.pitch = null; g.spawnT = 0.45 + Math.random() * 0.4;
+  } else {
+    g.pop = { x: GW / 2, y: g.plateY - 46, txt: 'WHIFF!', good: false, t: 0 };
+    Sound.thud();
+    g.pitch = null; g.spawnT = 0.4 + Math.random() * 0.4;
+  }
+}
+function ATH_updateBat(g, dt) {
+  if (g.swingT > 0) g.swingT -= dt;
+  if (g.hitBall) {
+    g.hitBall.vy += 520 * dt; g.hitBall.x += g.hitBall.vx * dt; g.hitBall.y += g.hitBall.vy * dt;
+    if (g.hitBall.y > GH + 60 || g.hitBall.y < -80) g.hitBall = null;
+  }
+  if (!g.pitch) { g.spawnT -= dt; if (g.spawnT <= 0) ATH_newPitch(g); return; }
+  g.pitch.y += g.pitch.speed * dt;
+  if (g.pitch.y > GH - 60) {                            // blew past — strike
+    g.pop = { x: GW / 2, y: g.plateY - 46, txt: 'STRIKE!', good: false, t: 0 };
+    g.flash('#d9534f'); Sound.thud();
+    g.pitch = null; g.spawnT = 0.4 + Math.random() * 0.4;
+  }
+}
+function ATH_drawBat(g, t) {
+  const ctx = g.ctx, sp = g.sport;
+  ctx.fillStyle = sp.field; ctx.fillRect(0, 0, GW, GH);
+  ctx.strokeStyle = sp.line; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(GW / 2, GH - 74); ctx.lineTo(GW / 2 + 120, GH - 190); ctx.lineTo(GW / 2, GH - 300); ctx.lineTo(GW / 2 - 120, GH - 190); ctx.closePath(); ctx.stroke();
+  Draw.bigText(ctx, `${sp.emoji} ${sp.title}`, GW / 2, 40, 28, sp.accent);
+  Draw.emoji(ctx, '🧢', GW / 2, 150, 34);               // the pitcher up top
+
+  // swing zone
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(GW / 2 - 96, g.plateY - g.plateH / 2, 192, g.plateH);
+  ctx.strokeStyle = sp.line; ctx.lineWidth = 2; ctx.strokeRect(GW / 2 - 96, g.plateY - g.plateH / 2, 192, g.plateH);
+  Draw.bigText(ctx, 'SWING!', GW / 2, g.plateY, 15, sp.accent);
+
+  // batter + swinging bat
+  const bx = GW / 2 - 96, by = GH - 92;
+  Draw.emoji(ctx, '🧑', bx, by, 44);
+  ctx.save(); ctx.translate(bx + 16, by - 8);
+  const ang = g.swingT > 0 ? (-1.2 + (0.18 - g.swingT) / 0.18 * 2.0) : -1.2;
+  ctx.rotate(ang); ctx.strokeStyle = '#a9743f'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(50, 0); ctx.stroke(); ctx.restore();
+
+  if (g.pitch) Draw.emoji(ctx, '⚾', g.pitch.x, g.pitch.y, 30);
+  if (g.hitBall) Draw.emoji(ctx, '⚾', g.hitBall.x, g.hitBall.y, 30);
+  if (g.pop) Draw.bigText(ctx, g.pop.txt, g.pop.x, g.pop.y, g.pop.big ? 24 : 20, g.pop.good ? (g.pop.big ? '#2f7d3f' : sp.accent) : '#d9534f');
+  Draw.bigText(ctx, `${sp.unit}: ${g.scored}`, GW / 2, GH - 14, 22, sp.accent);
+}
 
 ;
 /* ============================================================
-   CONSTRUCTION WORKER 👷 — RIVET THE BEAMS (steady, dangerous).
-   Hot rivets glow along the steel frame — TAP each one to bolt it
-   home before it cools. Good pay, but watch for the Falling beam!
+   CONSTRUCTION WORKER 👷 — BUILD THE RICKETY HOUSE (stacking).
+   A plank slides across the top — TAP to drop it onto the stack.
+   Line it up! Any overhang is trimmed off and the house narrows,
+   so stack neatly to build tall for big money. Land it dead-centre
+   for a bonus. Miss completely and the house shudders. And watch
+   for the Falling beam!
    ============================================================ */
 
 GAMES.construction = defineShift({
-  hint: 'TAP the glowing <b>rivets</b> 🔩 to bolt the beams before they cool! Watch for the <b>Falling beam!</b>',
+  hint: 'TAP to <b>drop</b> the sliding plank square onto the stack — line it up to build the house tall! Overhang gets trimmed. Dodge the <b>Falling beam!</b>',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.rivets = [];
-    g.spawnEvery = 0.95 / g.diff;
-    g.spawnT = 0.3;
-    g.life = Math.max(1.3, 2.4 - g.rank * 0.22);
-    g.unit = Math.max(2, Math.floor(State.salary() / 9));
-    g.done = 0;
+    const baseW = 210;
+    g.groundY = GH - 42;
+    g.floorH = 26;
+    g.stack = [{ x: (GW - baseW) / 2, w: baseW }];     // the foundation
+    g.floors = 0;
+    g.camY = 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 8));
+    g.speed = 250 + g.rank * 45;
+    g.falling = [];
     g.pop = null;
+    g.shake = 0;
+    g.beam = this._spawn(g);
   },
 
-  pointer(g, x, y) {
-    for (let i = g.rivets.length - 1; i >= 0; i--) {
-      const n = g.rivets[i];
-      if (Math.hypot(n.x - x, n.y - y) <= n.r + 10) {
-        g.earn(g.unit); g.done++;
-        g.pop = { x: n.x, y: n.y, t: 0 };
-        g.rivets.splice(i, 1); Sound.ding(); return;
-      }
+  _spawn(g) {
+    const top = g.stack[g.stack.length - 1];
+    const fromLeft = Math.random() < 0.5;
+    return { w: top.w, x: fromLeft ? -top.w * 0.8 : GW - top.w * 0.2, dir: fromLeft ? 1 : -1 };
+  },
+
+  _beamY(g, level) { return g.groundY - level * g.floorH; },   // y of the top face of `level` floors
+
+  pointer(g) {
+    const top = g.stack[g.stack.length - 1];
+    const b = g.beam;
+    const left = Math.max(b.x, top.x);
+    const right = Math.min(b.x + b.w, top.x + top.w);
+    const overlap = right - left;
+    const y = this._beamY(g, g.stack.length);
+
+    if (overlap <= 8) {                                 // total miss — the plank tumbles
+      g.falling.push({ x: b.x, y, w: b.w, vx: b.dir * 60, vy: -40, rot: 0 });
+      g.flash('#d9534f'); Sound.thud(); g.shake = 0.35;
+      g.beam = this._spawn(g);
+      return;
     }
+    // trim the overhang (it falls away)
+    if (b.x < left) g.falling.push({ x: b.x, y, w: left - b.x, vx: -50, vy: -20, rot: 0 });
+    if (b.x + b.w > right) g.falling.push({ x: right, y, w: (b.x + b.w) - right, vx: 50, vy: -20, rot: 0 });
+
+    const perfect = overlap >= top.w - 10;
+    g.stack.push({ x: left, w: perfect ? top.w : overlap, cx: left + overlap / 2 });  // perfect keeps full width
+    if (perfect) g.stack[g.stack.length - 1].x = top.x;       // snap back to full over the top
+    g.floors++;
+    g.earn(g.unit * (perfect ? 2 : 1));
+    g.pop = { x: left + overlap / 2, y, perfect, t: 0 };
+    Sound.coin(); if (perfect) g.flash('#2f7d3f');
+    g.beam = this._spawn(g);
   },
 
   update(g, dt) {
-    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      g.rivets.push({ x: 70 + Math.random() * (GW - 140), y: 130 + Math.random() * (GH - 210), r: 18, life: g.life, born: 0 });
-    }
-    for (let i = g.rivets.length - 1; i >= 0; i--) {
-      const n = g.rivets[i]; n.born += dt; n.life -= dt;
-      if (n.life <= 0) { g.rivets.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
-    }
+    const b = g.beam;
+    b.x += b.dir * g.speed * dt;
+    if (b.x <= 0) { b.x = 0; b.dir = 1; }
+    if (b.x + b.w >= GW) { b.x = GW - b.w; b.dir = -1; }
+
+    // keep the working row on screen as the house climbs
+    const topY = this._beamY(g, g.stack.length);
+    const want = topY < 150 ? 150 - topY : 0;
+    g.camY += (want - g.camY) * Math.min(1, dt * 4);
+
+    g.falling.forEach(f => { f.vy += 1100 * dt; f.y += f.vy * dt; f.x += f.vx * dt; f.rot += dt * 5; });
+    g.falling = g.falling.filter(f => f.y < GH + 140);
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    if (g.shake > 0) g.shake -= dt;
   },
 
   draw(g, t) {
     const ctx = g.ctx;
-    ctx.fillStyle = '#8fb8d6'; ctx.fillRect(0, 0, GW, GH);         // sky
-    ctx.strokeStyle = '#c25a2a'; ctx.lineWidth = 16;               // steel frame
-    for (let x = 130; x < GW; x += 180) { ctx.beginPath(); ctx.moveTo(x, 90); ctx.lineTo(x, GH); ctx.stroke(); }
-    for (let y = 150; y < GH - 20; y += 120) { ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(GW - 40, y); ctx.stroke(); }
-    Draw.bigText(ctx, '👷 BUILD IT UP', GW / 2, 40, 28, '#7a3d0c');
+    ctx.fillStyle = '#bfe0ef'; ctx.fillRect(0, 0, GW, GH);           // sky
+    ctx.fillStyle = '#e8b06a'; ctx.fillRect(0, g.groundY + g.camY, GW, GH);   // ground moves with camera
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, g.groundY + g.camY); ctx.lineTo(GW, g.groundY + g.camY); ctx.stroke();
+    Draw.bigText(ctx, '👷 BUILD IT UP', GW / 2, 40, 26, '#7a3d0c');
 
-    g.rivets.forEach(n => {
-      const pop = Math.min(1, n.born * 6), warn = n.life < 0.7;
-      ctx.save(); ctx.translate(n.x, n.y); ctx.scale(pop, pop);
-      ctx.fillStyle = warn ? '#c9a24a' : '#ffcf5a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save();
+    const sx = g.shake > 0 ? Math.sin(t * 60) * 4 * g.shake : 0;
+    ctx.translate(sx, g.camY);
+
+    // the stacked planks (foundation darker)
+    g.stack.forEach((s, i) => {
+      const y = this._beamY(g, i);
+      ctx.fillStyle = i === 0 ? '#8a5a2b' : (i % 2 ? '#c98a5b' : '#b87a4b');
+      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.fillRect(s.x, y - g.floorH, s.w, g.floorH); ctx.strokeRect(s.x, y - g.floorH, s.w, g.floorH);
+      // plank grain
+      ctx.strokeStyle = 'rgba(43,43,51,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(s.x + 4, y - g.floorH / 2); ctx.lineTo(s.x + s.w - 4, y - g.floorH / 2); ctx.stroke();
+    });
+    // a little roof once there are a few floors
+    if (g.stack.length > 1) {
+      const topS = g.stack[g.stack.length - 1], ry = this._beamY(g, g.stack.length);
+      ctx.fillStyle = '#c0392b'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(topS.x - 6, ry); ctx.lineTo(topS.x + topS.w / 2, ry - 22); ctx.lineTo(topS.x + topS.w + 6, ry); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    // the sliding plank (drawn one floor above the stack top, minus the roof)
+    const by = this._beamY(g, g.stack.length) - 30;
+    ctx.fillStyle = '#e0a86a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(g.beam.x, by, g.beam.w, g.floorH); ctx.strokeRect(g.beam.x, by, g.beam.w, g.floorH);
+    // a crane cable holding it
+    ctx.strokeStyle = 'rgba(43,43,51,.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.beam.x + g.beam.w / 2, by); ctx.lineTo(g.beam.x + g.beam.w / 2, by - 60); ctx.stroke();
+
+    // trimmed pieces tumbling
+    g.falling.forEach(f => {
+      ctx.save(); ctx.translate(f.x + f.w / 2, f.y - g.floorH / 2); ctx.rotate(f.rot);
+      ctx.fillStyle = '#c98a5b'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2;
+      ctx.fillRect(-f.w / 2, -g.floorH / 2, f.w, g.floorH); ctx.strokeRect(-f.w / 2, -g.floorH / 2, f.w, g.floorH);
       ctx.restore();
-      if (warn) Draw.emoji(ctx, '⚠️', n.x, n.y - 24, 20);
     });
 
-    if (g.pop) Draw.bigText(ctx, 'BOLTED!', g.pop.x, g.pop.y - 24, 20, '#7a3d0c');
-    Draw.bigText(ctx, `Rivets: ${g.done}`, GW / 2, GH - 16, 22, '#7a3d0c');
+    if (g.pop) Draw.bigText(ctx, g.pop.perfect ? 'PERFECT! ×2' : 'NICE!', g.pop.x, g.pop.y - 18, g.pop.perfect ? 24 : 20, g.pop.perfect ? '#2f7d3f' : '#7a3d0c');
+    ctx.restore();
+
+    Draw.bigText(ctx, `Floors: ${g.floors}`, GW / 2, GH - 14, 22, '#7a3d0c');
   },
 });
 
 ;
 /* ============================================================
-   LAWYER ⚖️ — WIN THE CASE (sharp, well-paid, low-risk).
-   Evidence flashes up on the stand — TAP each piece to present it
-   before the moment passes. GOLDEN exhibits 🏅 are worth DOUBLE.
-   Big money, little danger — but don't get Held in contempt!
+   LAWYER ⚖️ — COOL DOWN THE CLIENTS (juggle tempers).
+   Angry clients fill the office, each one steaming hotter. TAP a
+   client to calm them down; cool one all the way and they leave
+   happy (and pay!). Let a temper boil over and they storm out.
+   Big money, low danger — just don't get Held in contempt!
    ============================================================ */
 
 GAMES.lawyer = defineShift({
-  hint: 'TAP the <b>evidence</b> 📄 as it comes up to win the case — <b>golden</b> exhibits 🏅 are worth <b>DOUBLE</b>! Don\'t get <b>Held in contempt!</b>',
+  hint: 'TAP an <b>angry client</b> 😡 to cool them down — calm one fully and they pay up and leave 😌. Don\'t let a temper <b>boil over</b>! Beware <b>Held in contempt!</b>',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.items = [];
-    g.spawnEvery = 1.15 / g.diff;
-    g.spawnT = 0.4;
-    g.life = Math.max(1.2, 2.3 - g.rank * 0.24);
-    g.unit = Math.max(2, Math.floor(State.salary() / 10));
-    g.won = 0;
+    // desks: two rows of three
+    g.slots = [];
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
+      g.slots.push({ x: 190 + c * 260, y: 200 + r * 170, client: null });
+    }
+    g.spawnEvery = 1.2 / g.diff;
+    g.spawnT = 0.2;
+    g.rise = 0.12 + g.rank * 0.02;
+    g.unit = Math.max(2, Math.floor(State.salary() / 12));
+    g.resolved = 0;
     g.pop = null;
   },
 
   pointer(g, x, y) {
-    for (let i = g.items.length - 1; i >= 0; i--) {
-      const it = g.items[i];
-      if (Math.hypot(it.x - x, it.y - y) <= it.r + 8) {
-        g.earn(g.unit * (it.gold ? 2 : 1)); g.won++;
-        g.pop = { x: it.x, y: it.y, gold: it.gold, t: 0 };
-        g.items.splice(i, 1); Sound.coin(); return;
-      }
+    let hit = null, best = 999;
+    g.slots.forEach(s => {
+      if (!s.client) return;
+      const d = Math.hypot(s.x - x, s.y - y);
+      if (d < 66 && d < best) { best = d; hit = s; }
+    });
+    if (!hit) return;
+    hit.client.anger -= 0.6;
+    if (hit.client.anger <= 0) {                       // fully calmed — they pay & leave
+      g.earn(g.unit); g.resolved++;
+      g.pop = { x: hit.x, y: hit.y - 60, ok: true, t: 0 };
+      hit.client = null; Sound.coin();
+    } else {
+      hit.client.shake = 0.25; Sound.ding();
     }
   },
 
   update(g, dt) {
     if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    // new clients arrive into empty desks
     g.spawnT -= dt;
     if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      g.items.push({ x: 80 + Math.random() * (GW - 160), y: 140 + Math.random() * (GH - 230), r: 26, life: g.life, max: g.life, born: 0, gold: Math.random() < 0.22 });
+      const free = g.slots.filter(s => !s.client);
+      if (free.length) {
+        free[Math.floor(Math.random() * free.length)].client = { anger: 0.32 + Math.random() * 0.2, shake: 0 };
+        g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      } else { g.spawnT = 0.4; }
     }
-    for (let i = g.items.length - 1; i >= 0; i--) {
-      const it = g.items[i]; it.born += dt; it.life -= dt;
-      if (it.life <= 0) { g.items.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
-    }
+    g.slots.forEach(s => {
+      if (!s.client) return;
+      s.client.anger += g.rise * dt;
+      if (s.client.shake > 0) s.client.shake -= dt;
+      if (s.client.anger >= 1) {                        // boiled over — storms out
+        s.client = null; g.flash('#d9534f'); Sound.thud();
+        g.pop = { x: s.x, y: s.y - 60, ok: false, t: 0 };
+      }
+    });
   },
 
   draw(g, t) {
     const ctx = g.ctx;
-    ctx.fillStyle = '#e9e0cf'; ctx.fillRect(0, 0, GW, GH);          // courtroom
-    ctx.fillStyle = '#7a5230'; ctx.fillRect(0, GH - 80, GW, 80);    // wood panelling
-    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 80); ctx.lineTo(GW, GH - 80); ctx.stroke();
-    ctx.strokeStyle = 'rgba(122,82,48,.25)'; ctx.lineWidth = 2;
-    for (let x = 60; x < GW; x += 80) { ctx.beginPath(); ctx.moveTo(x, 84); ctx.lineTo(x, GH - 80); ctx.stroke(); }
-    Draw.bigText(ctx, '⚖️ ORDER! ORDER!', GW / 2, 40, 28, '#3a2c66');
+    ctx.fillStyle = '#e7ddc7'; ctx.fillRect(0, 0, GW, GH);
+    // bookshelves along the back wall (a nod to the law library)
+    for (let s = 0; s < 2; s++) {
+      const sy = 92 + s * 0;
+      ctx.fillStyle = '#7a5230'; ctx.fillRect(0, 84, GW, 34); ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2; ctx.strokeRect(0, 84, GW, 34);
+      const cols = ['#c0392b', '#2f7d3f', '#1e7fbf', '#c98a00', '#8d5bd4'];
+      for (let b = 0; b < 46; b++) { ctx.fillStyle = cols[b % cols.length]; ctx.fillRect(6 + b * 19.4, 88, 15, 26); ctx.strokeRect(6 + b * 19.4, 88, 15, 26); }
+    }
+    Draw.bigText(ctx, '⚖️ ORDER IN THE OFFICE', GW / 2, 52, 24, '#3a2c66');
 
-    g.items.forEach(it => {
-      const pop = Math.min(1, it.born * 6), r = it.r * pop, warn = it.life < it.max * 0.35;
-      Draw.emoji(ctx, it.gold ? '🏅' : '📄', it.x, it.y, r * 2);
-      ctx.strokeStyle = warn ? '#d9534f' : (it.gold ? '#c98a00' : 'rgba(60,60,80,.5)'); ctx.lineWidth = it.gold ? 3 : 2;
-      ctx.beginPath(); ctx.arc(it.x, it.y, r + 4, 0, Math.PI * 2); ctx.stroke();
-      if (warn) Draw.emoji(ctx, '⏰', it.x, it.y - r - 16, 22);
+    g.slots.forEach(s => {
+      // desk
+      ctx.fillStyle = '#a9743f'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.fillRect(s.x - 60, s.y + 26, 120, 22); ctx.strokeRect(s.x - 60, s.y + 26, 120, 22);
+      if (!s.client) return;
+      const a = Math.min(1, s.client.anger);
+      const face = a > 0.75 ? '😡' : a > 0.5 ? '😠' : a > 0.25 ? '😟' : '🙂';
+      const sh = s.client.shake > 0 ? Math.sin(t * 50) * 3 : 0;
+      Draw.emoji(ctx, face, s.x + sh, s.y, 62);
+      // temper bar
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2;
+      ctx.fillRect(s.x - 46, s.y - 54, 92, 12); ctx.strokeRect(s.x - 46, s.y - 54, 92, 12);
+      ctx.fillStyle = a > 0.7 ? '#d9534f' : a > 0.4 ? '#e8a33d' : '#3fa555';
+      ctx.fillRect(s.x - 44, s.y - 52, 88 * a, 8);
     });
 
-    if (g.pop) Draw.bigText(ctx, g.pop.gold ? 'GOLDEN! ×2' : 'OBJECTION!', g.pop.x, g.pop.y - 28, g.pop.gold ? 24 : 20, g.pop.gold ? '#c98a00' : '#3a2c66');
-    Draw.bigText(ctx, `Points: ${g.won}`, GW / 2, GH - 18, 22, '#3a2c66');
+    if (g.pop) Draw.bigText(ctx, g.pop.ok ? 'CASE WON! 💼' : 'STORMED OUT!', g.pop.x, g.pop.y, 20, g.pop.ok ? '#2f7d3f' : '#d9534f');
+    Draw.bigText(ctx, `Clients won: ${g.resolved}`, GW / 2, GH - 16, 22, '#3a2c66');
   },
 });
 
 ;
 /* ============================================================
-   SOCIAL WORKER 🤝 — HELP PEOPLE (kind, steady, low-risk).
-   People needing a hand pop up around the community — TAP each
-   one to help before they slip away. The pay is modest and the
-   danger low, but the burnout is real: dodge the Burnout!
+   SOCIAL WORKER 🤝 — GUIDE THEM THROUGH (maze of hazards).
+   Drag a person 🧑 from the door on the left, through a gauntlet
+   of moving hazards 🚧, to the help centre on the right. Reach it
+   and you've helped them (and earned their thanks). Bump a hazard
+   and they get knocked back. Modest pay — dodge the Burnout!
    ============================================================ */
 
 GAMES.socialworker = defineShift({
-  hint: 'TAP the <b>people</b> 🙋 who need help before they leave — every one you reach earns their thanks! Watch for <b>Burnout!</b>',
+  hint: 'DRAG the <b>person</b> 🧑 (finger/mouse) from the door across to the <b>help centre</b> 🏢 — weave through the moving <b>hazards</b> 🚧! Watch for <b>Burnout!</b>',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.folks = [];
-    g.spawnEvery = 1.0 / g.diff;
-    g.spawnT = 0.3;
-    g.life = Math.max(1.3, 2.5 - g.rank * 0.22);
-    g.unit = Math.max(2, Math.floor(State.salary() / 7));
+    g.startX = 54; g.goalX = GW - 60;
+    g.person = { x: g.startX, y: GH / 2, tx: g.startX, ty: GH / 2, stun: 0 };
     g.helped = 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 3));
+    const HZ = ['🚧', '⚠️', '🔥', '🕳️'];
+    g.hazards = [];
+    const cols = 5;
+    for (let c = 0; c < cols; c++) {
+      const x = 180 + c * ((g.goalX - 230) / (cols - 1));
+      const n = 1 + (c % 2);                            // 1 or 2 per column, staggered
+      for (let k = 0; k < n; k++) {
+        g.hazards.push({ x, y: 120 + Math.random() * (GH - 200), r: 26, vy: (110 + g.rank * 22) * (Math.random() < 0.5 ? 1 : -1), emoji: HZ[(c + k) % HZ.length] });
+      }
+    }
     g.pop = null;
   },
 
-  pointer(g, x, y) {
-    for (let i = g.folks.length - 1; i >= 0; i--) {
-      const p = g.folks[i];
-      if (Math.hypot(p.x - x, p.y - y) <= p.r + 10) {
-        g.earn(g.unit); g.helped++;
-        g.pop = { x: p.x, y: p.y, t: 0 };
-        g.folks.splice(i, 1); Sound.ding(); return;
-      }
-    }
+  move(g, x, y) {
+    g.person.tx = Math.max(20, Math.min(GW - 20, x));
+    g.person.ty = Math.max(96, Math.min(GH - 40, y));
   },
+  pointer(g, x, y) { this.move(g, x, y); },
 
   update(g, dt) {
-    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      const kinds = ['🙋', '🧑', '👵', '🧒', '🙍'];
-      g.folks.push({ x: 70 + Math.random() * (GW - 140), y: 140 + Math.random() * (GH - 230), r: 26, life: g.life, max: g.life, born: 0, who: kinds[Math.floor(Math.random() * kinds.length)] });
+    const p = g.person;
+    if (p.stun > 0) p.stun -= dt;
+    else { p.x += (p.tx - p.x) * Math.min(1, dt * 12); p.y += (p.ty - p.y) * Math.min(1, dt * 12); }
+
+    // hazards patrol up/down, bouncing off the top/bottom
+    g.hazards.forEach(h => {
+      h.y += h.vy * dt;
+      if (h.y < 108) { h.y = 108; h.vy = Math.abs(h.vy); }
+      if (h.y > GH - 46) { h.y = GH - 46; h.vy = -Math.abs(h.vy); }
+      if (p.stun <= 0 && Math.hypot(h.x - p.x, h.y - p.y) < h.r + 20) {   // bumped a hazard
+        p.stun = 0.55; p.x = Math.max(g.startX, p.x - 90); p.tx = p.x;
+        g.flash('#d9534f'); Sound.thud();
+      }
+    });
+
+    if (p.x >= g.goalX - 6) {                           // made it across!
+      g.earn(g.unit); g.helped++;
+      g.pop = { x: g.goalX - 30, y: p.y - 44, t: 0 };
+      Sound.coin();
+      p.x = g.startX; p.tx = g.startX; p.y = GH / 2; p.ty = GH / 2; p.stun = 0;
     }
-    for (let i = g.folks.length - 1; i >= 0; i--) {
-      const p = g.folks[i]; p.born += dt; p.life -= dt;
-      if (p.life <= 0) { g.folks.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
-    }
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.6) g.pop = null; }
   },
 
   draw(g, t) {
     const ctx = g.ctx;
-    ctx.fillStyle = '#fce8d6'; ctx.fillRect(0, 0, GW, GH);          // warm community centre
-    ctx.fillStyle = '#e7b98f'; ctx.fillRect(0, GH - 70, GW, 70);    // floor
-    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 70); ctx.lineTo(GW, GH - 70); ctx.stroke();
-    Draw.bigText(ctx, '🤝 LEND A HAND', GW / 2, 40, 28, '#2f8a7a');
+    ctx.fillStyle = '#f2e6d0'; ctx.fillRect(0, 0, GW, GH);
+    // path floor
+    ctx.fillStyle = '#e3cfa8'; ctx.fillRect(0, 96, GW, GH - 130);
+    Draw.bigText(ctx, '🤝 GUIDE THEM THROUGH', GW / 2, 44, 24, '#2f8a7a');
 
-    g.folks.forEach(p => {
-      const pop = Math.min(1, p.born * 6), r = p.r * pop, warn = p.life < p.max * 0.35;
-      Draw.emoji(ctx, p.who, p.x, p.y, r * 2);
-      if (warn) Draw.emoji(ctx, '💤', p.x + r, p.y - r, 20);
-    });
+    // start door + goal help-centre
+    ctx.fillStyle = '#8a6a3f'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(20, GH / 2 - 46, 40, 92); ctx.strokeRect(20, GH / 2 - 46, 40, 92);
+    Draw.emoji(ctx, '🚪', 40, GH / 2, 34);
+    ctx.fillStyle = '#bfe6dd'; ctx.fillRect(g.goalX - 6, 110, GW - g.goalX + 4, GH - 150); ctx.strokeRect(g.goalX - 6, 110, GW - g.goalX + 4, GH - 150);
+    Draw.emoji(ctx, '🏢', g.goalX + 20, GH / 2 - 20, 46);
+    Draw.bigText(ctx, 'HELP', g.goalX + 20, GH / 2 + 30, 18, '#2f8a7a');
 
-    if (g.pop) Draw.bigText(ctx, 'HELPED! ❤️', g.pop.x, g.pop.y - 28, 20, '#2f8a7a');
-    Draw.bigText(ctx, `Helped: ${g.helped}`, GW / 2, GH - 14, 22, '#2f8a7a');
+    // hazards
+    g.hazards.forEach(h => Draw.emoji(ctx, h.emoji, h.x, h.y, 46));
+
+    // the person
+    const p = g.person;
+    if (p.stun > 0) ctx.globalAlpha = 0.5 + Math.sin(t * 40) * 0.3;
+    Draw.emoji(ctx, '🧑', p.x, p.y, 46);
+    ctx.globalAlpha = 1;
+    if (p.stun > 0) Draw.emoji(ctx, '💫', p.x + 16, p.y - 22, 22);
+
+    if (g.pop) Draw.bigText(ctx, 'HELPED! ❤️', g.pop.x, g.pop.y, 20, '#2f8a7a');
+    Draw.bigText(ctx, `Helped: ${g.helped}`, GW / 2, GH - 12, 20, '#2f8a7a');
   },
 });
 
