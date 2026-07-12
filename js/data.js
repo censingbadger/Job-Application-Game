@@ -196,7 +196,7 @@ const JOBS = {
   zookeeper:    { name: 'Zookeeper',      emoji: '🦁', rarity: 'uncommon',  power: 14, salary: 120e3, fatality: 22, danger: 'Lion loose!' },
   bodyguard:    { name: 'Bodyguard',      emoji: '🕴️', rarity: 'rare',      power: 22, salary: 250e3, fatality: 33, danger: 'Ambush!' },
   engineer:     { name: 'Engineer',       emoji: '🛠️', rarity: 'rare',      power: 25, salary: 500e3, fatality: 11, danger: 'Bridge wobble!' },
-  lawyer:       { name: 'Lawyer',         emoji: '⚖️', rarity: 'rare',      power: 26, salary: 1.2e6, fatality: 4,  danger: 'Held in contempt!' },
+  lawyer:       { name: 'Lawyer',         emoji: '⚖️', rarity: 'rare',      power: 26, salary: 1.2e6, fatality: 4,  danger: 'Held in contempt!', trialGoalMult: 0.6 },
   executioner:  { name: 'Executioner',    emoji: '🪓', rarity: 'rare',      power: 24, salary: 800e3, fatality: 21, danger: 'Axe slipped!' },
   bountyhunter: { name: 'Bounty Hunter',  emoji: '🤠', rarity: 'rare',      power: 28, salary: 2e6,   fatality: 55, danger: 'Target fights back!' },
   firefighter:  { name: 'Firefighter',    emoji: '🚒', rarity: 'rare',      power: 26, salary: 1.5e6, fatality: 65, danger: 'Backdraft!' },
