@@ -1,83 +1,102 @@
 /* ============================================================
-   HARDWARE STORE OWNER 🔨 — HAMMER IT OUT (steady hands).
-   Nails pop up across the workbench — TAP each one to hammer it
-   home for cash before it works loose. Watch for the Rusty nail!
-   And on payday you can FRANCHISE: open new stores that boost
-   your earnings for good — build an empire and get rich.
+   HARDWARE STORE OWNER 🔨 — SORT THE STOCK (categorise + ring up).
+   Items come off the conveyor — TAP the right BIN for each one
+   (Tools · Fasteners · Paint) to ring up the sale before the
+   timer runs out. Sort fast, keep the register singing! And on
+   payday you can FRANCHISE to earn even more. Watch the Rusty nail!
    ============================================================ */
 
+const HW_KINDS = {
+  tool:     { name: 'Tools',     emoji: '🔨', items: ['🔨', '🪛', '🪚', '🔧', '🪓'] },
+  fastener: { name: 'Fasteners', emoji: '🔩', items: ['🔩', '🪝', '⛓️', '📌'] },
+  paint:    { name: 'Paint',     emoji: '🪣', items: ['🪣', '🎨', '🖌️', '🧴'] },
+};
+const HW_CATS = Object.keys(HW_KINDS);
+
 GAMES.hardware = defineShift({
-  hint: 'TAP the <b>nails</b> 🔩 to hammer them home before they pop loose! Watch for the <b>Rusty nail!</b> On payday you can <b>franchise</b> to earn even more.',
+  hint: 'TAP the right <b>bin</b> for each item — 🔨 Tools, 🔩 Fasteners, 🪣 Paint — to ring it up before the timer runs out! On payday you can <b>franchise</b>. Dodge the <b>Rusty nail!</b>',
   duration: r => 46 + r * 6,
 
   init(g) {
-    g.nails = [];
-    g.spawnEvery = 0.9 / g.diff;
-    g.spawnT = 0.3;
-    g.life = Math.max(1.4, 2.6 - g.rank * 0.25);
     const fr = State.data.franchises || 0;
-    g.unit = Math.max(2, Math.floor(State.salary() / 9 * (1 + fr * 0.3)));   // each franchise: +30% earnings
-    g.built = 0;
+    g.unit = Math.max(2, Math.floor(State.salary() / 9 * (1 + fr * 0.3)));   // each franchise +30%
+    g.bins = HW_CATS.map((cat, i) => ({ cat, x: 60 + i * ((GW - 120) / 3), w: (GW - 120) / 3 - 16 }));
+    g.binY = GH - 130; g.binH = 108;
+    g.sorted = 0;
+    g.register = 0;                                    // running "till" total
+    g.limit = Math.max(1.3, 2.4 - g.rank * 0.22);      // seconds to sort each item
     g.pop = null;
+    this.next(g);
+  },
+
+  next(g) {
+    const cat = HW_CATS[Math.floor(Math.random() * HW_CATS.length)];
+    const items = HW_KINDS[cat].items;
+    g.item = { cat, emoji: items[Math.floor(Math.random() * items.length)], t: 0 };
   },
 
   pointer(g, x, y) {
-    for (let i = g.nails.length - 1; i >= 0; i--) {
-      const n = g.nails[i];
-      if (Math.hypot(n.x - x, n.y - y) <= n.r + 8) {
-        g.earn(g.unit);
-        g.built++;
-        g.pop = { x: n.x, y: n.y, t: 0 };
-        g.nails.splice(i, 1);
-        Sound.ding();
-        return;
-      }
+    if (!g.item) return;
+    if (y < g.binY) return;                            // only bin taps count
+    const bin = g.bins.find(b => x >= b.x && x <= b.x + b.w);
+    if (!bin) return;
+    if (bin.cat === g.item.cat) {
+      g.earn(g.unit); g.sorted++; g.register += g.unit;
+      g.pop = { x: bin.x + bin.w / 2, y: g.binY - 10, ok: true, t: 0 };
+      Sound.coin();
+    } else {
+      g.flash('#d9534f'); Sound.thud();
+      g.pop = { x: bin.x + bin.w / 2, y: g.binY - 10, ok: false, t: 0 };
     }
+    this.next(g);
   },
 
   update(g, dt) {
-    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
-    g.spawnT -= dt;
-    if (g.spawnT <= 0) {
-      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
-      g.nails.push({ x: 70 + Math.random() * (GW - 140), y: 140 + Math.random() * (GH - 230), r: 20, life: g.life, born: 0 });
-    }
-    for (let i = g.nails.length - 1; i >= 0; i--) {
-      const n = g.nails[i];
-      n.born += dt; n.life -= dt;
-      if (n.life <= 0) { g.nails.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.45) g.pop = null; }
+    if (g.item) {
+      g.item.t += dt;
+      if (g.item.t >= g.limit) { g.flash('#d9534f'); Sound.thud(); this.next(g); }   // too slow — item scrapped
     }
   },
 
   draw(g, t) {
     const ctx = g.ctx;
-    // workshop wall + bench
-    ctx.fillStyle = '#e7d8bf'; ctx.fillRect(0, 0, GW, GH);
-    ctx.fillStyle = '#a9743f'; ctx.fillRect(0, GH - 90, GW, 90);
-    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, GH - 90); ctx.lineTo(GW, GH - 90); ctx.stroke();
-    // pegboard dots
-    ctx.fillStyle = 'rgba(43,43,51,.12)';
-    for (let x = 40; x < GW - 20; x += 44) for (let y = 96; y < GH - 110; y += 44) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
-    Draw.bigText(ctx, '🔨 HAMMER TIME', GW / 2, 40, 28, '#7a4a1c');
-    const fr = State.data.franchises || 0;
-    if (fr > 0) Draw.bigText(ctx, `🏪 ×${fr} franchises · +${fr * 30}% pay`, GW / 2, 70, 18, '#2f7d3f');
+    ctx.fillStyle = '#efe2c8'; ctx.fillRect(0, 0, GW, GH);            // store wall
+    // pegboard
+    ctx.fillStyle = 'rgba(43,43,51,.10)';
+    for (let x = 40; x < GW - 20; x += 42) for (let y = 96; y < g.binY - 40; y += 42) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+    Draw.bigText(ctx, '🔨 SORT THE STOCK', GW / 2, 40, 26, '#7a4a1c');
+    // register readout
+    Draw.bigText(ctx, `🧾 Till: ${fmtMoney(g.register)}`, GW / 2, 74, 18, '#2f7d3f');
 
-    // nails to hammer
-    g.nails.forEach(n => {
-      const pop = Math.min(1, n.born * 6), warn = n.life < 0.7;
-      ctx.save(); ctx.translate(n.x, n.y); ctx.scale(pop, pop);
-      Draw.emoji(ctx, '🔩', 0, 0, n.r * 2);
-      ctx.restore();
-      if (warn) Draw.emoji(ctx, '⚠️', n.x, n.y - n.r - 14, 20);
+    // conveyor + the current item
+    const cx = GW / 2, cy = 250;
+    ctx.fillStyle = '#8a8a94'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(cx - 120, cy + 44, 240, 22); ctx.strokeRect(cx - 120, cy + 44, 240, 22);
+    for (let i = 0; i < 6; i++) { const lx = cx - 116 + i * 40 + (t * 40 % 40); ctx.strokeStyle = 'rgba(43,43,51,.3)'; ctx.beginPath(); ctx.moveTo(lx, cy + 46); ctx.lineTo(lx, cy + 64); ctx.stroke(); }
+    if (g.item) {
+      Draw.emoji(ctx, g.item.emoji, cx, cy, 76);
+      // countdown ring
+      const frac = 1 - g.item.t / g.limit;
+      ctx.strokeStyle = frac < 0.35 ? '#d9534f' : '#2f7d3f'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(cx, cy, 52, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); ctx.stroke();
+    }
+
+    // the three bins
+    g.bins.forEach(b => {
+      const k = HW_KINDS[b.cat];
+      ctx.fillStyle = '#c98a5b'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.fillRect(b.x, g.binY, b.w, g.binH); ctx.strokeRect(b.x, g.binY, b.w, g.binH);
+      ctx.fillStyle = 'rgba(43,43,51,.12)'; ctx.fillRect(b.x, g.binY, b.w, 30);
+      Draw.emoji(ctx, k.emoji, b.x + b.w / 2, g.binY + 52, 40);
+      Draw.bigText(ctx, k.name, b.x + b.w / 2, g.binY + 90, 16, '#5a3410');
     });
 
-    if (g.pop) Draw.bigText(ctx, 'BANG!', g.pop.x, g.pop.y - 26, 20, '#7a4a1c');
-    Draw.bigText(ctx, `Built: ${g.built}`, GW / 2, GH - 16, 22, '#7a4a1c');
+    if (g.pop) Draw.bigText(ctx, g.pop.ok ? 'SOLD!' : 'WRONG BIN!', g.pop.x, g.pop.y, 20, g.pop.ok ? '#2f7d3f' : '#d9534f');
+    Draw.bigText(ctx, `Sorted: ${g.sorted}`, GW / 2, GH - 12, 20, '#7a4a1c');
   },
 
   // FRANCHISE — invest at payday to permanently boost store earnings.
-  // Cost climbs each time; the more you own, the more every shift pays.
   payday(g, content) {
     const franchiseCost = n => Math.floor(2e6 * Math.pow(2.5, n));
     const card = el('div', 'lottery-card');
