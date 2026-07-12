@@ -5508,7 +5508,7 @@ GAMES.athlete = defineShift({
 
   init(g) {
     g.sport = athleteSport();
-    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.unit = Math.max(2, Math.floor(State.salary() / 50));   // pay per score — modest; a miss/strike earns nothing
     g.scored = 0;
     g.pop = null;
     if (g.sport.mode === 'bat') ATH_initBat(g); else ATH_initShoot(g);
