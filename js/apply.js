@@ -136,9 +136,12 @@ const Apply = {
     const job = this.job, cfg = this.cfg;
     const engine = GAMES[this.jobId];
     if (!engine) { this._luckOrHire(); return; }
-    // job.trialGoalMult (default 1) lets a job whose game pays little per
-    // action ask for a smaller trial goal, so the audition stays fair.
-    const goal = Math.max(50, Math.floor(job.salary * cfg.goalMult * (job.trialGoalMult || 1)));
+    // A job can tune its audition: `trialGoal` sets the target in dollars
+    // outright; otherwise `trialGoalMult` (default 1) scales the rarity
+    // default — handy when the game pays little (or a lot) per action.
+    const goal = Math.max(50, Math.floor(
+      job.trialGoal != null ? job.trialGoal : job.salary * cfg.goalMult * (job.trialGoalMult || 1)
+    ));
 
     const intro = el('div', 'apply');
     intro.innerHTML = `

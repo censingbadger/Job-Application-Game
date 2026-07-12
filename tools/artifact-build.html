@@ -1618,7 +1618,7 @@ const JOBS = {
   detective:    { name: 'Detective',      emoji: '🕵️', rarity: 'rare',      power: 24, salary: 700e3, fatality: 18, danger: 'Armed suspect!' },
   dungeoneer:   { name: 'Dungeoneer',     emoji: '🗝️', rarity: 'epic',      power: 32, salary: 5e6,   fatality: 57, danger: 'A dragon!' },
   deadshot:     { name: 'Deadshot',       emoji: '🎯', rarity: 'epic',      power: 35, salary: 8e6,   fatality: 60, danger: 'Return fire!' },
-  athlete:      { name: 'Athlete',        emoji: '🏀', rarity: 'epic',      power: 34, salary: 12e6,  fatality: 42, danger: 'Blown knee!', trialGoalMult: 0.15 },
+  athlete:      { name: 'Athlete',        emoji: '🏀', rarity: 'epic',      power: 34, salary: 12e6,  fatality: 42, danger: 'Blown knee!', trialGoal: 5e6 },
   jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
   archaeologist:{ name: 'Archaeologist',  emoji: '🏺', rarity: 'epic',      power: 31, salary: 3e6,   fatality: 30, danger: 'Tomb collapse!' },
   frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
@@ -6977,9 +6977,12 @@ const Apply = {
     const job = this.job, cfg = this.cfg;
     const engine = GAMES[this.jobId];
     if (!engine) { this._luckOrHire(); return; }
-    // job.trialGoalMult (default 1) lets a job whose game pays little per
-    // action ask for a smaller trial goal, so the audition stays fair.
-    const goal = Math.max(50, Math.floor(job.salary * cfg.goalMult * (job.trialGoalMult || 1)));
+    // A job can tune its audition: `trialGoal` sets the target in dollars
+    // outright; otherwise `trialGoalMult` (default 1) scales the rarity
+    // default — handy when the game pays little (or a lot) per action.
+    const goal = Math.max(50, Math.floor(
+      job.trialGoal != null ? job.trialGoal : job.salary * cfg.goalMult * (job.trialGoalMult || 1)
+    ));
 
     const intro = el('div', 'apply');
     intro.innerHTML = `
