@@ -1,7 +1,8 @@
 /* ============================================================
-   LEADERBOARD — the top 15 richest players ever, pulled live
-   from the cloud. "Richest ever" = the most money you've ever
-   held (your peak), so it never drops when you spend or die.
+   LEADERBOARD — EVERY player who's ever played, pulled live from
+   the cloud and ranked by "richest ever" (the most money you've
+   ever held — your peak, so it never drops when you spend or die).
+   No cap: the full list shows the all-time player count.
    ============================================================ */
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -46,7 +47,7 @@ PAGES.leaderboard = {
     }
     const rows = this.rank(all);
     const n = rows.length;
-    status.textContent = `${n} player${n === 1 ? '' : 's'} competing · ranked by richest ever 💰`;
+    status.textContent = `${n} player${n === 1 ? '' : 's'} have played all-time · ranked by riches 💰`;
     this.render(list, rows);
   },
 
@@ -66,12 +67,16 @@ PAGES.leaderboard = {
       }),
     });
 
-    const rows = Object.entries(map).map(([key, p]) => {
-      const score = (p.stats && p.stats.peakWealth) || p.wealth || 0;
-      const jobId = p.path && JOBS[p.path.jobId] ? p.path.jobId : 'fisherman';
-      return { name: p.name || key, score, jobId, me: key === meKey };
-    })
-      .filter(r => r.score > 0 || r.me)     // hide brand-new $0 players, but never hide you
+    // Everyone who's ever played is included (so the board shows the all-time
+    // count) — only genuinely malformed cloud entries are skipped.
+    const rows = Object.entries(map)
+      .filter(([, p]) => p && typeof p === 'object')
+      .map(([key, p]) => {
+        const peak = (p.stats && p.stats.peakWealth) || 0;
+        const score = Math.max(0, peak || p.wealth || 0);   // never negative (debt)
+        const jobId = p.path && JOBS[p.path.jobId] ? p.path.jobId : 'fisherman';
+        return { name: p.name || key, score, jobId, me: key === meKey };
+      })
       .sort((a, b) => b.score - a.score);
     rows.forEach((r, i) => { r.place = i + 1; });
     return rows;
@@ -82,11 +87,8 @@ PAGES.leaderboard = {
       list.innerHTML = '<div class="lb-empty">No players on the board yet. Be the first — go get rich! 💰</div>';
       return;
     }
-    let html = rows.slice(0, 15).map(r => this.rowHTML(r)).join('');
-    // if you didn't make the top 15, show your rank pinned at the bottom
-    const me = rows.find(r => r.me);
-    if (me && me.place > 15) html += '<div class="lb-gap">· · ·</div>' + this.rowHTML(me);
-    list.innerHTML = html;
+    // the whole hall of fame — every player who's ever played, no cap
+    list.innerHTML = rows.map(r => this.rowHTML(r)).join('');
   },
 
   rowHTML(r) {
