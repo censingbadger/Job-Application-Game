@@ -136,7 +136,9 @@ const Apply = {
     const job = this.job, cfg = this.cfg;
     const engine = GAMES[this.jobId];
     if (!engine) { this._luckOrHire(); return; }
-    const goal = Math.max(50, Math.floor(job.salary * cfg.goalMult));
+    // job.trialGoalMult (default 1) lets a job whose game pays little per
+    // action ask for a smaller trial goal, so the audition stays fair.
+    const goal = Math.max(50, Math.floor(job.salary * cfg.goalMult * (job.trialGoalMult || 1)));
 
     const intro = el('div', 'apply');
     intro.innerHTML = `
