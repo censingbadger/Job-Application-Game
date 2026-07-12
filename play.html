@@ -1563,6 +1563,7 @@ const GEAR = {
   criminal:     [['🗝️','Lockpick'],    ['🪛','Crowbar'],       ['🏍️','Getaway Bike'],  ['🏎️','Fast Car'],       ['💻','Hacker Kit']],
   miner:        [['⛏️','Rusty Pick'],   ['⛏️','Iron Pick'],     ['🔩','Steel Drill'],    ['🧨','Dynamite'],       ['💎','Diamond Drill']],
   construction: [['🧤','Work Gloves'],   ['🔨','Hammer'],        ['🪛','Power Tools'],    ['🏗️','Tower Crane'],    ['🏢','Skyscraper Crew']],
+  zookeeper:    [['🧹','Push Broom'],     ['🪣','Feed Bucket'],   ['🥅','Catch Net'],      ['🚙','Zoo Buggy'],      ['🏞️','Safari Reserve']],
   bodyguard:    [['🖐️','Bare Fists'],   ['🌶️','Pepper Spray'], ['⚡','Taser'],          ['🦺','Kevlar Vest'],    ['🛡️','Riot Shield']],
   engineer:     [['🪛','Screwdriver'],  ['🔧','Wrench Set'],    ['🔩','Power Drill'],    ['🖥️','CAD Station'],    ['🦾','Robot Arm']],
   lawyer:       [['📎','Paperclip'],     ['📁','Case File'],     ['💼','Briefcase'],      ['📚','Law Library'],    ['⚖️','Supreme Bench']],
@@ -1570,10 +1571,12 @@ const GEAR = {
   bountyhunter: [['🪢','Lasso'],         ['🔫','Revolver'],      ['🥅','Net Gun'],        ['🛸','Tracker Drone'],  ['🚀','Bounty Rig']],
   firefighter:  [['🧤','Fire Gloves'],   ['🪣','Water Bucket'],  ['🧯','Extinguisher'],   ['🚿','Fire Hose'],      ['🚁','Water Bomber']],
   hardware:     [['🔩','Loose Screws'],  ['🔨','Claw Hammer'],   ['🪚','Power Saw'],      ['🚚','Delivery Truck'], ['🏭','Warehouse']],
+  detective:    [['🔎','Magnifier'],     ['🗒️','Notepad'],       ['📷','Spy Camera'],     ['🧬','Forensics Kit'],  ['🕵️','Master Sleuth']],
   dungeoneer:   [['🔦','Torch'],         ['🗡️','Short Sword'],   ['🛡️','Shield'],        ['⚔️','Enchanted Blade'],['🐉','Dragon Armor']],
   deadshot:     [['🪃','Slingshot'],     ['🔫','Pistol'],        ['🎯','Sniper Rifle'],   ['🔴','Laser Sight'],    ['🚀','Rail Gun']],
   athlete:      [['👟','Worn Sneakers'], ['🏀','Team Ball'],     ['🦵','Knee Braces'],    ['💪','Personal Trainer'],['🏆','MVP Contract']],
   jobapplicator:[['✏️','Pencil'],        ['🖊️','Nice Pen'],      ['📄','Résumé Kit'],     ['💼','Briefcase'],      ['🏆','Golden Stapler']],
+  archaeologist:[['🖌️','Soft Brush'],    ['⛏️','Hand Pick'],     ['🔦','Head Torch'],     ['🛰️','Ground Radar'],   ['🏛️','Museum Grant']],
   frogkeeper:   [['🥅','Little Net'],    ['🪷','Lily Pad'],      ['🪟','Terrarium'],      ['🎵','Frog Whistle'],   ['🏅','Golden Pond']],
   king:         [['👑','Wooden Crown'],  ['👑','Silver Crown'],  ['👑','Gold Crown'],     ['🔱','Jeweled Scepter'],['💎','Diamond Throne']],
 };
@@ -1612,6 +1615,7 @@ const JOBS = {
   criminal:     { name: 'Criminal',       emoji: '🕶️', rarity: 'uncommon',  power: 12, salary: 90e3,  fatality: 38, danger: 'The cops!' },
   miner:        { name: 'Miner',          emoji: '⛏️', rarity: 'uncommon',  power: 20, salary: 3e6,   fatality: 69, danger: 'Cave-in!' },
   construction: { name: 'Construction Worker', emoji: '👷', rarity: 'uncommon', power: 15, salary: 80e3, fatality: 28, danger: 'Falling beam!' },
+  zookeeper:    { name: 'Zookeeper',      emoji: '🦁', rarity: 'uncommon',  power: 14, salary: 120e3, fatality: 22, danger: 'Lion loose!' },
   bodyguard:    { name: 'Bodyguard',      emoji: '🕴️', rarity: 'rare',      power: 22, salary: 250e3, fatality: 33, danger: 'Ambush!' },
   engineer:     { name: 'Engineer',       emoji: '🛠️', rarity: 'rare',      power: 25, salary: 500e3, fatality: 11, danger: 'Bridge wobble!' },
   lawyer:       { name: 'Lawyer',         emoji: '⚖️', rarity: 'rare',      power: 26, salary: 1.2e6, fatality: 4,  danger: 'Held in contempt!' },
@@ -1619,10 +1623,12 @@ const JOBS = {
   bountyhunter: { name: 'Bounty Hunter',  emoji: '🤠', rarity: 'rare',      power: 28, salary: 2e6,   fatality: 55, danger: 'Target fights back!' },
   firefighter:  { name: 'Firefighter',    emoji: '🚒', rarity: 'rare',      power: 26, salary: 1.5e6, fatality: 65, danger: 'Backdraft!' },
   hardware:     { name: 'Hardware Store Owner', emoji: '🔨', rarity: 'rare', power: 24, salary: 600e3, fatality: 10, danger: 'Rusty nail!' },
+  detective:    { name: 'Detective',      emoji: '🕵️', rarity: 'rare',      power: 24, salary: 700e3, fatality: 18, danger: 'Armed suspect!' },
   dungeoneer:   { name: 'Dungeoneer',     emoji: '🗝️', rarity: 'epic',      power: 32, salary: 5e6,   fatality: 57, danger: 'A dragon!' },
   deadshot:     { name: 'Deadshot',       emoji: '🎯', rarity: 'epic',      power: 35, salary: 8e6,   fatality: 60, danger: 'Return fire!' },
   athlete:      { name: 'Athlete',        emoji: '🏀', rarity: 'epic',      power: 34, salary: 12e6,  fatality: 42, danger: 'Blown knee!' },
   jobapplicator:{ name: 'Job Applicator', emoji: '📋', rarity: 'epic',      power: 30, salary: 4e6,   fatality: 5,  danger: 'Paper cut!' },
+  archaeologist:{ name: 'Archaeologist',  emoji: '🏺', rarity: 'epic',      power: 31, salary: 3e6,   fatality: 30, danger: 'Tomb collapse!' },
   frogkeeper:   { name: 'Frog Keeper',    emoji: '🐸', rarity: 'legendary', power: 45, salary: 8e6,   fatality: 1,  danger: 'Frog stampede!', shopOnly: true },
   king:         { name: 'King',           emoji: '👑', rarity: 'legendary', power: 50, salary: 50e6,  fatality: 15, danger: 'A coup!' },
 };
@@ -1648,6 +1654,7 @@ const FIRE_REASONS = {
   criminal:     'You botched the heist — the crew cut you loose!',
   miner:        'You came up empty — the foreman laid you off!',
   construction: 'You misread the blueprint — the site foreman let you go!',
+  zookeeper:    'A lion got loose on your watch — the zoo let you go!',
   bodyguard:    'You let danger slip through — the client dropped you!',
   engineer:     'Your bridge wobbled once too often — laid off!',
   lawyer:       'You lost the big case — the firm showed you the door!',
@@ -1655,10 +1662,12 @@ const FIRE_REASONS = {
   bountyhunter: 'You let the target walk — license revoked!',
   firefighter:  'You let it burn — suspended by the fire chief!',
   hardware:     'A big-box rival undercut you — your store went bust!',
+  detective:    'You collared the wrong suspect — the chief pulled your badge!',
   dungeoneer:   'You came back empty-handed — the guild expelled you!',
   deadshot:     'You kept missing — banned from the range!',
   athlete:      'Bad knees and a locker-room feud — your team traded you!',
   jobapplicator:'Your application to keep applying was... rejected!',
+  archaeologist:'You shattered a priceless relic — the museum cut your funding!',
   frogkeeper:   'The frogs all hopped away — you were let go!',
   king:         'The people revolted — you were overthrown!',
 };
@@ -5994,6 +6003,411 @@ GAMES.socialworker = defineShift({
 
     if (g.pop) Draw.bigText(ctx, 'HELPED! ❤️', g.pop.x, g.pop.y, 20, '#2f8a7a');
     Draw.bigText(ctx, `Helped: ${g.helped}`, GW / 2, GH - 12, 20, '#2f8a7a');
+  },
+});
+
+;
+/* ============================================================
+   ZOOKEEPER 🦁 — HERD 'EM IN (round up & feed the animals).
+   Monkeys and lions roam the yard. Your keeper SHOOS any animal
+   nearby — sweep your finger/mouse so they scatter AWAY from you,
+   and drive them right into the FEED PEN. Each one you pen gets
+   fed (and pays!). Lions are stubborn and worth more. Keep the
+   yard under control — and don't let the Lion loose!
+   ============================================================ */
+
+GAMES.zookeeper = defineShift({
+  hint: 'Move your <b>keeper</b> to <b>shoo</b> the animals — they flee AWAY from you. Herd the 🐒 monkeys and 🦁 lions into the <b>feed pen</b> on the right to feed them! Lions pay more. Watch for <b>Lion loose!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.penX = GW - 250; g.penY0 = 120; g.penY1 = GH - 40;
+    g.keeper = { x: 220, y: GH / 2 };
+    g.want = Math.min(7, 4 + g.rank);
+    g.animals = [];
+    for (let i = 0; i < g.want; i++) this._spawn(g, true);
+    g.penned = 0;
+    g.pop = null;
+  },
+
+  _spawn(g, anywhere) {
+    const lion = Math.random() < 0.32;
+    const x = anywhere ? 60 + Math.random() * (g.penX - 180) : 42;
+    g.animals.push({
+      x, y: 140 + Math.random() * (GH - 210),
+      vx: 0, vy: 0,
+      lion,
+      emoji: lion ? '🦁' : '🐒',
+      worth: lion ? 2.5 : 1,
+      spd: lion ? 58 : 92,
+      size: lion ? 46 : 40,
+      tx: 60 + Math.random() * (g.penX - 180), ty: 140 + Math.random() * (GH - 210), roamT: 1 + Math.random() * 1.5,
+      bob: Math.random() * 6,
+    });
+  },
+
+  move(g, x, y) { g.keeper.x = x; g.keeper.y = y; },
+  pointer(g, x, y) { g.keeper.x = x; g.keeper.y = y; },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.6) g.pop = null; }
+    const R = 128, k = g.keeper;
+    for (let i = g.animals.length - 1; i >= 0; i--) {
+      const a = g.animals[i];
+      // gentle roam around the open yard
+      a.roamT -= dt;
+      const rx = a.tx - a.x, ry = a.ty - a.y, rd = Math.hypot(rx, ry) || 1;
+      if (a.roamT <= 0 || rd < 24) { a.tx = 60 + Math.random() * (g.penX - 170); a.ty = 140 + Math.random() * (GH - 210); a.roamT = 1.1 + Math.random() * 1.6; }
+      a.vx += (rx / rd) * a.spd * 0.5 * dt;
+      a.vy += (ry / rd) * a.spd * 0.5 * dt;
+      // SHOO — flee away from the keeper
+      const dx = a.x - k.x, dy = a.y - k.y, d = Math.hypot(dx, dy) || 1;
+      if (d < R) { const push = (R - d) / R * (a.lion ? 1050 : 1500); a.vx += (dx / d) * push * dt; a.vy += (dy / d) * push * dt; }
+      // damping + move
+      a.vx *= 0.9; a.vy *= 0.9;
+      const sp = Math.hypot(a.vx, a.vy), cap = a.spd * 2.4;
+      if (sp > cap) { a.vx = a.vx / sp * cap; a.vy = a.vy / sp * cap; }
+      a.x += a.vx * dt; a.y += a.vy * dt;
+      // yard walls (left / top / bottom bounce)
+      if (a.x < 30) { a.x = 30; a.vx = Math.abs(a.vx); }
+      if (a.y < 118) { a.y = 118; a.vy = Math.abs(a.vy); }
+      if (a.y > GH - 34) { a.y = GH - 34; a.vy = -Math.abs(a.vy); }
+      // into the pen? — fed!
+      if (a.x >= g.penX + 6 && a.y > g.penY0 + 8 && a.y < g.penY1 - 8) {
+        g.earn(g.unit * a.worth); g.penned++;
+        g.pop = { x: a.x, y: a.y - 34, food: a.lion ? '🥩' : '🍌', t: 0 };
+        if (a.lion) { Sound.jackpot(); UI.confetti(8); } else Sound.coin();
+        g.animals.splice(i, 1);
+        this._spawn(g, false);                         // a fresh one wanders in from the gate
+      }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#a9d16a'; ctx.fillRect(0, 0, GW, GH);                 // grass yard
+    // grass texture
+    ctx.strokeStyle = 'rgba(60,110,40,.25)'; ctx.lineWidth = 2;
+    for (let x = 20; x < g.penX; x += 34) for (let y = 130; y < GH - 20; y += 30) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 4, y - 8); ctx.moveTo(x + 4, y); ctx.lineTo(x + 6, y - 9); ctx.stroke(); }
+    // entrance gate (left)
+    Draw.emoji(ctx, '🚪', 40, 100, 30);
+
+    // FEED PEN (right)
+    ctx.fillStyle = '#c8a06a'; ctx.fillRect(g.penX, g.penY0, GW - g.penX, g.penY1 - g.penY0);
+    ctx.strokeStyle = '#6a4a24'; ctx.lineWidth = 5;
+    ctx.strokeRect(g.penX, g.penY0, GW - g.penX, g.penY1 - g.penY0);
+    // fence posts on the top/bottom rails
+    ctx.lineWidth = 3;
+    for (let x = g.penX; x <= GW - 20; x += 26) { ctx.beginPath(); ctx.moveTo(x, g.penY0); ctx.lineTo(x, g.penY0 + 16); ctx.moveTo(x, g.penY1 - 16); ctx.lineTo(x, g.penY1); ctx.stroke(); }
+    // trough with food
+    const tx = (g.penX + GW - 20) / 2;
+    Draw.emoji(ctx, '🥩', tx - 26, g.penY0 + 40, 30);
+    Draw.emoji(ctx, '🍌', tx + 26, g.penY0 + 40, 30);
+    Draw.bigText(ctx, '🍽️ FEED PEN', tx, g.penY1 - 22, 18, '#5a3410');
+    Draw.bigText(ctx, '🦁 HERD \'EM IN', GW / 2 - 60, 36, 26, '#3c6b2c');
+
+    // animals
+    g.animals.forEach(a => {
+      const bob = Math.sin(t * 6 + a.bob) * 3;
+      Draw.emoji(ctx, a.emoji, a.x, a.y + bob, a.size);
+    });
+
+    // keeper + shoo ring
+    const kk = g.keeper;
+    ctx.strokeStyle = 'rgba(43,43,51,.35)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.arc(kk.x, kk.y, 128, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    Draw.emoji(ctx, '🧹', kk.x, kk.y, 40);
+
+    if (g.pop) { Draw.emoji(ctx, g.pop.food, g.pop.x, g.pop.y, 26); Draw.bigText(ctx, 'FED!', g.pop.x, g.pop.y - 22, 18, '#2f7d3f'); }
+    Draw.bigText(ctx, `Fed: ${g.penned}`, GW / 2 - 60, GH - 14, 20, '#2f5a26');
+  },
+});
+
+;
+/* ============================================================
+   DETECTIVE 🕵️ — CATCH THE CULPRIT (crack the line-up).
+   A WANTED mugshot pins the criminal. Study the line-up and TAP
+   the suspect whose face matches EXACTLY — same hat, same shades,
+   same shirt. Nail it fast for a bonus; accuse the wrong one and
+   they lawyer up. Solve cases before the trail goes cold — and
+   watch for the Armed suspect!
+   ============================================================ */
+
+const DET_HATS    = ['none', '🎩', '🧢', '👒', '⛑️', '🎓'];
+const DET_GLASSES = ['none', '👓', '🕶️'];
+const DET_SHIRT   = ['#d9534f', '#2f7d3f', '#1e7fbf', '#c98a00', '#8d5bd4', '#3aa0a0'];
+const DET_KEYS    = ['hat', 'glasses', 'shirt'];
+const DET_POOL    = { hat: DET_HATS, glasses: DET_GLASSES, shirt: DET_SHIRT };
+
+function DET_rand(a) { return a[Math.floor(Math.random() * a.length)]; }
+function DET_face()  { return { hat: DET_rand(DET_HATS), glasses: DET_rand(DET_GLASSES), shirt: DET_rand(DET_SHIRT) }; }
+function DET_same(a, b) { return a.hat === b.hat && a.glasses === b.glasses && a.shirt === b.shirt; }
+
+// Draw one mugshot: skin head + eyes/shades, a shirt, and a hat.
+function DET_mug(ctx, cx, cy, r, f) {
+  // shirt / shoulders
+  ctx.fillStyle = f.shirt; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.98, cy + r * 1.28);
+  ctx.quadraticCurveTo(cx - r * 0.95, cy + r * 0.42, cx, cy + r * 0.46);
+  ctx.quadraticCurveTo(cx + r * 0.95, cy + r * 0.42, cx + r * 0.98, cy + r * 1.28);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // head
+  ctx.fillStyle = '#e8b98a';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.66, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // eyes or shades
+  if (f.glasses === 'none') {
+    ctx.fillStyle = '#2b2b33';
+    ctx.beginPath(); ctx.arc(cx - r * 0.22, cy - r * 0.06, r * 0.075, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.22, cy - r * 0.06, r * 0.075, 0, Math.PI * 2); ctx.fill();
+  } else {
+    Draw.emoji(ctx, f.glasses, cx, cy - r * 0.04, r * 0.62);
+  }
+  // mouth
+  ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy + r * 0.22, r * 0.2, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  // hat
+  if (f.hat !== 'none') Draw.emoji(ctx, f.hat, cx, cy - r * 0.72, r * 0.95);
+}
+
+GAMES.detective = defineShift({
+  hint: 'Study the <b>WANTED</b> mugshot, then TAP the suspect in the line-up who matches it <b>exactly</b> — same hat, shades and shirt. Be quick for a <b>bonus</b>! Beware the <b>Armed suspect!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 5));
+    g.cols = 3; g.rows = 2;
+    g.slots = [];
+    const colX = [GW * 0.26, GW * 0.5, GW * 0.74];
+    const rowY = [300, 438];
+    for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) g.slots.push({ x: colX[c], y: rowY[r] });
+    g.mugR = 54;
+    g.solved = 0;
+    g.caseLimit = Math.max(3.6, 6.6 - g.rank * 0.5);
+    g.lens = { x: GW / 2, y: 240 };
+    g.pop = null;
+    this.newCase(g);
+  },
+
+  newCase(g) {
+    const n = g.slots.length;
+    const culprit = DET_face();
+    const slot = Math.floor(Math.random() * n);
+    const faces = [];
+    for (let i = 0; i < n; i++) {
+      if (i === slot) { faces.push(Object.assign({}, culprit)); continue; }
+      const nmut = g.rank >= 3 ? 1 : (1 + (Math.random() < 0.4 ? 1 : 0));   // subtler decoys higher up
+      let f;
+      do {
+        f = Object.assign({}, culprit);
+        for (let k = 0; k < nmut; k++) { const key = DET_rand(DET_KEYS); f[key] = DET_rand(DET_POOL[key]); }
+      } while (DET_same(f, culprit));
+      faces.push(f);
+    }
+    g.culprit = culprit; g.faces = faces; g.slot = slot; g.caseT = g.caseLimit;
+  },
+
+  pointer(g, x, y) {
+    this.move(g, x, y);
+    let hit = -1, best = 999;
+    g.slots.forEach((s, i) => { const d = Math.hypot(s.x - x, s.y - y); if (d < 74 && d < best) { best = d; hit = i; } });
+    if (hit < 0) return;
+    if (hit === g.slot) {                              // got 'em!
+      const fast = g.caseT > g.caseLimit * 0.5;
+      g.earn(g.unit * (fast ? 2 : 1)); g.solved++;
+      g.pop = { x: g.slots[hit].x, y: g.slots[hit].y - 84, txt: fast ? 'CASE CLOSED! ×2' : 'CASE CLOSED!', good: true, big: fast, t: 0 };
+      if (fast) { Sound.jackpot(); g.flash('#2f7d3f'); UI.confetti(10); } else Sound.coin();
+      this.newCase(g);
+    } else {                                           // wrong suspect — costs time
+      g.caseT = Math.max(0.4, g.caseT - 1.4);
+      g.flash('#d9534f'); Sound.thud();
+      g.pop = { x: g.slots[hit].x, y: g.slots[hit].y - 84, txt: 'WRONG ONE!', good: false, t: 0 };
+    }
+  },
+
+  move(g, x, y) { g.lens = { x, y }; },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.55) g.pop = null; }
+    g.caseT -= dt;
+    if (g.caseT <= 0) {                                // trail went cold
+      g.pop = { x: GW / 2, y: 150, txt: 'GOT AWAY!', good: false, t: 0 };
+      Sound.thud();
+      this.newCase(g);
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#2f2a3d'; ctx.fillRect(0, 0, GW, GH);                 // precinct wall
+    // line-up height chart behind the suspects
+    ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
+    for (let yy = 250; yy < GH - 30; yy += 26) { ctx.beginPath(); ctx.moveTo(30, yy); ctx.lineTo(GW - 30, yy); ctx.stroke(); }
+    Draw.bigText(ctx, '🕵️ CRACK THE CASE', GW / 2, 34, 26, '#ffd36b');
+
+    // WANTED poster (the culprit to find)
+    const px = GW / 2, py = 138, pw = 250, ph = 148;
+    ctx.fillStyle = '#efe2c0'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 4;
+    ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph); ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
+    ctx.fillStyle = '#b23b2e'; ctx.fillRect(px - pw / 2, py - ph / 2, pw, 30);
+    Draw.bigText(ctx, '★ WANTED ★', px, py - ph / 2 + 15, 18, '#fff');
+    DET_mug(ctx, px - 44, py + 20, 40, g.culprit);
+    // case timer bar
+    const frac = Math.max(0, g.caseT / g.caseLimit);
+    ctx.fillStyle = '#fff'; ctx.fillRect(px + 12, py - 6, 96, 14); ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 2; ctx.strokeRect(px + 12, py - 6, 96, 14);
+    ctx.fillStyle = frac < 0.3 ? '#d9534f' : '#3fa555'; ctx.fillRect(px + 14, py - 4, 92 * frac, 10);
+    Draw.bigText(ctx, 'MATCH THE FACE!', px + 60, py + 34, 12, '#7a2f26');
+
+    // the line-up
+    g.slots.forEach((s, i) => {
+      const sway = Math.sin(t * 1.6 + i) * 2;
+      // spotlight pad
+      ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.beginPath(); ctx.ellipse(s.x, s.y + g.mugR * 1.3, g.mugR * 1.1, 16, 0, 0, Math.PI * 2); ctx.fill();
+      DET_mug(ctx, s.x + sway, s.y, g.mugR, g.faces[i]);
+      // placard number
+      ctx.fillStyle = '#1a1622'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.fillRect(s.x - 22, s.y + g.mugR * 1.42, 44, 20); ctx.strokeRect(s.x - 22, s.y + g.mugR * 1.42, 44, 20);
+      Draw.bigText(ctx, '#' + (i + 1), s.x, s.y + g.mugR * 1.42 + 10, 12, '#ffd36b');
+    });
+
+    // magnifying-glass cursor
+    Draw.emoji(ctx, '🔍', g.lens.x + 14, g.lens.y - 14, 34);
+
+    if (g.pop) Draw.bigText(ctx, g.pop.txt, g.pop.x, g.pop.y, g.pop.big ? 24 : 20, g.pop.good ? '#3fa555' : '#ff6b6b');
+    Draw.bigText(ctx, `Cases solved: ${g.solved}`, GW / 2, GH - 14, 20, '#ffd36b');
+  },
+});
+
+;
+/* ============================================================
+   ARCHAEOLOGIST 🏺 — DIG IT UP (brush out buried treasure).
+   Something priceless is buried under the sand. SWIPE your brush
+   (finger/mouse) back and forth to sweep the dirt away. Once the
+   relic is uncovered, TAP it to lift it out — pottery, coins,
+   gems, even a golden crown. Rarer relics pay far more. Work the
+   whole pit before the day ends — and mind the Tomb collapse!
+   ============================================================ */
+
+const ARCH_FINDS = [
+  { emoji: '🏺', worth: 1,   weight: 26, name: 'a clay pot' },
+  { emoji: '⚱️', worth: 1.4, weight: 20, name: 'an old urn' },
+  { emoji: '🪙', worth: 1.8, weight: 18, name: 'a gold coin' },
+  { emoji: '🦴', worth: 1.6, weight: 14, name: 'a fossil' },
+  { emoji: '🗿', worth: 3,   weight: 10, name: 'a stone idol' },
+  { emoji: '💍', worth: 3.6, weight: 7,  name: 'a jewelled ring' },
+  { emoji: '💎', worth: 5,   weight: 4,  name: 'a raw gem' },
+  { emoji: '👑', worth: 9,   weight: 2,  name: 'a lost crown' },
+];
+function ARCH_pick() {
+  const total = ARCH_FINDS.reduce((s, f) => s + f.weight, 0);
+  let roll = Math.random() * total;
+  for (const f of ARCH_FINDS) { if ((roll -= f.weight) <= 0) return f; }
+  return ARCH_FINDS[0];
+}
+
+GAMES.archaeologist = defineShift({
+  hint: 'SWIPE your <b>brush</b> over the sand to sweep it away. When the buried <b>relic</b> is uncovered, TAP it to lift it out! Rarer relics (💎, 👑) pay far more. Beware the <b>Tomb collapse!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.unit = Math.max(2, Math.floor(State.salary() / 16));
+    g.gx0 = 36; g.gy0 = 112; g.cols = 14; g.rows = 9;
+    g.cw = (GW - 72) / g.cols; g.ch = (GH - 150) / g.rows;
+    g.brushStr = Math.max(0.32, 0.62 - g.rank * 0.05);   // deeper sand higher up
+    g.finds = 0;
+    g.brushPos = { x: GW / 2, y: GH / 2 };
+    g.pop = null;
+    this._bury(g);
+  },
+
+  _bury(g) {
+    g.sand = [];
+    for (let r = 0; r < g.rows; r++) g.sand.push(new Array(g.cols).fill(1));
+    const find = ARCH_pick();
+    const c0 = 1 + Math.floor(Math.random() * (g.cols - 4));
+    const r0 = 1 + Math.floor(Math.random() * (g.rows - 4));
+    g.art = { c0, r0, c1: c0 + 2, r1: r0 + 2, cx: g.gx0 + (c0 + 1.5) * g.cw, cy: g.gy0 + (r0 + 1.5) * g.ch, emoji: find.emoji, worth: find.worth, name: find.name, uncovered: false };
+  },
+
+  _brush(g, x, y) {
+    g.brushPos = { x, y };
+    const BR = 54;
+    for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
+      if (g.sand[r][c] <= 0) continue;
+      const ccx = g.gx0 + (c + 0.5) * g.cw, ccy = g.gy0 + (r + 0.5) * g.ch;
+      if (Math.hypot(ccx - x, ccy - y) < BR) g.sand[r][c] = Math.max(0, g.sand[r][c] - g.brushStr);
+    }
+  },
+
+  _reveal(g) {
+    let s = 0, n = 0;
+    for (let r = g.art.r0; r <= g.art.r1; r++) for (let c = g.art.c0; c <= g.art.c1; c++) { s += 1 - g.sand[r][c]; n++; }
+    const rev = s / n;
+    g.art.uncovered = rev >= 0.72;
+    return rev;
+  },
+
+  move(g, x, y) { this._brush(g, x, y); },
+
+  pointer(g, x, y) {
+    if (g.art.uncovered && Math.hypot(x - g.art.cx, y - g.art.cy) < 66) {   // lift it out!
+      const worth = g.art.worth;
+      g.earn(g.unit * worth); g.finds++;
+      g.pop = { x: g.art.cx, y: g.art.cy - 30, emoji: g.art.emoji, big: worth >= 3, t: 0 };
+      if (worth >= 3) { Sound.jackpot(); UI.confetti(14); g.flash('#c9a100'); } else Sound.coin();
+      this._bury(g);
+    } else {
+      this._brush(g, x, y);
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.6) g.pop = null; }
+    this._reveal(g);
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#c8a15a'; ctx.fillRect(0, 0, GW, GH);                 // desert
+    Draw.bigText(ctx, '🏺 EXCAVATE THE DIG', GW / 2, 36, 26, '#6a4212');
+
+    // the pit floor (revealed dirt under the sand)
+    ctx.fillStyle = '#5a4326'; ctx.fillRect(g.gx0, g.gy0, GW - 72, GH - 150);
+    ctx.strokeStyle = '#3a2c18'; ctx.lineWidth = 4; ctx.strokeRect(g.gx0, g.gy0, GW - 72, GH - 150);
+    // dig-site pegs + rope round the pit
+    ctx.fillStyle = '#e8dcc0';
+    [[g.gx0, g.gy0], [GW - 36, g.gy0], [g.gx0, GH - 38], [GW - 36, GH - 38]].forEach(([px, py]) => { ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill(); });
+
+    // the relic, emerging as the sand is cleared (drawn first, sand hides it)
+    const rev = this._reveal(g);
+    const asize = Math.min(g.cw, g.ch) * 2.6;
+    if (g.art.uncovered) {                              // glow when ready to lift
+      ctx.fillStyle = 'rgba(232,201,64,' + (0.25 + Math.sin(t * 6) * 0.12) + ')';
+      ctx.beginPath(); ctx.arc(g.art.cx, g.art.cy, asize * 0.72, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = Math.min(1, 0.15 + rev * 1.1);
+    Draw.emoji(ctx, g.art.emoji, g.art.cx, g.art.cy, asize);
+    ctx.globalAlpha = 1;
+
+    // the sand on top — fades cell by cell as you brush
+    for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
+      const s = g.sand[r][c];
+      if (s <= 0.03) continue;
+      const x = g.gx0 + c * g.cw, y = g.gy0 + r * g.ch;
+      ctx.globalAlpha = 0.35 + 0.62 * s;
+      ctx.fillStyle = '#ddc389'; ctx.fillRect(x + 0.5, y + 0.5, g.cw - 1, g.ch - 1);
+      if (s > 0.55) { ctx.globalAlpha = 0.5; ctx.fillStyle = '#c2a86e'; ctx.fillRect(x + g.cw * 0.3, y + g.ch * 0.3, 4, 4); ctx.fillRect(x + g.cw * 0.6, y + g.ch * 0.55, 3, 3); }
+    }
+    ctx.globalAlpha = 1;
+
+    if (g.art.uncovered) Draw.bigText(ctx, '✨ TAP TO LIFT IT OUT! ✨', g.art.cx, g.art.cy + asize * 0.6, 15, '#fff3c0');
+
+    // the brush
+    Draw.emoji(ctx, '🖌️', g.brushPos.x, g.brushPos.y, 40);
+
+    if (g.pop) { Draw.emoji(ctx, g.pop.emoji, g.pop.x, g.pop.y, g.pop.big ? 44 : 34); if (g.pop.big) Draw.bigText(ctx, 'TREASURE!', g.pop.x, g.pop.y - 34, 20, '#c9a100'); }
+    Draw.bigText(ctx, `Relics: ${g.finds}`, GW / 2, GH - 16, 20, '#6a4212');
   },
 });
 
