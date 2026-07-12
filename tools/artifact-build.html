@@ -1267,6 +1267,22 @@ u { text-decoration-thickness: 3px; }
 /* debt — wealth in the red */
 .in-debt { color: #d9534f !important; }
 
+/* ---- athlete: pick your sport --------------------------------------- */
+.sport-picker { text-align: center; padding: 26px 16px; max-width: 640px; margin: 0 auto; }
+.sport-picker h2 { font-size: 32px; }
+.sport-picker .hint { margin-bottom: 4px; }
+.sport-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; }
+.sport-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 22px 12px; background: var(--paper); border: 3px solid var(--ink);
+  border-radius: var(--wobble); box-shadow: 3px 3px 0 var(--ink); cursor: pointer;
+  font-family: var(--font-display); font-size: 19px; letter-spacing: 1px; color: var(--ink);
+}
+.sport-btn:hover { background: var(--money-light); }
+.sport-btn.current { border-color: #1e7fbf; box-shadow: 3px 3px 0 #1e7fbf; }
+.sport-emoji { font-size: 46px; line-height: 1; }
+@media (max-width: 560px) { .sport-emoji { font-size: 38px; } .sport-picker h2 { font-size: 26px; } }
+
 /* ---- calm mode ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1534,11 +1550,14 @@ const GEAR = {
   nomad:        [['🦯','Walking Stick'],['🧴','Water Skin'],    ['🧭','Compass'],        ['🐪','Trusty Camel'],   ['🛺','Caravan']],
   gamer:        [['💻','Office PC'],    ['🖱️','Gaming Mouse'],  ['⌨️','Mech Keyboard'],  ['🖥️','Gaming Rig'],     ['🕹️','Pro Setup']],
   beekeeper:    [['🖐️','Bare Hands'],  ['🥽','Bee Veil'],      ['💨','Smoker'],         ['🥼','Bee Suit'],       ['🤖','Apiary Bots']],
+  socialworker: [['📋','Clipboard'],    ['☎️','Hotline'],       ['🚗','Case Car'],       ['🏢','Field Office'],   ['🤝','Community Center']],
   soldier:      [['🪃','Slingshot'],    ['🔫','Pistol'],        ['🎖️','Rifle'],         ['🦺','Body Armor'],     ['🚙','Tank']],
   criminal:     [['🗝️','Lockpick'],    ['🪛','Crowbar'],       ['🏍️','Getaway Bike'],  ['🏎️','Fast Car'],       ['💻','Hacker Kit']],
   miner:        [['⛏️','Rusty Pick'],   ['⛏️','Iron Pick'],     ['🔩','Steel Drill'],    ['🧨','Dynamite'],       ['💎','Diamond Drill']],
+  construction: [['🧤','Work Gloves'],   ['🔨','Hammer'],        ['🪛','Power Tools'],    ['🏗️','Tower Crane'],    ['🏢','Skyscraper Crew']],
   bodyguard:    [['🖐️','Bare Fists'],   ['🌶️','Pepper Spray'], ['⚡','Taser'],          ['🦺','Kevlar Vest'],    ['🛡️','Riot Shield']],
   engineer:     [['🪛','Screwdriver'],  ['🔧','Wrench Set'],    ['🔩','Power Drill'],    ['🖥️','CAD Station'],    ['🦾','Robot Arm']],
+  lawyer:       [['📎','Paperclip'],     ['📁','Case File'],     ['💼','Briefcase'],      ['📚','Law Library'],    ['⚖️','Supreme Bench']],
   executioner:  [['🪓','Dull Axe'],      ['🪓','Sharp Axe'],     ['⚔️','Broadsword'],    ['🗡️','Great Axe'],      ['🔻','Guillotine']],
   bountyhunter: [['🪢','Lasso'],         ['🔫','Revolver'],      ['🥅','Net Gun'],        ['🛸','Tracker Drone'],  ['🚀','Bounty Rig']],
   firefighter:  [['🧤','Fire Gloves'],   ['🪣','Water Bucket'],  ['🧯','Extinguisher'],   ['🚿','Fire Hose'],      ['🚁','Water Bomber']],
@@ -1580,11 +1599,14 @@ const JOBS = {
   nomad:        { name: 'Nomad',          emoji: '🐪', rarity: 'common',    power: 4,  salary: 250,   fatality: 6,  danger: 'Sandstorm!' },
   gamer:        { name: 'Gamer',          emoji: '🎮', rarity: 'uncommon',  power: 7,  salary: 1200,  fatality: 1,  danger: 'Lag spike!' },
   beekeeper:    { name: 'Beekeeper',      emoji: '🐝', rarity: 'uncommon',  power: 10, salary: 7500,  fatality: 13, danger: 'Bee swarm!' },
+  socialworker: { name: 'Social Worker',  emoji: '🤝', rarity: 'uncommon',  power: 8,  salary: 5000,  fatality: 3,  danger: 'Burnout!' },
   soldier:      { name: 'Soldier',        emoji: '🪖', rarity: 'uncommon',  power: 18, salary: 45e3,  fatality: 52, danger: 'Incoming!' },
   criminal:     { name: 'Criminal',       emoji: '🕶️', rarity: 'uncommon',  power: 12, salary: 90e3,  fatality: 38, danger: 'The cops!' },
   miner:        { name: 'Miner',          emoji: '⛏️', rarity: 'uncommon',  power: 20, salary: 3e6,   fatality: 69, danger: 'Cave-in!' },
+  construction: { name: 'Construction Worker', emoji: '👷', rarity: 'uncommon', power: 15, salary: 80e3, fatality: 28, danger: 'Falling beam!' },
   bodyguard:    { name: 'Bodyguard',      emoji: '🕴️', rarity: 'rare',      power: 22, salary: 250e3, fatality: 33, danger: 'Ambush!' },
   engineer:     { name: 'Engineer',       emoji: '🛠️', rarity: 'rare',      power: 25, salary: 500e3, fatality: 11, danger: 'Bridge wobble!' },
+  lawyer:       { name: 'Lawyer',         emoji: '⚖️', rarity: 'rare',      power: 26, salary: 1.2e6, fatality: 4,  danger: 'Held in contempt!' },
   executioner:  { name: 'Executioner',    emoji: '🪓', rarity: 'rare',      power: 24, salary: 800e3, fatality: 21, danger: 'Axe slipped!' },
   bountyhunter: { name: 'Bounty Hunter',  emoji: '🤠', rarity: 'rare',      power: 28, salary: 2e6,   fatality: 55, danger: 'Target fights back!' },
   firefighter:  { name: 'Firefighter',    emoji: '🚒', rarity: 'rare',      power: 26, salary: 1.5e6, fatality: 65, danger: 'Backdraft!' },
@@ -1613,11 +1635,14 @@ const FIRE_REASONS = {
   nomad:        'You lost the trail — the caravan moved on without you!',
   gamer:        'You went on a losing streak — benched and dropped!',
   beekeeper:    'The hive absconded on your watch — you were let go!',
+  socialworker: 'Too many missed home visits — the agency let you go!',
   soldier:      'You abandoned your post — dishonorable discharge!',
   criminal:     'You botched the heist — the crew cut you loose!',
   miner:        'You came up empty — the foreman laid you off!',
+  construction: 'You misread the blueprint — the site foreman let you go!',
   bodyguard:    'You let danger slip through — the client dropped you!',
   engineer:     'Your bridge wobbled once too often — laid off!',
+  lawyer:       'You lost the big case — the firm showed you the door!',
   executioner:  'Cold feet on the job — you were dismissed!',
   bountyhunter: 'You let the target walk — license revoked!',
   firefighter:  'You let it burn — suspended by the fire chief!',
@@ -1886,6 +1911,7 @@ const State = {
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
       franchises: 0,            // hardware-store franchises owned (each boosts earnings)
+      sport: 'basketball',      // which sport an Athlete plays (chosen before each shift)
       lotteryDay: 0,            // which day the lottery-ticket count below belongs to
       lotteryCount: 0,          // peasant lottery tickets bought so far today
       lastPlayed: 0,            // when this character last played (for sorting)
@@ -2748,6 +2774,12 @@ function defineShift(spec) {
     // opts.trial = { seconds, goal, onResult } runs a short SKILL TRIAL
     // (for a job application): no danger, no real pay — just hit the goal.
     start(root, opts = {}) {
+      // some games (athlete) show a pre-game CHOOSER first. Skip it during a
+      // trial (audition) and after the chooser has already handed control back.
+      if (spec.pregame && !opts.trial && !opts.pregameDone) {
+        spec.pregame(root, () => this.start(root, Object.assign({}, opts, { pregameDone: true })));
+        return;
+      }
       this.root = root;
       this.running = true;
       this.trial = opts.trial || null;
@@ -5395,23 +5427,78 @@ GAMES.hardware = defineShift({
 
 ;
 /* ============================================================
-   ATHLETE 🏀 — SCORE POINTS (fast hands, big money, short career).
-   Open shots pop up around the court — TAP to sink them for huge
-   money. Nail the swish (dead centre) for DOUBLE. Miss the shot
-   clock and it's a turnover — and dodge the Blown knee!, because
-   one bad landing can end a career. The pay is enormous, but
-   nobody plays forever.
+   ATHLETE 🏀⚾🏒🏈 — SCORE POINTS (big money, short career).
+   Pick your sport, then tap the open plays before the clock runs
+   out — hit the dead-centre sweet spot for DOUBLE. Dodge the
+   Blown knee!: the pay is enormous, but nobody plays forever.
    ============================================================ */
 
+const ATHLETE_SPORTS = [
+  { id: 'basketball', name: 'Basketball', emoji: '🏀', title: 'GAME TIME', score: 'SCORE!', bonus: 'SWISH! ×2',     unit: 'Points', field: '#d69a54', line: 'rgba(255,255,255,.55)', accent: '#7a3d0c' },
+  { id: 'baseball',   name: 'Baseball',   emoji: '⚾', title: 'PLAY BALL', score: 'HIT!',   bonus: 'HOME RUN! ×2',  unit: 'Runs',   field: '#7fb56a', line: 'rgba(255,255,255,.6)',  accent: '#3c6b2c' },
+  { id: 'hockey',     name: 'Hockey',     emoji: '🏒', title: 'FACE-OFF',  score: 'GOAL!',  bonus: 'TOP SHELF! ×2', unit: 'Goals',  field: '#dbeef7', line: 'rgba(40,80,110,.5)',   accent: '#1e5f8f' },
+  { id: 'football',   name: 'Football',   emoji: '🏈', title: 'KICKOFF',   score: 'CATCH!', bonus: 'TOUCHDOWN! ×2', unit: 'Points', field: '#5a9a4e', line: 'rgba(255,255,255,.6)',  accent: '#2f5a26' },
+];
+function athleteSport() { return ATHLETE_SPORTS.find(s => s.id === State.data.sport) || ATHLETE_SPORTS[0]; }
+
+// Sport-specific goal drawn at the top-centre of the field.
+function athleteEmblem(ctx, sp) {
+  const cx = GW / 2;
+  ctx.lineWidth = 4;
+  if (sp.id === 'basketball') {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.fillRect(cx - 60, 74, 120, 40); ctx.strokeRect(cx - 60, 74, 120, 40);
+    ctx.strokeStyle = '#e8760c'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(cx, 122, 22, 0, Math.PI * 2); ctx.stroke();
+  } else if (sp.id === 'baseball') {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 26, 88); ctx.lineTo(cx + 26, 88); ctx.lineTo(cx + 26, 106); ctx.lineTo(cx, 122); ctx.lineTo(cx - 26, 106);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (sp.id === 'hockey') {
+    ctx.strokeStyle = '#d9534f'; ctx.strokeRect(cx - 50, 84, 100, 40);
+    ctx.strokeStyle = 'rgba(43,43,51,.4)'; ctx.lineWidth = 1;
+    for (let x = cx - 44; x < cx + 50; x += 10) { ctx.beginPath(); ctx.moveTo(x, 86); ctx.lineTo(x, 122); ctx.stroke(); }
+    for (let y = 88; y < 124; y += 10) { ctx.beginPath(); ctx.moveTo(cx - 48, y); ctx.lineTo(cx + 48, y); ctx.stroke(); }
+  } else { // football goalposts
+    ctx.strokeStyle = '#f4d03f'; ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(cx - 40, 122); ctx.lineTo(cx - 40, 90); ctx.moveTo(cx + 40, 122); ctx.lineTo(cx + 40, 90);
+    ctx.moveTo(cx - 50, 90); ctx.lineTo(cx + 50, 90); ctx.moveTo(cx, 90); ctx.lineTo(cx, 76); ctx.stroke();
+  }
+}
+
 GAMES.athlete = defineShift({
-  hint: 'TAP the <b>open shots</b> 🏀 to score before the shot clock runs out — hit the <b>swish</b> centre for <b>DOUBLE</b>! Dodge the <b>Blown knee!</b>',
+  hint: 'TAP the plays as they pop up to score before the clock runs out — hit the dead-centre <b>sweet spot</b> for <b>DOUBLE</b>! Dodge the <b>Blown knee!</b>',
   duration: r => 44 + r * 5,
 
+  // CHOOSER — pick which sport to suit up for this shift.
+  pregame(root, onReady) {
+    const cur = State.data.sport || 'basketball';
+    root.innerHTML = `
+      <div class="sport-picker">
+        <h2 data-spiky>PICK YOUR SPORT</h2>
+        <p class="hint">Which game are you playing today?</p>
+        <div class="sport-grid">
+          ${ATHLETE_SPORTS.map(s => `
+            <button class="sport-btn${s.id === cur ? ' current' : ''}" data-sport="${s.id}">
+              <span class="sport-emoji">${s.emoji}</span><b>${esc(s.name)}</b>
+            </button>`).join('')}
+        </div>
+      </div>`;
+    UI.spikyAll(root);
+    root.querySelectorAll('.sport-btn').forEach(b => b.addEventListener('click', () => {
+      State.data.sport = b.dataset.sport; State.save();
+      onReady();
+    }));
+  },
+
   init(g) {
+    g.sport = athleteSport();
     g.shots = [];
     g.spawnEvery = 1.2 / g.diff;
     g.spawnT = 0.4;
-    g.life = Math.max(1.1, 2.2 - g.rank * 0.25);      // shot clock per open look
+    g.life = Math.max(1.1, 2.2 - g.rank * 0.25);
     g.unit = Math.max(2, Math.floor(State.salary() / 10));
     g.scored = 0;
     g.pop = null;
@@ -5419,16 +5506,13 @@ GAMES.athlete = defineShift({
 
   pointer(g, x, y) {
     for (let i = g.shots.length - 1; i >= 0; i--) {
-      const s = g.shots[i];
-      const d = Math.hypot(s.x - x, s.y - y);
+      const s = g.shots[i]; const d = Math.hypot(s.x - x, s.y - y);
       if (d <= s.r) {
-        const swish = d <= s.r * 0.34;
-        g.earn(g.unit * (swish ? 2 : 1));
+        const sweet = d <= s.r * 0.34;
+        g.earn(g.unit * (sweet ? 2 : 1));
         g.scored++;
-        g.pop = { x: s.x, y: s.y, swish, t: 0 };
-        g.shots.splice(i, 1);
-        Sound.coin();
-        return;
+        g.pop = { x: s.x, y: s.y, sweet, t: 0 };
+        g.shots.splice(i, 1); Sound.coin(); return;
       }
     }
   },
@@ -5442,38 +5526,230 @@ GAMES.athlete = defineShift({
       g.shots.push({ x: 90 + Math.random() * (GW - 180), y: 150 + Math.random() * (GH - 250), r, life: g.life, max: g.life, born: 0 });
     }
     for (let i = g.shots.length - 1; i >= 0; i--) {
-      const s = g.shots[i];
-      s.born += dt; s.life -= dt;
+      const s = g.shots[i]; s.born += dt; s.life -= dt;
       if (s.life <= 0) { g.shots.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }   // turnover!
     }
   },
 
   draw(g, t) {
-    const ctx = g.ctx;
-    // hardwood court
-    ctx.fillStyle = '#d69a54'; ctx.fillRect(0, 0, GW, GH);
-    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 4;
+    const ctx = g.ctx, sp = g.sport;
+    ctx.fillStyle = sp.field; ctx.fillRect(0, 0, GW, GH);
+    ctx.strokeStyle = sp.line; ctx.lineWidth = 4;
     ctx.strokeRect(24, 80, GW - 48, GH - 104);
     ctx.beginPath(); ctx.arc(GW / 2, GH - 24, 90, Math.PI, 0); ctx.stroke();
-    // backboard + hoop, top centre
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
-    ctx.fillRect(GW / 2 - 60, 74, 120, 40); ctx.strokeRect(GW / 2 - 60, 74, 120, 40);
-    ctx.strokeStyle = '#e8760c'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(GW / 2, 122, 22, 0, Math.PI * 2); ctx.stroke();
-    Draw.bigText(ctx, '🏀 GAME TIME', GW / 2, 40, 28, '#7a3d0c');
+    athleteEmblem(ctx, sp);
+    Draw.bigText(ctx, `${sp.emoji} ${sp.title}`, GW / 2, 40, 28, sp.accent);
 
-    // open shots
     g.shots.forEach(s => {
       const pop = Math.min(1, s.born * 6), r = s.r * pop, warn = s.life < s.max * 0.35;
-      Draw.emoji(ctx, '🏀', s.x, s.y, r * 2);
+      Draw.emoji(ctx, sp.emoji, s.x, s.y, r * 2);
       ctx.strokeStyle = warn ? '#d9534f' : 'rgba(255,255,255,.85)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(s.x, s.y, r + 4, 0, Math.PI * 2); ctx.stroke();
       if (warn) Draw.emoji(ctx, '⏰', s.x, s.y - r - 16, 22);
     });
 
-    if (g.pop) Draw.bigText(ctx, g.pop.swish ? 'SWISH! ×2' : 'SCORE!', g.pop.x, g.pop.y - 28, g.pop.swish ? 26 : 20, g.pop.swish ? '#2f7d3f' : '#7a3d0c');
+    if (g.pop) Draw.bigText(ctx, g.pop.sweet ? sp.bonus : sp.score, g.pop.x, g.pop.y - 28, g.pop.sweet ? 24 : 20, g.pop.sweet ? '#2f7d3f' : sp.accent);
+    Draw.bigText(ctx, `${sp.unit}: ${g.scored}`, GW / 2, GH - 18, 22, sp.accent);
+  },
+});
 
-    Draw.bigText(ctx, `Points: ${g.scored}`, GW / 2, GH - 18, 22, '#7a3d0c');
+;
+/* ============================================================
+   CONSTRUCTION WORKER 👷 — RIVET THE BEAMS (steady, dangerous).
+   Hot rivets glow along the steel frame — TAP each one to bolt it
+   home before it cools. Good pay, but watch for the Falling beam!
+   ============================================================ */
+
+GAMES.construction = defineShift({
+  hint: 'TAP the glowing <b>rivets</b> 🔩 to bolt the beams before they cool! Watch for the <b>Falling beam!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.rivets = [];
+    g.spawnEvery = 0.95 / g.diff;
+    g.spawnT = 0.3;
+    g.life = Math.max(1.3, 2.4 - g.rank * 0.22);
+    g.unit = Math.max(2, Math.floor(State.salary() / 9));
+    g.done = 0;
+    g.pop = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.rivets.length - 1; i >= 0; i--) {
+      const n = g.rivets[i];
+      if (Math.hypot(n.x - x, n.y - y) <= n.r + 10) {
+        g.earn(g.unit); g.done++;
+        g.pop = { x: n.x, y: n.y, t: 0 };
+        g.rivets.splice(i, 1); Sound.ding(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.4) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      g.rivets.push({ x: 70 + Math.random() * (GW - 140), y: 130 + Math.random() * (GH - 210), r: 18, life: g.life, born: 0 });
+    }
+    for (let i = g.rivets.length - 1; i >= 0; i--) {
+      const n = g.rivets[i]; n.born += dt; n.life -= dt;
+      if (n.life <= 0) { g.rivets.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#8fb8d6'; ctx.fillRect(0, 0, GW, GH);         // sky
+    ctx.strokeStyle = '#c25a2a'; ctx.lineWidth = 16;               // steel frame
+    for (let x = 130; x < GW; x += 180) { ctx.beginPath(); ctx.moveTo(x, 90); ctx.lineTo(x, GH); ctx.stroke(); }
+    for (let y = 150; y < GH - 20; y += 120) { ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(GW - 40, y); ctx.stroke(); }
+    Draw.bigText(ctx, '👷 BUILD IT UP', GW / 2, 40, 28, '#7a3d0c');
+
+    g.rivets.forEach(n => {
+      const pop = Math.min(1, n.born * 6), warn = n.life < 0.7;
+      ctx.save(); ctx.translate(n.x, n.y); ctx.scale(pop, pop);
+      ctx.fillStyle = warn ? '#c9a24a' : '#ffcf5a'; ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      if (warn) Draw.emoji(ctx, '⚠️', n.x, n.y - 24, 20);
+    });
+
+    if (g.pop) Draw.bigText(ctx, 'BOLTED!', g.pop.x, g.pop.y - 24, 20, '#7a3d0c');
+    Draw.bigText(ctx, `Rivets: ${g.done}`, GW / 2, GH - 16, 22, '#7a3d0c');
+  },
+});
+
+;
+/* ============================================================
+   LAWYER ⚖️ — WIN THE CASE (sharp, well-paid, low-risk).
+   Evidence flashes up on the stand — TAP each piece to present it
+   before the moment passes. GOLDEN exhibits 🏅 are worth DOUBLE.
+   Big money, little danger — but don't get Held in contempt!
+   ============================================================ */
+
+GAMES.lawyer = defineShift({
+  hint: 'TAP the <b>evidence</b> 📄 as it comes up to win the case — <b>golden</b> exhibits 🏅 are worth <b>DOUBLE</b>! Don\'t get <b>Held in contempt!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.items = [];
+    g.spawnEvery = 1.15 / g.diff;
+    g.spawnT = 0.4;
+    g.life = Math.max(1.2, 2.3 - g.rank * 0.24);
+    g.unit = Math.max(2, Math.floor(State.salary() / 10));
+    g.won = 0;
+    g.pop = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i];
+      if (Math.hypot(it.x - x, it.y - y) <= it.r + 8) {
+        g.earn(g.unit * (it.gold ? 2 : 1)); g.won++;
+        g.pop = { x: it.x, y: it.y, gold: it.gold, t: 0 };
+        g.items.splice(i, 1); Sound.coin(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      g.items.push({ x: 80 + Math.random() * (GW - 160), y: 140 + Math.random() * (GH - 230), r: 26, life: g.life, max: g.life, born: 0, gold: Math.random() < 0.22 });
+    }
+    for (let i = g.items.length - 1; i >= 0; i--) {
+      const it = g.items[i]; it.born += dt; it.life -= dt;
+      if (it.life <= 0) { g.items.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#e9e0cf'; ctx.fillRect(0, 0, GW, GH);          // courtroom
+    ctx.fillStyle = '#7a5230'; ctx.fillRect(0, GH - 80, GW, 80);    // wood panelling
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 80); ctx.lineTo(GW, GH - 80); ctx.stroke();
+    ctx.strokeStyle = 'rgba(122,82,48,.25)'; ctx.lineWidth = 2;
+    for (let x = 60; x < GW; x += 80) { ctx.beginPath(); ctx.moveTo(x, 84); ctx.lineTo(x, GH - 80); ctx.stroke(); }
+    Draw.bigText(ctx, '⚖️ ORDER! ORDER!', GW / 2, 40, 28, '#3a2c66');
+
+    g.items.forEach(it => {
+      const pop = Math.min(1, it.born * 6), r = it.r * pop, warn = it.life < it.max * 0.35;
+      Draw.emoji(ctx, it.gold ? '🏅' : '📄', it.x, it.y, r * 2);
+      ctx.strokeStyle = warn ? '#d9534f' : (it.gold ? '#c98a00' : 'rgba(60,60,80,.5)'); ctx.lineWidth = it.gold ? 3 : 2;
+      ctx.beginPath(); ctx.arc(it.x, it.y, r + 4, 0, Math.PI * 2); ctx.stroke();
+      if (warn) Draw.emoji(ctx, '⏰', it.x, it.y - r - 16, 22);
+    });
+
+    if (g.pop) Draw.bigText(ctx, g.pop.gold ? 'GOLDEN! ×2' : 'OBJECTION!', g.pop.x, g.pop.y - 28, g.pop.gold ? 24 : 20, g.pop.gold ? '#c98a00' : '#3a2c66');
+    Draw.bigText(ctx, `Points: ${g.won}`, GW / 2, GH - 18, 22, '#3a2c66');
+  },
+});
+
+;
+/* ============================================================
+   SOCIAL WORKER 🤝 — HELP PEOPLE (kind, steady, low-risk).
+   People needing a hand pop up around the community — TAP each
+   one to help before they slip away. The pay is modest and the
+   danger low, but the burnout is real: dodge the Burnout!
+   ============================================================ */
+
+GAMES.socialworker = defineShift({
+  hint: 'TAP the <b>people</b> 🙋 who need help before they leave — every one you reach earns their thanks! Watch for <b>Burnout!</b>',
+  duration: r => 46 + r * 6,
+
+  init(g) {
+    g.folks = [];
+    g.spawnEvery = 1.0 / g.diff;
+    g.spawnT = 0.3;
+    g.life = Math.max(1.3, 2.5 - g.rank * 0.22);
+    g.unit = Math.max(2, Math.floor(State.salary() / 7));
+    g.helped = 0;
+    g.pop = null;
+  },
+
+  pointer(g, x, y) {
+    for (let i = g.folks.length - 1; i >= 0; i--) {
+      const p = g.folks[i];
+      if (Math.hypot(p.x - x, p.y - y) <= p.r + 10) {
+        g.earn(g.unit); g.helped++;
+        g.pop = { x: p.x, y: p.y, t: 0 };
+        g.folks.splice(i, 1); Sound.ding(); return;
+      }
+    }
+  },
+
+  update(g, dt) {
+    if (g.pop) { g.pop.t += dt; if (g.pop.t > 0.5) g.pop = null; }
+    g.spawnT -= dt;
+    if (g.spawnT <= 0) {
+      g.spawnT = g.spawnEvery * (0.7 + Math.random() * 0.6);
+      const kinds = ['🙋', '🧑', '👵', '🧒', '🙍'];
+      g.folks.push({ x: 70 + Math.random() * (GW - 140), y: 140 + Math.random() * (GH - 230), r: 26, life: g.life, max: g.life, born: 0, who: kinds[Math.floor(Math.random() * kinds.length)] });
+    }
+    for (let i = g.folks.length - 1; i >= 0; i--) {
+      const p = g.folks[i]; p.born += dt; p.life -= dt;
+      if (p.life <= 0) { g.folks.splice(i, 1); g.flash('#d9534f'); Sound.thud(); }
+    }
+  },
+
+  draw(g, t) {
+    const ctx = g.ctx;
+    ctx.fillStyle = '#fce8d6'; ctx.fillRect(0, 0, GW, GH);          // warm community centre
+    ctx.fillStyle = '#e7b98f'; ctx.fillRect(0, GH - 70, GW, 70);    // floor
+    ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, GH - 70); ctx.lineTo(GW, GH - 70); ctx.stroke();
+    Draw.bigText(ctx, '🤝 LEND A HAND', GW / 2, 40, 28, '#2f8a7a');
+
+    g.folks.forEach(p => {
+      const pop = Math.min(1, p.born * 6), r = p.r * pop, warn = p.life < p.max * 0.35;
+      Draw.emoji(ctx, p.who, p.x, p.y, r * 2);
+      if (warn) Draw.emoji(ctx, '💤', p.x + r, p.y - r, 20);
+    });
+
+    if (g.pop) Draw.bigText(ctx, 'HELPED! ❤️', g.pop.x, g.pop.y - 28, 20, '#2f8a7a');
+    Draw.bigText(ctx, `Helped: ${g.helped}`, GW / 2, GH - 14, 22, '#2f8a7a');
   },
 });
 

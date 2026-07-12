@@ -188,6 +188,7 @@ const State = {
       gear: { rod: 0 },         // owned equipment; rod = index into RODS
       appShelf: SHOP_APP_POOL.slice(),   // rotating order of the applications-shop extras
       franchises: 0,            // hardware-store franchises owned (each boosts earnings)
+      sport: 'basketball',      // which sport an Athlete plays (chosen before each shift)
       lotteryDay: 0,            // which day the lottery-ticket count below belongs to
       lotteryCount: 0,          // peasant lottery tickets bought so far today
       lastPlayed: 0,            // when this character last played (for sorting)

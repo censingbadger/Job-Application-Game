@@ -73,6 +73,12 @@ function defineShift(spec) {
     // opts.trial = { seconds, goal, onResult } runs a short SKILL TRIAL
     // (for a job application): no danger, no real pay — just hit the goal.
     start(root, opts = {}) {
+      // some games (athlete) show a pre-game CHOOSER first. Skip it during a
+      // trial (audition) and after the chooser has already handed control back.
+      if (spec.pregame && !opts.trial && !opts.pregameDone) {
+        spec.pregame(root, () => this.start(root, Object.assign({}, opts, { pregameDone: true })));
+        return;
+      }
       this.root = root;
       this.running = true;
       this.trial = opts.trial || null;
