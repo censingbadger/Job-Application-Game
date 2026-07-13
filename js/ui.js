@@ -19,6 +19,15 @@ function esc(text) {
   return String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+// A tiny, deliberately-simple scramble so a character's password isn't kept
+// in the clear (not real security — this is a friendly "keep out" lock).
+function hashPass(s) {
+  let h = 5381;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return 'p' + h.toString(36);
+}
+
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -135,7 +144,7 @@ const UI = {
                placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
         <button class="btn btn-go signin-go" type="submit">Let's go!</button>
       </form>
-      <p class="signin-note">No password needed — just your name keeps your character safe on this device.</p>`;
+      <p class="signin-note">🔒 You'll set a secret <b>password</b> so only YOU can play as your character.</p>`;
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
@@ -147,14 +156,33 @@ const UI = {
     }));
 
     const finish = async (name, chosenAvatar) => {
-      // brief "loading" state while we check the cloud for this character
-      const loading = el('div', 'signin');
-      loading.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
+      box.innerHTML = `<h2 class="signin-title" data-spiky>ONE SEC...</h2>
+        <p class="signin-note">Looking up <b>${esc(name)}</b>...</p>`;
+      UI.spikyAll(box);
+
+      // Is there already a character with this name (here or in the cloud),
+      // and does it have a password? That decides ENTER vs. MAKE a password.
+      const local = Profiles.localData(name);
+      let cloud = null;
+      if (Cloud.on()) { Cloud.start(); try { const r = await Cloud.load(name); if (r && r.path) cloud = r; } catch (e) { /* offline */ } }
+      const savedHash = (cloud && cloud.pass) || (local && local.pass) || null;
+      const exists = !!(local || cloud);
+
+      let newHash = null;
+      if (savedHash) {
+        const ok = await UI._passEnter(box, name, savedHash);         // must know the password
+        if (!ok) { modal.close(); UI.signInGate(onDone); return; }
+      } else {
+        const pw = await UI._passSet(box, name, exists);              // set one (funny notice for returning players)
+        if (pw == null) { modal.close(); UI.signInGate(onDone); return; }
+        newHash = hashPass(pw);
+      }
+
+      box.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
         <p class="signin-note">Finding <b>${esc(name)}</b>'s character...</p>`;
-      box.innerHTML = '';
-      box.appendChild(loading);
       UI.spikyAll(box);
       const res = await Profiles.signInAsync(name, chosenAvatar);
+      if (newHash) { State.data.pass = newHash; Profiles.saveActive(); if (Cloud.on()) Cloud.pushNow().catch(() => { /* offline — the background pusher retries */ }); }
       modal.close();
       const who = Profiles.currentName();
       const msg = res.isNew ? `New character — good luck, ${who}!`
@@ -175,6 +203,67 @@ const UI = {
       finish(name, avatar);
     });
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
+  },
+
+  // MAKE a password (for a new character, or an old one that never had one).
+  // `returning` = an existing character being upgraded → show the funny notice.
+  // Resolves to the chosen password, or null if they backed out.
+  _passSet(box, name, returning) {
+    return new Promise(resolve => {
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>${returning ? '🚨 NEW RULE! 🚨' : '🔒 MAKE A PASSWORD'}</h2>
+        ${returning ? `<p class="signin-sus" style="font-weight:800;color:#b23b2e;font-size:1.12em;line-height:1.4;margin:6px 0">
+             Asher and Jinghe saw some <b>SUS</b> behavior and <b>FUNNY BUSINESS</b> — and now we need <b>PASSWORDS</b>!!!</p>` : ''}
+        <p class="signin-note">${returning
+            ? `Pick a password for <b>${esc(name)}</b> so nobody else can play as them:`
+            : `Pick a password to keep <b>${esc(name)}</b> safe — only you'll know it:`}</p>
+        <form class="signin-form" autocomplete="off">
+          <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="Type a password..." aria-label="Choose a password" enterkeyhint="go">
+          <button class="btn btn-go signin-pass-go" type="submit">${returning ? 'Set it!' : 'Set password'}</button>
+        </form>
+        <button class="btn signin-pass-back" type="button">← back</button>`;
+      UI.spikyAll(box);
+      const form = box.querySelector('.signin-form');
+      const input = box.querySelector('#signin-pass');
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const pw = input.value.trim();
+        if (!pw) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
+        resolve(pw);
+      });
+      box.querySelector('.signin-pass-back').addEventListener('click', () => resolve(null));
+      setTimeout(() => input.focus(), 60);
+    });
+  },
+
+  // ENTER the password for a character that has one. Resolves true if correct,
+  // false if they backed out. Wrong guesses just shake and let them retry.
+  _passEnter(box, name, savedHash) {
+    return new Promise(resolve => {
+      const render = wrong => {
+        box.innerHTML = `
+          <h2 class="signin-title" data-spiky>🔒 PASSWORD</h2>
+          <p class="signin-note">Enter <b>${esc(name)}</b>'s password to play:</p>
+          <form class="signin-form" autocomplete="off">
+            <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="Password..." aria-label="Password" enterkeyhint="go">
+            <button class="btn btn-go signin-pass-go" type="submit">Go!</button>
+          </form>
+          ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ Nope — that\'s not it. Try again!</p>' : ''}
+          <button class="btn signin-pass-back" type="button">← not you? go back</button>`;
+        UI.spikyAll(box);
+        const form = box.querySelector('.signin-form');
+        const input = box.querySelector('#signin-pass');
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          if (hashPass(input.value.trim()) === savedHash) { resolve(true); return; }
+          input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500);
+          render(true);
+        });
+        box.querySelector('.signin-pass-back').addEventListener('click', () => resolve(false));
+        setTimeout(() => input.focus(), 60);
+      };
+      render(false);
+    });
   },
 
   // Save the current character and go back to the "Who's playing?" screen.

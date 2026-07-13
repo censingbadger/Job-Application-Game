@@ -47,6 +47,13 @@ const Profiles = {
     return c && this.store.players[c] ? this.store.players[c].name : null;
   },
 
+  // Peek at a saved character's data on THIS device without signing in
+  // (used to check for a password before letting someone play).
+  localData(name) {
+    const p = this.store.players[this.key(name)];
+    return p ? p.data : null;
+  },
+
   // The active character's save data (the real object we keep mutating).
   activeData() {
     const c = this.store.current;
