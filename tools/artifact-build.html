@@ -1786,6 +1786,16 @@ const Profiles = {
     return p ? p.data : null;
   },
 
+  // Grown-up reset: wipe a character's password (here AND in the cloud) so
+  // they can set a fresh one next time they sign in.
+  clearPass(name) {
+    const p = this.store.players[this.key(name)];
+    if (!p) return;
+    delete p.data.pass;
+    this._write();
+    if (Cloud.on()) Cloud.save(p.name, p.data).catch(() => { /* offline — clears locally now, cloud on next sync */ });
+  },
+
   // The active character's save data (the real object we keep mutating).
   activeData() {
     const c = this.store.current;
@@ -2348,6 +2358,11 @@ function hashPass(s) {
   return 'p' + h.toString(36);
 }
 
+// The "grown-up" master password (stored scrambled, like everyone else's).
+// A grown-up who knows it can wipe any character's password so they can set
+// a new one. To change it: run hashPass('your new word') and paste the result.
+const GROWNUP_HASH = 'pfxmkiu';
+
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -2464,7 +2479,8 @@ const UI = {
                placeholder="Type your name..." aria-label="Your name" enterkeyhint="go">
         <button class="btn btn-go signin-go" type="submit">Let's go!</button>
       </form>
-      <p class="signin-note">🔒 You'll set a secret <b>password</b> so only YOU can play as your character.</p>`;
+      <p class="signin-note">🔒 You'll set a secret <b>password</b> so only YOU can play as your character.</p>
+      <button class="btn signin-grownup" type="button" style="margin-top:4px;font-size:.82em;opacity:.75">🔑 Grown-up: reset a password</button>`;
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
@@ -2522,6 +2538,8 @@ const UI = {
       if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
       finish(name, avatar);
     });
+    const grown = box.querySelector('.signin-grownup');
+    if (grown) grown.addEventListener('click', () => UI._grownupReset(box, () => { modal.close(); UI.signInGate(onDone); }));
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
   },
 
@@ -2584,6 +2602,60 @@ const UI = {
       };
       render(false);
     });
+  },
+
+  // GROWN-UP RESET: a grown-up types the master password, then picks whose
+  // character password to wipe (so that kid can set a fresh one). `onExit`
+  // returns to the "Who's playing?" screen.
+  _grownupReset(box, onExit) {
+    const askMaster = wrong => {
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>🔑 GROWN-UP RESET</h2>
+        <p class="signin-note">Grown-ups only! Type the <b>master password</b> to clear a forgotten password:</p>
+        <form class="signin-form" autocomplete="off">
+          <input class="signin-input" id="signin-pass" type="password" maxlength="32" placeholder="Master password..." aria-label="Master password" enterkeyhint="go">
+          <button class="btn btn-go signin-pass-go" type="submit">Unlock</button>
+        </form>
+        ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ That\'s not the master password.</p>' : ''}
+        <button class="btn signin-pass-back" type="button">← back</button>`;
+      UI.spikyAll(box);
+      const form = box.querySelector('.signin-form');
+      const inp = box.querySelector('#signin-pass');
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        if (hashPass(inp.value.trim()) === GROWNUP_HASH) { showPanel(); return; }
+        inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 500);
+        askMaster(true);
+      });
+      box.querySelector('.signin-pass-back').addEventListener('click', () => onExit());
+      setTimeout(() => inp.focus(), 60);
+    };
+    const showPanel = () => {
+      const players = Profiles.list();
+      const rows = players.length ? players.map(p => {
+        const has = !!(p.data && p.data.pass);
+        const job = JOBS[p.data.path.jobId];
+        return `<div class="grownup-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid rgba(43,43,51,.12)">
+          <span style="display:flex;align-items:center;gap:8px"><span style="font-size:1.5em">${p.data.avatar || (job ? job.emoji : '🙂')}</span><b>${esc(p.name)}</b></span>
+          ${has
+            ? `<button class="btn grownup-clear" data-name="${esc(p.name)}" style="font-size:.82em">Clear password</button>`
+            : '<span style="opacity:.6;font-size:.82em">🔓 no password</span>'}
+        </div>`;
+      }).join('') : '<p class="signin-note">No characters saved on this device yet.</p>';
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>🔑 CLEAR A PASSWORD</h2>
+        <p class="signin-note">Tap <b>Clear password</b> for whoever forgot theirs — they'll pick a new one next time they sign in.</p>
+        <div class="grownup-list" style="text-align:left;max-width:340px;margin:0 auto">${rows}</div>
+        <button class="btn signin-pass-back" type="button" style="margin-top:10px">← done</button>`;
+      UI.spikyAll(box);
+      box.querySelectorAll('.grownup-clear').forEach(b => b.addEventListener('click', () => {
+        Profiles.clearPass(b.dataset.name);
+        UI.toast(`Cleared ${b.dataset.name}'s password`, '🔓');
+        showPanel();
+      }));
+      box.querySelector('.signin-pass-back').addEventListener('click', () => onExit());
+    };
+    askMaster(false);
   },
 
   // Save the current character and go back to the "Who's playing?" screen.
