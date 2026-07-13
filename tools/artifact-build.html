@@ -2974,6 +2974,9 @@ function defineShift(spec) {
       this.dangerActive = null;
       this.maxHp = CONFIG.workHP;
       this.hp = this.maxHp;                             // full health each new day
+      this._taps = [];                                  // recent taps, for auto-clicker detection
+      this._botUntil = 0;                               // ignore input until this time if a bot is caught
+      this._botWarnT = 0;
 
       // No danger during a trial (it's an audition). Otherwise: more
       // fatality = more danger moments (each missed dodge costs a heart).
@@ -2999,6 +3002,7 @@ function defineShift(spec) {
         if (!this.running || this.dangerActive) return;
         e.preventDefault();
         const [x, y] = toCanvas(e);
+        if (this._autoClicker(x, y)) return;            // no auto-clicker farming
         if (spec.pointer) spec.pointer(this, x, y);
       };
       this._move = e => {
@@ -3080,6 +3084,41 @@ function defineShift(spec) {
     },
 
     flash(color) { this.flashColor = color; this.flashT = 0.25; },
+
+    // ---- ANTI AUTO-CLICKER ------------------------------------
+    // Auto-clicker apps hammer the SAME spot at a machine-steady tempo, far
+    // faster than a person can. We watch the last handful of taps: if they're
+    // coming too fast AND are either pinned to one spot or metronomically
+    // even, we ignore them (and flash a "no robots" warning). Real play never
+    // taps a single point 12+ times a second, so honest fast tappers are fine.
+    _autoClicker(x, y) {
+      const now = performance.now();
+      if (now < this._botUntil) return true;            // still cooling down from a catch
+      const taps = this._taps;
+      taps.push({ t: now, x, y });
+      if (taps.length > 14) taps.shift();
+      if (taps.length < 10) return false;
+      const w = taps.slice(-10);
+      const rate = 9000 / (w[9].t - w[0].t);            // taps per second across the last 10
+      if (rate < 12) return false;                      // human speed — let it through
+      // how even are the gaps, and how spread out are the positions?
+      let s = 0, s2 = 0;
+      for (let i = 1; i < w.length; i++) { const d = w[i].t - w[i - 1].t; s += d; s2 += d * d; }
+      const mean = s / 9, sd = Math.sqrt(Math.max(0, s2 / 9 - mean * mean));
+      let spread = 0;
+      for (let i = 0; i < w.length; i++) for (let j = i + 1; j < w.length; j++) {
+        const d = Math.hypot(w[i].x - w[j].x, w[i].y - w[j].y); if (d > spread) spread = d;
+      }
+      // a bot: absurd rate, or fast + pinned to a spot, or fast + metronomic
+      if (rate >= 25 || spread < 12 || sd < 9) {
+        this._botUntil = now + 1600;
+        this._taps = [];
+        this.flash('#d9534f');
+        if (now - this._botWarnT > 2500) { this._botWarnT = now; Sound.danger(); UI.toast('🤖 No auto-clickers! Play it for real.', '🚫'); }
+        return true;
+      }
+      return false;
+    },
 
     _renderShell() {
       const job = this.job;
