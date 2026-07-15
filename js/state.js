@@ -9,6 +9,7 @@
 
 const PROFILES_KEY = 'jobApplicationGame.profiles.v1';
 const LEGACY_KEY = 'jobApplicationGame.v1';   // the old one-character save
+const BACKUPS_KEY = 'jobApplicationGame.backups.v1';   // automatic undo snapshots
 
 // ------------------------------------------------------------
 // PROFILES — the list of everyone who plays on this device,
@@ -103,7 +104,10 @@ const Profiles = {
   signOut() {
     State.save();
     const name = this.currentName();
-    if (name && State.data && Cloud.on()) Cloud.save(name, State.data);  // flush before leaving
+    if (name && State.data) {
+      Backups.save(name, State.data);                       // a "last known good" checkpoint
+      if (Cloud.on()) Cloud.save(name, State.data);         // flush before leaving
+    }
     this.store.current = null;
     this._write();
     State.data = null;
@@ -186,6 +190,82 @@ const Profiles = {
   },
 };
 
+// ------------------------------------------------------------
+// BACKUPS — automatic undo snapshots so a wipe is never forever.
+// Before anything erases or overwrites a character, we tuck a copy
+// away (on this device AND, if the cloud is on, in the cloud) so a
+// grown-up can bring it back from the admin panel later.
+//   store = { key: [ {at, snapshot}, ... newest first ] }
+// ------------------------------------------------------------
+const Backups = {
+  cap: 10,   // keep the last few snapshots per character
+
+  _read() {
+    try { return JSON.parse(localStorage.getItem(BACKUPS_KEY)) || {}; } catch (e) { return {}; }
+  },
+  _write(o) {
+    try { localStorage.setItem(BACKUPS_KEY, JSON.stringify(o)); } catch (e) { /* private mode */ }
+  },
+
+  // True when two snapshots are the same moment of progress (so we don't
+  // stack ten identical copies when nothing has changed).
+  _same(a, b) {
+    return a && b && a.wealth === b.wealth && a.day === b.day &&
+      (a.lastPlayed || 0) === (b.lastPlayed || 0);
+  },
+
+  // A brand-new character (day 1, never worked a day, still the starter job)
+  // has nothing worth backing up — don't clutter the restore list with empties
+  // (this is also what stops a just-wiped character from being snapshotted).
+  _worthKeeping(d) {
+    const fresh = (d.day || 1) <= 1
+      && (!d.stats || (d.stats.daysWorked || 0) === 0)
+      && (!d.path || (d.path.jobId === 'fisherman' && (d.path.rank || 0) === 0));
+    return !fresh;
+  },
+
+  // Tuck away a copy of `data` for this name (local now, cloud in the background).
+  save(name, data) {
+    if (!name || !data || !this._worthKeeping(data)) return;
+    const all = this._read();
+    const key = Profiles.key(name);
+    const list = Array.isArray(all[key]) ? all[key] : [];
+    if (!list.length || !this._same(list[0].snapshot, data)) {
+      let copy = data;
+      try { copy = JSON.parse(JSON.stringify(data)); } catch (e) { /* keep ref */ }
+      list.unshift({ at: Date.now(), snapshot: copy });
+      all[key] = list.slice(0, this.cap);
+      this._write(all);
+    }
+    if (Cloud.on()) Cloud.backup(name, data).catch(() => { /* offline — local copy is safe */ });
+  },
+
+  // Snapshots saved on THIS device for a name (newest first).
+  localList(name) {
+    const all = this._read();
+    return all[Profiles.key(name)] || [];
+  },
+
+  // Local + cloud snapshots for a name, merged newest-first and de-duped.
+  async list(name) {
+    const local = this.localList(name).map(s => Object.assign({ where: 'local' }, s));
+    let cloud = [];
+    if (Cloud.on()) {
+      try { cloud = (await Cloud.loadBackups(name)).map(s => Object.assign({ where: 'cloud' }, s)); }
+      catch (e) { cloud = []; }
+    }
+    const seen = new Set();
+    return local.concat(cloud)
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+      .filter(s => {
+        const sig = (s.at || 0) + ':' + ((s.snapshot && s.snapshot.wealth) || 0) + ':' + ((s.snapshot && s.snapshot.day) || 0);
+        if (seen.has(sig)) return false;
+        seen.add(sig);
+        return true;
+      });
+  },
+};
+
 const State = {
   data: null,
 
@@ -247,9 +327,11 @@ const State = {
   },
 
   // Erase the CURRENT character back to a brand-new start (same name).
+  // We snapshot first, so even a "wipe" can be undone from the admin panel.
   reset() {
     if (!this.data) return;
     const name = this.data.name;
+    Backups.save(name, this.data);           // <-- undo point BEFORE the wipe
     this.data = this.fresh();
     this.data.name = name;
     const c = Profiles.store.current;

@@ -150,7 +150,7 @@ const UI = {
         <button class="btn btn-go signin-go" type="submit">Let's go!</button>
       </form>
       <p class="signin-note">🔒 You'll set a secret <b>password</b> so only YOU can play as your character.</p>
-      <button class="btn signin-grownup" type="button" style="margin-top:4px;font-size:.82em;opacity:.75">🔑 Grown-up: reset a password</button>`;
+      <button class="btn signin-grownup" type="button" style="margin-top:4px;font-size:.82em;opacity:.75">🔑 Grown-up: admin (fix &amp; restore)</button>`;
     const modal = UI.openModal(box, { locked: true });
     UI.spikyAll(box);
 
@@ -209,7 +209,7 @@ const UI = {
       finish(name, avatar);
     });
     const grown = box.querySelector('.signin-grownup');
-    if (grown) grown.addEventListener('click', () => UI._grownupReset(box, () => { modal.close(); UI.signInGate(onDone); }));
+    if (grown) grown.addEventListener('click', () => UI._adminPanel(box, () => { modal.close(); UI.signInGate(onDone); }));
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
   },
 
@@ -274,14 +274,54 @@ const UI = {
     });
   },
 
-  // GROWN-UP RESET: a grown-up types the master password, then picks whose
-  // character password to wipe (so that kid can set a fresh one). `onExit`
-  // returns to the "Who's playing?" screen.
-  _grownupReset(box, onExit) {
+  // Ask for the grown-up master password in its OWN pop-up (used to guard
+  // risky things like START OVER). Calls opts.onOk() when the password is
+  // right. Returns the modal so the caller can hold onto it.
+  requireGrownup(opts = {}) {
+    const box = el('div', 'signin');
+    const render = wrong => {
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>${esc(opts.title || '🔑 GROWN-UP ONLY')}</h2>
+        <p class="signin-note">${opts.note || 'Type the <b>master password</b> to continue:'}</p>
+        <form class="signin-form" autocomplete="off">
+          <input class="signin-input" id="signin-pass" type="password" maxlength="32" placeholder="Master password..." aria-label="Master password" enterkeyhint="go">
+          <button class="btn btn-go signin-pass-go" type="submit">${esc(opts.go || 'Unlock')}</button>
+        </form>
+        ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ That\'s not the master password.</p>' : ''}
+        <button class="btn signin-pass-back" type="button">← cancel</button>`;
+      UI.spikyAll(box);
+      const form = box.querySelector('.signin-form');
+      const inp = box.querySelector('#signin-pass');
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        if (hashPass(inp.value.trim()) === GROWNUP_HASH) { modal.close(); if (opts.onOk) opts.onOk(); return; }
+        inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 500);
+        render(true);
+      });
+      box.querySelector('.signin-pass-back').addEventListener('click', () => { modal.close(); if (opts.onCancel) opts.onCancel(); });
+      setTimeout(() => inp.focus(), 60);
+    };
+    const modal = UI.openModal(box, { locked: true });
+    render(false);
+    return modal;
+  },
+
+  // GROWN-UP ADMIN: type the master password, then view EVERY character
+  // (on this device and in the cloud), fix their money/day/job, restore a
+  // wiped one from an automatic backup, or clear a forgotten password.
+  // `onExit` returns to the "Who's playing?" screen.
+  _adminPanel(box, onExit) {
+    const back = '<button class="btn signin-pass-back" type="button" style="margin-top:10px">← back</button>';
+    const summary = d => {
+      const job = JOBS[d.path && d.path.jobId];
+      return `Day ${d.day || 1} · ${fmtMoney(d.wealth || 0)} · ${job ? job.name : '—'}`;
+    };
+
+    // 1) master-password gate --------------------------------------------
     const askMaster = wrong => {
       box.innerHTML = `
-        <h2 class="signin-title" data-spiky>🔑 GROWN-UP RESET</h2>
-        <p class="signin-note">Grown-ups only! Type the <b>master password</b> to clear a forgotten password:</p>
+        <h2 class="signin-title" data-spiky>🔑 GROWN-UP ADMIN</h2>
+        <p class="signin-note">Grown-ups only! Type the <b>master password</b> to fix or restore characters:</p>
         <form class="signin-form" autocomplete="off">
           <input class="signin-input" id="signin-pass" type="password" maxlength="32" placeholder="Master password..." aria-label="Master password" enterkeyhint="go">
           <button class="btn btn-go signin-pass-go" type="submit">Unlock</button>
@@ -293,38 +333,154 @@ const UI = {
       const inp = box.querySelector('#signin-pass');
       form.addEventListener('submit', e => {
         e.preventDefault();
-        if (hashPass(inp.value.trim()) === GROWNUP_HASH) { showPanel(); return; }
+        if (hashPass(inp.value.trim()) === GROWNUP_HASH) { showList(); return; }
         inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 500);
         askMaster(true);
       });
       box.querySelector('.signin-pass-back').addEventListener('click', () => onExit());
       setTimeout(() => inp.focus(), 60);
     };
-    const showPanel = () => {
-      const players = Profiles.list();
-      const rows = players.length ? players.map(p => {
-        const has = !!(p.data && p.data.pass);
-        const job = JOBS[p.data.path.jobId];
-        return `<div class="grownup-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid rgba(43,43,51,.12)">
-          <span style="display:flex;align-items:center;gap:8px"><span style="font-size:1.5em">${p.data.avatar || (job ? job.emoji : '🙂')}</span><b>${esc(p.name)}</b></span>
-          ${has
-            ? `<button class="btn grownup-clear" data-name="${esc(p.name)}" style="font-size:.82em">Clear password</button>`
-            : '<span style="opacity:.6;font-size:.82em">🔓 no password</span>'}
-        </div>`;
-      }).join('') : '<p class="signin-note">No characters saved on this device yet.</p>';
+
+    // 2) the roster of every character -----------------------------------
+    const showList = async () => {
       box.innerHTML = `
-        <h2 class="signin-title" data-spiky>🔑 CLEAR A PASSWORD</h2>
-        <p class="signin-note">Tap <b>Clear password</b> for whoever forgot theirs — they'll pick a new one next time they sign in.</p>
-        <div class="grownup-list" style="text-align:left;max-width:340px;margin:0 auto">${rows}</div>
+        <h2 class="signin-title" data-spiky>🔑 GROWN-UP ADMIN</h2>
+        <p class="signin-note">Loading everyone…</p>`;
+      UI.spikyAll(box);
+      const chars = await Admin.allCharacters();
+      const rows = chars.length ? chars.map((c, i) => {
+        const job = JOBS[c.data.path && c.data.path.jobId];
+        const where = c.where === 'cloud' ? '☁️' : c.where === 'both' ? '☁️📱' : '📱';
+        const lock = c.data.pass ? '🔒' : '🔓';
+        return `<div class="admin-row grownup-row" data-i="${i}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid rgba(43,43,51,.12)">
+          <span style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="font-size:1.5em">${c.data.avatar || (job ? job.emoji : '🙂')}</span>
+            <span style="min-width:0">
+              <b style="display:block">${esc(c.name)} <span style="font-weight:400;opacity:.6;font-size:.8em">${where} ${lock}</span></b>
+              <small style="opacity:.75">${esc(summary(c.data))}</small>
+            </span>
+          </span>
+          <span style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn admin-edit" data-i="${i}" style="font-size:.78em">Edit</button>
+            <button class="btn admin-restore" data-i="${i}" style="font-size:.78em">Restore</button>
+            ${c.data.pass ? `<button class="btn grownup-clear admin-clear" data-name="${esc(c.name)}" data-i="${i}" style="font-size:.78em">🔓</button>` : ''}
+          </span>
+        </div>`;
+      }).join('') : '<p class="signin-note">No characters found — on this device or in the cloud.</p>';
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>🔑 GROWN-UP ADMIN</h2>
+        <p class="signin-note">Tap <b>Edit</b> to change money/day/job, <b>Restore</b> to bring back a wiped character, or 🔓 to clear a password.</p>
+        <div class="grownup-list admin-list" style="text-align:left;max-width:360px;margin:0 auto;max-height:52vh;overflow:auto">${rows}</div>
         <button class="btn signin-pass-back" type="button" style="margin-top:10px">← done</button>`;
       UI.spikyAll(box);
-      box.querySelectorAll('.grownup-clear').forEach(b => b.addEventListener('click', () => {
-        Profiles.clearPass(b.dataset.name);
-        UI.toast(`Cleared ${b.dataset.name}'s password`, '🔓');
-        showPanel();
+      box.querySelectorAll('.admin-edit').forEach(b => b.addEventListener('click', () => editChar(chars[+b.dataset.i])));
+      box.querySelectorAll('.admin-restore').forEach(b => b.addEventListener('click', () => restoreChar(chars[+b.dataset.i])));
+      box.querySelectorAll('.admin-clear').forEach(b => b.addEventListener('click', () => {
+        const c = chars[+b.dataset.i];
+        Profiles.clearPass(c.name);
+        if (c.data) delete c.data.pass;
+        if (Cloud.on()) Cloud.save(c.name, c.data).catch(() => { /* offline */ });
+        UI.toast(`Cleared ${c.name}'s password`, '🔓');
+        showList();
       }));
       box.querySelector('.signin-pass-back').addEventListener('click', () => onExit());
     };
+
+    // 3) edit one character's money / day / job --------------------------
+    const editChar = entry => {
+      const d = entry.data;
+      const jobs = Object.keys(JOBS).sort((a, b) => JOBS[a].name.localeCompare(JOBS[b].name));
+      const curJob = d.path && d.path.jobId;
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>✏️ EDIT</h2>
+        <p class="signin-note">Change <b>${esc(entry.name)}</b> — then Save.</p>
+        <form class="signin-form admin-form" autocomplete="off" style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto;text-align:left">
+          <label style="font-weight:700">💰 Money
+            <input class="signin-input admin-in" id="admin-wealth" type="number" step="1" value="${Math.floor(d.wealth || 0)}" style="width:100%">
+          </label>
+          <label style="font-weight:700">📅 Day
+            <input class="signin-input admin-in" id="admin-day" type="number" min="1" step="1" value="${Math.max(1, d.day || 1)}" style="width:100%">
+          </label>
+          <label style="font-weight:700">🧰 Job
+            <select class="signin-input admin-in" id="admin-job" style="width:100%">
+              ${jobs.map(id => `<option value="${id}"${id === curJob ? ' selected' : ''}>${esc(JOBS[id].name)}</option>`).join('')}
+            </select>
+          </label>
+          <button class="btn btn-go admin-save" type="submit">Save changes</button>
+        </form>
+        ${back}`;
+      UI.spikyAll(box);
+      box.querySelector('.admin-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const w = Math.floor(Number(box.querySelector('#admin-wealth').value));
+        const day = Math.max(1, Math.floor(Number(box.querySelector('#admin-day').value)));
+        const jobId = box.querySelector('#admin-job').value;
+        const next = Object.assign(State.fresh(), d);   // fill any missing fields
+        next.wealth = isFinite(w) ? w : (d.wealth || 0);
+        next.day = isFinite(day) ? day : (d.day || 1);
+        if (JOBS[jobId]) {
+          const rank = (d.path && d.path.rank) || 0;
+          const career = (d.path && d.path.career) || 0;
+          next.path = { jobId, rank: Math.min(rank, RANK_UP_AT.length - 1), career };
+        }
+        next.lastPlayed = Date.now();
+        if (next.stats && next.wealth > (next.stats.peakWealth || 0)) next.stats.peakWealth = next.wealth;
+        entry.data = next;
+        await Admin.saveCharacter(entry.name, next);
+        UI.toast(`Saved ${entry.name}`, '✅');
+        showList();
+      });
+      box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
+    };
+
+    // 4) restore one character from an automatic backup ------------------
+    const restoreChar = async entry => {
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>♻️ RESTORE</h2>
+        <p class="signin-note">Looking for saved snapshots of <b>${esc(entry.name)}</b>…</p>`;
+      UI.spikyAll(box);
+      const snaps = await Backups.list(entry.name);
+      const rows = snaps.length ? snaps.map((s, i) => {
+        const when = new Date(s.at || 0);
+        const label = isFinite(when.getTime()) && s.at ? when.toLocaleString() : 'earlier';
+        return `<button class="btn admin-snap" data-i="${i}" style="display:block;width:100%;text-align:left;margin:5px 0;font-size:.86em">
+          <b>📅 ${esc(label)}</b><br><small style="opacity:.8">${esc(summary(s.snapshot || {}))}</small>
+        </button>`;
+      }).join('') : `<p class="signin-note">No snapshots saved yet for <b>${esc(entry.name)}</b>. From now on the game saves one automatically whenever they sign out or start over.</p>`;
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>♻️ RESTORE</h2>
+        <p class="signin-note">Pick a snapshot to bring <b>${esc(entry.name)}</b> back to:</p>
+        <div class="admin-snaps" style="max-width:340px;margin:0 auto;max-height:48vh;overflow:auto">${rows}</div>
+        ${back}`;
+      UI.spikyAll(box);
+      box.querySelectorAll('.admin-snap').forEach(b => b.addEventListener('click', () => {
+        const snap = snaps[+b.dataset.i];
+        const restored = Object.assign(State.fresh(), snap.snapshot || {});
+        restored.name = entry.name;
+        if (!restored.path || !JOBS[restored.path.jobId]) restored.path = { jobId: 'fisherman', rank: 0, career: 0 };
+        restored.lastPlayed = Date.now();
+        const c = el('div', 'day-summary');
+        c.innerHTML = `<h2 data-spiky>RESTORE THIS?</h2>
+          <p>Bring <b>${esc(entry.name)}</b> back to <b>${esc(summary(restored))}</b>? This replaces their current progress.</p>
+          <div class="summary-actions">
+            <button class="btn btn-go" id="rs-yes">Yes, restore</button>
+            <button class="btn" id="rs-no">Cancel</button>
+          </div>`;
+        const conf = UI.openModal(c);
+        UI.spikyAll(c);
+        c.querySelector('#rs-yes').addEventListener('click', async () => {
+          conf.close();
+          entry.data = restored;
+          await Admin.saveCharacter(entry.name, restored);
+          UI.toast(`Restored ${entry.name}`, '♻️');
+          UI.confetti(12);
+          showList();
+        });
+        c.querySelector('#rs-no').addEventListener('click', () => conf.close());
+      }));
+      box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
+    };
+
     askMaster(false);
   },
 
@@ -542,5 +698,46 @@ const UI = {
         <div>Salary: <b>${salary}</b></div>
         <div>Fatality rate: <b class="${job.fatality >= 40 ? 'danger-text' : ''}">${job.fatality}%</b></div>
       </div>`;
+  },
+};
+
+// ============================================================
+// ADMIN — the grown-up's tools behind the master password.
+// Sees every character (this device AND the cloud) so the owner can
+// fix or restore anyone's game, even one that lives on another device.
+// ============================================================
+const Admin = {
+  // Everyone we can find, merged by name. Cloud data wins when a character
+  // exists both here and in the cloud (the cloud is the shared source).
+  async allCharacters() {
+    const byName = new Map();
+    Profiles.list().forEach(p => {
+      byName.set(Profiles.key(p.name), { name: p.name, data: p.data, where: 'local' });
+    });
+    if (Cloud.on()) {
+      let all = null;
+      try { all = await Cloud.loadAll(); } catch (e) { all = null; }
+      if (all && typeof all === 'object') {
+        Object.values(all).forEach(rec => {
+          if (!rec || typeof rec !== 'object' || !rec.path) return;
+          const name = rec.name || 'Player';
+          const k = Profiles.key(name);
+          byName.set(k, { name, data: rec, where: byName.has(k) ? 'both' : 'cloud' });
+        });
+      }
+    }
+    return [...byName.values()].sort((a, b) => (b.data.lastPlayed || 0) - (a.data.lastPlayed || 0));
+  },
+
+  // Persist an edit/restore to wherever the character lives: this device's
+  // save if they have one here, AND the cloud so it reaches their device.
+  async saveCharacter(name, data) {
+    const key = Profiles.key(name);
+    if (Profiles.store.players[key]) {
+      Profiles.store.players[key].data = data;
+      if (Profiles.store.current === key) State.data = data;
+      Profiles._write();
+    }
+    if (Cloud.on()) { try { await Cloud.save(name, data); } catch (e) { /* offline — retries via device sync */ } }
   },
 };
