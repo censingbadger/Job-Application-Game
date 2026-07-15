@@ -55,12 +55,14 @@ const Profiles = {
     return p ? p.data : null;
   },
 
-  // Grown-up reset: wipe a character's password (here AND in the cloud) so
-  // they can set a fresh one next time they sign in.
+  // Grown-up reset: wipe a character's password (here AND in the cloud), plus
+  // its secret question, so they set a fresh one next time they sign in.
   clearPass(name) {
     const p = this.store.players[this.key(name)];
     if (!p) return;
     delete p.data.pass;
+    delete p.data.secretQ;
+    delete p.data.secretA;
     this._write();
     if (Cloud.on()) Cloud.save(p.name, p.data).catch(() => { /* offline — clears locally now, cloud on next sync */ });
   },

@@ -362,6 +362,11 @@ u { text-decoration-thickness: 3px; }
   box-shadow: 2px 2px 0 var(--paper-shadow);
 }
 
+/* START OVER is a wipe — dress the link as a clear warning and say what it does */
+.home-danger { display: grid; gap: 3px; justify-items: center; margin-top: 2px; }
+.home-reset-link { color: var(--danger); text-decoration-color: var(--danger); font-weight: 700; }
+.home-reset-note { color: var(--pencil); font-size: 12px; max-width: 330px; line-height: 1.35; }
+
 /* ---- PATHS ------------------------------------------------------ */
 .paths-layout {
   display: grid;
@@ -1096,6 +1101,23 @@ u { text-decoration-thickness: 3px; }
   background: #fffdf6; cursor: pointer; padding: 0;
 }
 .signin-pick.picked { background: var(--money-light); box-shadow: 0 0 0 3px var(--money); }
+
+/* ---- password: secret question + change/forgot links ---------------- */
+/* stack the password fields vertically inside the centered form */
+#signin-pass, #signin-pass-old, #signin-secret { flex-basis: 100%; box-sizing: border-box; }
+.signin-secret { flex-basis: 100%; display: grid; gap: 6px; justify-items: center; margin-top: 8px; }
+.signin-secret-intro { margin: 2px 0 0; }
+.secret-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.secret-chip {
+  font: inherit; font-size: 12px; font-weight: 700;
+  padding: 5px 10px; border: 2.5px solid var(--ink); border-radius: var(--wobble);
+  background: #fffdf6; color: var(--ink); cursor: pointer;
+}
+.secret-chip.picked { background: var(--money-light); box-shadow: 0 0 0 2.5px var(--money); }
+.signin-secret #signin-secret { max-width: 280px; }
+.signin-secret-q { font-weight: 800; font-size: 1.12em; margin: 4px 0; color: var(--ink); }
+.signin-pass-links { display: grid; gap: 4px; justify-items: center; margin-top: 12px; }
+.signin-pass-links .btn { font-size: .82em; }
 
 /* ---- THE JOB APPLICATION -------------------------------------------- */
 .apply { text-align: center; display: grid; gap: 12px; }

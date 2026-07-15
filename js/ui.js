@@ -33,6 +33,11 @@ function hashPass(s) {
 // a new one. To change it: run hashPass('your new word') and paste the result.
 const GROWNUP_HASH = 'pfxmkiu';
 
+// A few kid-friendly "secret questions". When you make a password you pick one
+// and give an answer — if you ever forget your password, answering it lets YOU
+// reset it (no grown-up needed). Answers are matched loosely (trimmed + lower-case).
+const SECRET_QUESTIONS = ['Favorite animal?', 'Favorite color?', 'Favorite food?', 'A secret word'];
+
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -171,24 +176,40 @@ const UI = {
       const local = Profiles.localData(name);
       let cloud = null;
       if (Cloud.on()) { Cloud.start(); try { const r = await Cloud.load(name); if (r && r.path) cloud = r; } catch (e) { /* offline */ } }
-      const savedHash = (cloud && cloud.pass) || (local && local.pass) || null;
+      // Pull the password AND its secret-question from whichever copy has them.
+      const withPass = (cloud && cloud.pass) ? cloud : (local && local.pass) ? local : null;
+      const saved = {
+        hash: withPass ? withPass.pass : null,
+        secretQ: withPass ? withPass.secretQ : null,
+        secretA: withPass ? withPass.secretA : null,
+      };
       const exists = !!(local || cloud);
 
-      let newHash = null;
-      if (savedHash) {
-        const ok = await UI._passEnter(box, name, savedHash);         // must know the password
-        if (!ok) { modal.close(); UI.signInGate(onDone); return; }
+      // `apply` = a new password (and maybe secret) to store once we're signed in.
+      let apply = null;
+      if (saved.hash) {
+        const r = await UI._passEnter(box, name, saved);              // enter / change / forgot
+        if (!r) { modal.close(); UI.signInGate(onDone); return; }     // false = backed out
+        if (r !== true) apply = r;                                    // object = changed or reset
       } else {
-        const pw = await UI._passSet(box, name, exists);              // set one (funny notice for returning players)
-        if (pw == null) { modal.close(); UI.signInGate(onDone); return; }
-        newHash = hashPass(pw);
+        const s = await UI._passSet(box, name, exists);              // set one (+ secret question)
+        if (s == null) { modal.close(); UI.signInGate(onDone); return; }
+        apply = { newPass: s.pw, newSecretQ: s.secretQ, newSecretA: s.secretA };
       }
 
       box.innerHTML = `<h2 class="signin-title" data-spiky>LOADING...</h2>
         <p class="signin-note">Finding <b>${esc(name)}</b>'s character...</p>`;
       UI.spikyAll(box);
       const res = await Profiles.signInAsync(name, chosenAvatar);
-      if (newHash) { State.data.pass = newHash; Profiles.saveActive(); if (Cloud.on()) Cloud.pushNow().catch(() => { /* offline — the background pusher retries */ }); }
+      if (apply) {
+        State.data.pass = hashPass(apply.newPass);
+        if (apply.newSecretQ) {
+          State.data.secretQ = apply.newSecretQ;
+          State.data.secretA = hashPass(String(apply.newSecretA).trim().toLowerCase());
+        }
+        Profiles.saveActive();
+        if (Cloud.on()) Cloud.pushNow().catch(() => { /* offline — the background pusher retries */ });
+      }
       modal.close();
       const who = Profiles.currentName();
       const msg = res.isNew ? `New character — good luck, ${who}!`
@@ -213,9 +234,36 @@ const UI = {
     setTimeout(() => { if (!Profiles.list().length) input.focus(); }, 60);
   },
 
+  // tiny shared helpers ---------------------------------------------------
+  _shake(node) { if (!node) return; node.classList.add('shake'); setTimeout(() => node.classList.remove('shake'), 500); node.focus(); },
+
+  // The secret-question picker (chips + an answer box) reused when setting a
+  // password. `intro` overrides the little heading above it.
+  _secretPickerHTML(intro) {
+    return `
+      <div class="signin-secret">
+        <p class="signin-note signin-secret-intro">${intro || '🤔 <b>Optional:</b> pick a secret question, so YOU can reset your password if you ever forget it:'}</p>
+        <div class="secret-chips">
+          ${SECRET_QUESTIONS.map((q, i) => `<button type="button" class="btn secret-chip${i === 0 ? ' picked' : ''}" data-q="${esc(q)}">${esc(q)}</button>`).join('')}
+        </div>
+        <input class="signin-input" id="signin-secret" type="text" maxlength="24" placeholder="Your secret answer..." aria-label="Secret answer" enterkeyhint="go">
+      </div>`;
+  },
+  // Wire the chips so tapping one selects it; returns a live {q} of the choice.
+  _wireSecretChips(box) {
+    const state = { q: SECRET_QUESTIONS[0] };
+    box.querySelectorAll('.secret-chip').forEach(c => c.addEventListener('click', () => {
+      box.querySelectorAll('.secret-chip').forEach(x => x.classList.remove('picked'));
+      c.classList.add('picked');
+      state.q = c.dataset.q;
+    }));
+    return state;
+  },
+
   // MAKE a password (for a new character, or an old one that never had one).
   // `returning` = an existing character being upgraded → show the funny notice.
-  // Resolves to the chosen password, or null if they backed out.
+  // Resolves { pw, secretQ, secretA } (a secret question for self-reset), or
+  // null if they backed out.
   _passSet(box, name, returning) {
     return new Promise(resolve => {
       box.innerHTML = `
@@ -226,29 +274,38 @@ const UI = {
             ? `Pick a password for <b>${esc(name)}</b> so nobody else can play as them:`
             : `Pick a password to keep <b>${esc(name)}</b> safe — only you'll know it:`}</p>
         <form class="signin-form" autocomplete="off">
-          <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="Type a password..." aria-label="Choose a password" enterkeyhint="go">
+          <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="Type a password..." aria-label="Choose a password" enterkeyhint="next">
+          ${UI._secretPickerHTML()}
           <button class="btn btn-go signin-pass-go" type="submit">${returning ? 'Set it!' : 'Set password'}</button>
         </form>
         <button class="btn signin-pass-back" type="button">← back</button>`;
       UI.spikyAll(box);
+      const sec = UI._wireSecretChips(box);
       const form = box.querySelector('.signin-form');
       const input = box.querySelector('#signin-pass');
+      const secret = box.querySelector('#signin-secret');
       form.addEventListener('submit', e => {
         e.preventDefault();
         const pw = input.value.trim();
-        if (!pw) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
-        resolve(pw);
+        const ans = secret.value.trim();
+        if (!pw) { UI._shake(input); return; }
+        // The secret is optional — set it only if they typed an answer.
+        resolve({ pw, secretQ: ans ? sec.q : null, secretA: ans || null });
       });
       box.querySelector('.signin-pass-back').addEventListener('click', () => resolve(null));
       setTimeout(() => input.focus(), 60);
     });
   },
 
-  // ENTER the password for a character that has one. Resolves true if correct,
-  // false if they backed out. Wrong guesses just shake and let them retry.
-  _passEnter(box, name, savedHash) {
+  // ENTER the password for a character that has one. `saved` = { hash, secretQ,
+  // secretA }. Resolves: true (correct → sign in), false (backed out), or a
+  // { newPass, newSecretQ?, newSecretA? } when they CHANGED it or reset it via
+  // the secret question.
+  _passEnter(box, name, saved) {
+    const savedHash = saved.hash;
     return new Promise(resolve => {
-      const render = wrong => {
+      // --- the normal "type your password" screen (with change / forgot) ---
+      const renderEnter = wrong => {
         box.innerHTML = `
           <h2 class="signin-title" data-spiky>🔒 PASSWORD</h2>
           <p class="signin-note">Enter <b>${esc(name)}</b>'s password to play:</p>
@@ -257,20 +314,119 @@ const UI = {
             <button class="btn btn-go signin-pass-go" type="submit">Go!</button>
           </form>
           ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ Nope — that\'s not it. Try again!</p>' : ''}
-          <button class="btn signin-pass-back" type="button">← not you? go back</button>`;
+          <div class="signin-pass-links">
+            <button class="btn signin-pass-change" type="button">🔑 Change my password</button>
+            <button class="btn signin-pass-forgot" type="button">🤔 Forgot it?</button>
+            <button class="btn signin-pass-back" type="button">← not you? go back</button>
+          </div>`;
         UI.spikyAll(box);
         const form = box.querySelector('.signin-form');
         const input = box.querySelector('#signin-pass');
         form.addEventListener('submit', e => {
           e.preventDefault();
           if (hashPass(input.value.trim()) === savedHash) { resolve(true); return; }
-          input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500);
-          render(true);
+          renderEnter(true);
         });
+        box.querySelector('.signin-pass-change').addEventListener('click', () => renderChange(false));
+        box.querySelector('.signin-pass-forgot').addEventListener('click', () => renderForgot());
         box.querySelector('.signin-pass-back').addEventListener('click', () => resolve(false));
         setTimeout(() => input.focus(), 60);
       };
-      render(false);
+
+      // --- change it (must know the current one) ---
+      const renderChange = wrong => {
+        const needSecret = !saved.secretQ;   // older characters get to add one now
+        box.innerHTML = `
+          <h2 class="signin-title" data-spiky>🔑 CHANGE PASSWORD</h2>
+          <p class="signin-note">Type your <b>current</b> password, then pick a new one:</p>
+          <form class="signin-form" autocomplete="off">
+            <input class="signin-input" id="signin-pass-old" type="text" maxlength="24" placeholder="Current password..." aria-label="Current password">
+            <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="New password..." aria-label="New password" enterkeyhint="${needSecret ? 'next' : 'go'}">
+            ${needSecret ? UI._secretPickerHTML('🤔 Also pick a secret question, so you can reset it yourself next time:') : ''}
+            <button class="btn btn-go signin-pass-go" type="submit">Change it</button>
+          </form>
+          ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ That\'s not your current password.</p>' : ''}
+          <button class="btn signin-pass-back" type="button">← back</button>`;
+        UI.spikyAll(box);
+        const sec = needSecret ? UI._wireSecretChips(box) : null;
+        const form = box.querySelector('.signin-form');
+        const oldInp = box.querySelector('#signin-pass-old');
+        const newInp = box.querySelector('#signin-pass');
+        const secret = box.querySelector('#signin-secret');
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          if (hashPass(oldInp.value.trim()) !== savedHash) { renderChange(true); return; }
+          const np = newInp.value.trim();
+          if (!np) { UI._shake(newInp); return; }
+          const out = { newPass: np };
+          if (needSecret) {                       // optional — only if they typed one
+            const ans = secret.value.trim();
+            if (ans) { out.newSecretQ = sec.q; out.newSecretA = ans; }
+          }
+          resolve(out);
+        });
+        box.querySelector('.signin-pass-back').addEventListener('click', () => renderEnter(false));
+        setTimeout(() => oldInp.focus(), 60);
+      };
+
+      // --- forgot it: answer the secret question (or ask a grown-up) ---
+      const renderForgot = () => {
+        if (!saved.secretQ || !saved.secretA) {
+          box.innerHTML = `
+            <h2 class="signin-title" data-spiky>🤔 FORGOT IT?</h2>
+            <p class="signin-note">No secret question was set for <b>${esc(name)}</b> yet, so a grown-up needs to reset it: go <b>← back</b> and tap <b>🔑 Grown-up</b> on the sign-in screen.</p>
+            <button class="btn signin-pass-back" type="button">← back</button>`;
+          UI.spikyAll(box);
+          box.querySelector('.signin-pass-back').addEventListener('click', () => renderEnter(false));
+          return;
+        }
+        const askAnswer = wrong => {
+          box.innerHTML = `
+            <h2 class="signin-title" data-spiky>🤔 FORGOT IT?</h2>
+            <p class="signin-note">Answer your secret question to make a new password:</p>
+            <p class="signin-secret-q">${esc(saved.secretQ)}</p>
+            <form class="signin-form" autocomplete="off">
+              <input class="signin-input" id="signin-secret" type="text" maxlength="24" placeholder="Your answer..." aria-label="Secret answer" enterkeyhint="go">
+              <button class="btn btn-go signin-pass-go" type="submit">Check</button>
+            </form>
+            ${wrong ? '<p class="signin-wrong" style="color:#b23b2e;font-weight:700;margin:6px 0">❌ That\'s not the answer. Try again!</p>' : ''}
+            <button class="btn signin-pass-back" type="button">← back</button>`;
+          UI.spikyAll(box);
+          const form = box.querySelector('.signin-form');
+          const inp = box.querySelector('#signin-secret');
+          form.addEventListener('submit', e => {
+            e.preventDefault();
+            if (hashPass(inp.value.trim().toLowerCase()) === saved.secretA) { renderNewAfterReset(); return; }
+            askAnswer(true);
+          });
+          box.querySelector('.signin-pass-back').addEventListener('click', () => renderEnter(false));
+          setTimeout(() => inp.focus(), 60);
+        };
+        askAnswer(false);
+      };
+
+      // --- they proved it's them → pick a fresh password ---
+      const renderNewAfterReset = () => {
+        box.innerHTML = `
+          <h2 class="signin-title" data-spiky>✅ CORRECT!</h2>
+          <p class="signin-note">Now pick a new password for <b>${esc(name)}</b>:</p>
+          <form class="signin-form" autocomplete="off">
+            <input class="signin-input" id="signin-pass" type="text" maxlength="24" placeholder="New password..." aria-label="New password" enterkeyhint="go">
+            <button class="btn btn-go signin-pass-go" type="submit">Set it</button>
+          </form>`;
+        UI.spikyAll(box);
+        const form = box.querySelector('.signin-form');
+        const inp = box.querySelector('#signin-pass');
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          const np = inp.value.trim();
+          if (!np) { UI._shake(inp); return; }
+          resolve({ newPass: np });   // keep the existing secret question
+        });
+        setTimeout(() => inp.focus(), 60);
+      };
+
+      renderEnter(false);
     });
   },
 
@@ -378,7 +534,7 @@ const UI = {
       box.querySelectorAll('.admin-clear').forEach(b => b.addEventListener('click', () => {
         const c = chars[+b.dataset.i];
         Profiles.clearPass(c.name);
-        if (c.data) delete c.data.pass;
+        if (c.data) { delete c.data.pass; delete c.data.secretQ; delete c.data.secretA; }
         if (Cloud.on()) Cloud.save(c.name, c.data).catch(() => { /* offline */ });
         UI.toast(`Cleared ${c.name}'s password`, '🔓');
         showList();
