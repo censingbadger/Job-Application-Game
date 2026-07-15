@@ -79,6 +79,38 @@ const Cloud = {
     } catch (e) { return false; }
   },
 
+  _backupUrl(name) { return `${this.base()}/backups/${this._key(name)}.json`; },
+
+  // Tuck a snapshot of a character into the cloud (a short history kept per
+  // player) so a grown-up can restore it from any device. Best-effort.
+  async backup(name, data) {
+    if (!this.on() || !data) return false;
+    try {
+      let list = [];
+      try {
+        const r = await this._fetch(this._backupUrl(name), { cache: 'no-store' }, 8000);
+        if (r.ok) { const j = await r.json(); if (Array.isArray(j)) list = j; }
+      } catch (e) { /* start fresh */ }
+      const top = list[0] && list[0].snapshot;
+      const same = top && top.wealth === data.wealth && top.day === data.day && (top.lastPlayed || 0) === (data.lastPlayed || 0);
+      if (!same) list.unshift({ at: Date.now(), snapshot: data });
+      list = list.slice(0, 10);
+      const res = await this._fetch(this._backupUrl(name), { method: 'PUT', body: JSON.stringify(list) }, 8000);
+      return res.ok;
+    } catch (e) { return false; }
+  },
+
+  // The cloud snapshots kept for a character (newest first, or [] if none).
+  async loadBackups(name) {
+    if (!this.on()) return [];
+    try {
+      const res = await this._fetch(this._backupUrl(name), { cache: 'no-store' }, 8000);
+      if (!res.ok) return [];
+      const j = await res.json();
+      return Array.isArray(j) ? j : [];
+    } catch (e) { return []; }
+  },
+
   markDirty() { this.dirty = true; },
 
   // Start the background pusher: every few seconds, if the character

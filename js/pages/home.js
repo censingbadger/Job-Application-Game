@@ -27,25 +27,37 @@ PAGES.home = {
     if (reset && !reset.dataset.wired) {
       reset.dataset.wired = '1';
       reset.addEventListener('click', () => {
-        const content = el('div', 'day-summary');
-        content.innerHTML = `
-          <h2 data-spiky>START OVER?</h2>
-          <p>This erases <b>${esc(Profiles.currentName() || 'this character')}</b>'s progress —
-             wealth, path, luck... everything. Forever! Other players are not affected.</p>
-          <div class="summary-actions">
-            <button class="btn btn-danger" id="reset-yes">Yes, wipe it</button>
-            <button class="btn" id="reset-no">No! Keep my stuff</button>
-          </div>`;
-        const modal = UI.openModal(content);
-        UI.spikyAll(content);
-        content.querySelector('#reset-yes').addEventListener('click', () => {
-          State.reset();
-          modal.close();
-          UI.toast('Fresh start. Good luck out there!', '🌅');
-          PAGES.home.init(root);
-          UI.refreshWealth();
+        const who = Profiles.currentName() || 'this character';
+        // Starting over wipes a character, so a GROWN-UP has to approve it —
+        // that stops a kid from wiping their game by accident. (And we snapshot
+        // first, so even this is undoable from the admin panel.)
+        UI.requireGrownup({
+          title: '🔑 GROWN-UP TO START OVER',
+          note: `Starting over erases <b>${esc(who)}</b>'s whole game. A grown-up has to type the <b>master password</b> to allow it:`,
+          go: 'Continue',
+          onOk: () => {
+            const content = el('div', 'day-summary');
+            content.innerHTML = `
+              <h2 data-spiky>START OVER?</h2>
+              <p>This erases <b>${esc(who)}</b>'s progress —
+                 wealth, path, luck... everything. Other players are not affected.</p>
+              <p style="opacity:.75;font-size:.9em">💾 A backup is saved first, so a grown-up can Restore it later from the admin panel.</p>
+              <div class="summary-actions">
+                <button class="btn btn-danger" id="reset-yes">Yes, wipe it</button>
+                <button class="btn" id="reset-no">No! Keep my stuff</button>
+              </div>`;
+            const modal = UI.openModal(content);
+            UI.spikyAll(content);
+            content.querySelector('#reset-yes').addEventListener('click', () => {
+              State.reset();
+              modal.close();
+              UI.toast('Fresh start. Good luck out there!', '🌅');
+              PAGES.home.init(root);
+              UI.refreshWealth();
+            });
+            content.querySelector('#reset-no').addEventListener('click', () => modal.close());
+          },
         });
-        content.querySelector('#reset-no').addEventListener('click', () => modal.close());
       });
     }
   },
