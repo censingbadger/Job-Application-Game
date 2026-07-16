@@ -730,6 +730,9 @@ const UI = {
   // Save the current character and go back to the "Who's playing?" screen.
   switchPlayer() {
     State.save();
+    // A game might be mid-play (the name pill is on the WORK screen too) — stop
+    // it first so its loop doesn't run against a signed-out character.
+    if (typeof GAMES !== 'undefined') Object.values(GAMES).forEach(g => { if (g && g.running && g.stop) g.stop(); });
     Profiles.signOut();
     UI.signInGate(() => { State.load(); renderCurrentPage(); });
   },
