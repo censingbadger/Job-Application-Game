@@ -10,16 +10,6 @@ PAGES.home = {
     this.renderFounder(root);
     // refresh the live specials + banner color from the cloud, then redraw
     if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-special')) this.renderFounder(root); });
-
-    // Founders (Asher & Jinghe) get a button to their tools — no master password.
-    const founderBtn = root.querySelector('#home-founder');
-    if (founderBtn) {
-      founderBtn.hidden = !UI.isFounder();
-      if (!founderBtn.dataset.wired) {
-        founderBtn.dataset.wired = '1';
-        founderBtn.addEventListener('click', () => UI.openFounderTools(() => PAGES.home.init(root)));
-      }
-    }
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');

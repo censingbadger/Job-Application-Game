@@ -38,11 +38,6 @@ const GROWNUP_HASH = 'pfxmkiu';
 // reset it (no grown-up needed). Answers are matched loosely (trimmed + lower-case).
 const SECRET_QUESTIONS = ['Favorite animal?', 'Favorite color?', 'Favorite food?', 'A secret word'];
 
-// Signed in as one of these, you get the Founder tools (money specials +
-// banner color) WITHOUT the grown-up master password. (Kept separate from the
-// leaderboard's founder-BADGE list, which is a different thing.)
-const FOUNDER_TOOLS_NAMES = ['asher', 'ash', 'jinghe', 'jing'];
-
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -649,20 +644,6 @@ const UI = {
     const founderConsole = () => UI.founderTools(box, showList);
 
     askMaster(false);
-  },
-
-  // True when the signed-in player is one of the founders (Asher / Jinghe).
-  isFounder() {
-    const name = State.data && State.data.name;
-    return !!name && FOUNDER_TOOLS_NAMES.includes(Profiles.key(name));
-  },
-
-  // Open the founder tools in their own pop-up — used by a founder's home
-  // button, so no master password is needed. onDone() runs when they close it.
-  openFounderTools(onDone) {
-    const box = el('div', 'signin');
-    const modal = UI.openModal(box, {});
-    UI.founderTools(box, () => { modal.close(); if (onDone) onDone(); });
   },
 
   // FOUNDER TOOLS — start money specials (sales/events) and pick the special
