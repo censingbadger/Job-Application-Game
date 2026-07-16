@@ -532,7 +532,7 @@ const UI = {
         <button class="btn signin-pass-back" type="button" style="margin-top:6px">← done</button>`;
       UI.spikyAll(box);
       box.querySelector('.admin-founder').addEventListener('click', () => founderConsole());
-      box.querySelectorAll('.admin-edit').forEach(b => b.addEventListener('click', () => editChar(chars[+b.dataset.i])));
+      box.querySelectorAll('.admin-edit').forEach(b => b.addEventListener('click', () => editChar(chars[+b.dataset.i], chars)));
       box.querySelectorAll('.admin-restore').forEach(b => b.addEventListener('click', () => restoreChar(chars[+b.dataset.i])));
       box.querySelectorAll('.admin-clear').forEach(b => b.addEventListener('click', () => {
         const c = chars[+b.dataset.i];
@@ -546,7 +546,7 @@ const UI = {
     };
 
     // 3) edit one character's money / day / job --------------------------
-    const editChar = entry => {
+    const editChar = (entry, allChars) => {
       const d = entry.data;
       const jobs = Object.keys(JOBS).sort((a, b) => JOBS[a].name.localeCompare(JOBS[b].name));
       const curJob = d.path && d.path.jobId;
@@ -554,6 +554,9 @@ const UI = {
         <h2 class="signin-title" data-spiky>✏️ EDIT</h2>
         <p class="signin-note">Change <b>${esc(entry.name)}</b> — then Save.</p>
         <form class="signin-form admin-form" autocomplete="off" style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto;text-align:left">
+          <label style="font-weight:700">🙂 Name
+            <input class="signin-input admin-in" id="admin-name" type="text" maxlength="20" value="${esc(entry.name)}" style="width:100%">
+          </label>
           <label style="font-weight:700">💰 Money
             <input class="signin-input admin-in" id="admin-wealth" type="number" step="1" value="${Math.floor(d.wealth || 0)}" style="width:100%">
           </label>
@@ -565,16 +568,25 @@ const UI = {
               ${jobs.map(id => `<option value="${id}"${id === curJob ? ' selected' : ''}>${esc(JOBS[id].name)}</option>`).join('')}
             </select>
           </label>
+          <p class="signin-wrong admin-name-err" style="display:none;color:#b23b2e;font-weight:700;margin:0">❌ That name is already taken.</p>
           <button class="btn btn-go admin-save" type="submit">Save changes</button>
         </form>
+        <button class="btn btn-danger admin-delete" type="button" style="margin-top:10px">🗑️ Delete this character</button>
         ${back}`;
       UI.spikyAll(box);
       box.querySelector('.admin-form').addEventListener('submit', async e => {
         e.preventDefault();
+        const newName = box.querySelector('#admin-name').value.trim().slice(0, 20) || entry.name;
         const w = Math.floor(Number(box.querySelector('#admin-wealth').value));
         const day = Math.max(1, Math.floor(Number(box.querySelector('#admin-day').value)));
         const jobId = box.querySelector('#admin-job').value;
+        const renaming = Profiles.key(newName) !== Profiles.key(entry.name);
+        if (renaming && (allChars || []).some(c => c !== entry && Profiles.key(c.name) === Profiles.key(newName))) {
+          box.querySelector('.admin-name-err').style.display = 'block';
+          return;
+        }
         const next = Object.assign(State.fresh(), d);   // fill any missing fields
+        next.name = newName;
         next.wealth = isFinite(w) ? w : (d.wealth || 0);
         next.day = isFinite(day) ? day : (d.day || 1);
         if (JOBS[jobId]) {
@@ -584,10 +596,29 @@ const UI = {
         }
         next.lastPlayed = Date.now();
         if (next.stats && next.wealth > (next.stats.peakWealth || 0)) next.stats.peakWealth = next.wealth;
-        entry.data = next;
-        await Admin.saveCharacter(entry.name, next);
-        UI.toast(`Saved ${entry.name}`, '✅');
+        if (renaming) await Admin.renameCharacter(entry.name, newName, next);
+        else await Admin.saveCharacter(newName, next);
+        entry.name = newName; entry.data = next;
+        UI.toast(`Saved ${newName}`, '✅');
         showList();
+      });
+      box.querySelector('.admin-delete').addEventListener('click', () => {
+        const c = el('div', 'day-summary');
+        c.innerHTML = `<h2 data-spiky>DELETE ${esc(entry.name)}?</h2>
+          <p>This removes <b>${esc(entry.name)}</b> from the game — for everyone. A backup is tucked away first, just in case.</p>
+          <div class="summary-actions">
+            <button class="btn btn-danger" id="del-yes">Yes, delete</button>
+            <button class="btn" id="del-no">Cancel</button>
+          </div>`;
+        const conf = UI.openModal(c);
+        UI.spikyAll(c);
+        c.querySelector('#del-yes').addEventListener('click', async () => {
+          conf.close();
+          await Admin.deleteCharacter(entry.name, entry.data);
+          UI.toast(`Deleted ${entry.name}`, '🗑️');
+          showList();
+        });
+        c.querySelector('#del-no').addEventListener('click', () => conf.close());
       });
       box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
     };
@@ -966,5 +997,34 @@ const Admin = {
       Profiles._write();
     }
     if (Cloud.on()) { try { await Cloud.save(name, data); } catch (e) { /* offline — retries via device sync */ } }
+  },
+
+  // Remove a character for everyone. A backup is tucked away first, so a
+  // mistaken delete is still recoverable.
+  async deleteCharacter(name, data) {
+    if (data) Backups.save(name, data);
+    Profiles.erase(name);                                 // this device
+    if (Cloud.on()) { try { await Cloud.remove(name); } catch (e) { /* offline */ } }
+  },
+
+  // Rename a character (re-keys it here and in the cloud). Returns
+  // { ok: true } or { error: 'exists' } if the new name is already taken.
+  async renameCharacter(oldName, newName, data) {
+    const clean = String(newName).trim().slice(0, 20) || 'Player';
+    const oldKey = Profiles.key(oldName);
+    const newKey = Profiles.key(clean);
+    if (newKey !== oldKey && Profiles.store.players[newKey]) return { error: 'exists' };
+    data = Object.assign({}, data, { name: clean });
+    if (Profiles.store.players[oldKey]) {                 // only if it lives on this device
+      delete Profiles.store.players[oldKey];
+      Profiles.store.players[newKey] = { name: clean, data };
+      if (Profiles.store.current === oldKey) { Profiles.store.current = newKey; State.data = data; }
+      Profiles._write();
+    }
+    if (Cloud.on()) {
+      try { await Cloud.save(clean, data); if (newKey !== oldKey) await Cloud.remove(oldName); }
+      catch (e) { /* offline */ }
+    }
+    return { ok: true };
   },
 };

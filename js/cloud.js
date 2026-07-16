@@ -79,6 +79,16 @@ const Cloud = {
     } catch (e) { return false; }
   },
 
+  // Remove a character from the cloud. ONLY used by the grown-up admin panel
+  // (normal play never deletes — see the background pusher). Best-effort.
+  async remove(name) {
+    if (!this.on()) return false;
+    try {
+      const res = await this._fetch(this._url(name), { method: 'DELETE' }, 8000);
+      return res.ok;
+    } catch (e) { return false; }
+  },
+
   _backupUrl(name) { return `${this.base()}/backups/${this._key(name)}.json`; },
 
   // Tuck a snapshot of a character into the cloud (a short history kept per
