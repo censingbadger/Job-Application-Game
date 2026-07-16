@@ -1272,7 +1272,6 @@ u { text-decoration-thickness: 3px; }
 @keyframes founder-pulse { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg) scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .founder-special-row { animation: none; } }
 
-.home-founder { margin: 16px auto 0; font-size: 15px; }
 .fc-card { background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2); padding: 10px 12px; box-shadow: 2px 2px 0 var(--paper-shadow); }
 .fc-color { border: 2.5px solid var(--ink); border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; }
 .fc-color.picked { box-shadow: 0 0 0 3px var(--ink); }
@@ -1372,8 +1371,6 @@ u { text-decoration-thickness: 3px; }
       </nav>
 
       <div class="founder-special" id="founder-special" hidden></div>
-
-      <button class="btn home-founder" id="home-founder" type="button" hidden>📢 Founder tools</button>
 
       <section class="home-board" id="home-board" hidden>
         <h3 class="home-board-title" data-spiky>🏆 TOP PLAYERS</h3>
@@ -2603,11 +2600,6 @@ const GROWNUP_HASH = 'pfxmkiu';
 // reset it (no grown-up needed). Answers are matched loosely (trimmed + lower-case).
 const SECRET_QUESTIONS = ['Favorite animal?', 'Favorite color?', 'Favorite food?', 'A secret word'];
 
-// Signed in as one of these, you get the Founder tools (money specials +
-// banner color) WITHOUT the grown-up master password. (Kept separate from the
-// leaderboard's founder-BADGE list, which is a different thing.)
-const FOUNDER_TOOLS_NAMES = ['asher', 'ash', 'jinghe', 'jing'];
-
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -3214,20 +3206,6 @@ const UI = {
     const founderConsole = () => UI.founderTools(box, showList);
 
     askMaster(false);
-  },
-
-  // True when the signed-in player is one of the founders (Asher / Jinghe).
-  isFounder() {
-    const name = State.data && State.data.name;
-    return !!name && FOUNDER_TOOLS_NAMES.includes(Profiles.key(name));
-  },
-
-  // Open the founder tools in their own pop-up — used by a founder's home
-  // button, so no master password is needed. onDone() runs when they close it.
-  openFounderTools(onDone) {
-    const box = el('div', 'signin');
-    const modal = UI.openModal(box, {});
-    UI.founderTools(box, () => { modal.close(); if (onDone) onDone(); });
   },
 
   // FOUNDER TOOLS — start money specials (sales/events) and pick the special
@@ -8004,16 +7982,6 @@ PAGES.home = {
     this.renderFounder(root);
     // refresh the live specials + banner color from the cloud, then redraw
     if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-special')) this.renderFounder(root); });
-
-    // Founders (Asher & Jinghe) get a button to their tools — no master password.
-    const founderBtn = root.querySelector('#home-founder');
-    if (founderBtn) {
-      founderBtn.hidden = !UI.isFounder();
-      if (!founderBtn.dataset.wired) {
-        founderBtn.dataset.wired = '1';
-        founderBtn.addEventListener('click', () => UI.openFounderTools(() => PAGES.home.init(root)));
-      }
-    }
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');

@@ -1264,7 +1264,6 @@ u { text-decoration-thickness: 3px; }
 @keyframes founder-pulse { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg) scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .founder-special-row { animation: none; } }
 
-.home-founder { margin: 16px auto 0; font-size: 15px; }
 .fc-card { background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2); padding: 10px 12px; box-shadow: 2px 2px 0 var(--paper-shadow); }
 .fc-color { border: 2.5px solid var(--ink); border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; }
 .fc-color.picked { box-shadow: 0 0 0 3px var(--ink); }
