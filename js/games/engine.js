@@ -287,6 +287,7 @@ function defineShift(spec) {
 
     _loop(now) {
       if (!this.running) return;
+      if (!State.data) { this.running = false; return; }   // signed out mid-game — halt cleanly
       const dt = Math.min(0.05, (now - this.lastTime) / 1000);
       this.lastTime = now;
 
