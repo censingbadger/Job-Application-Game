@@ -8,8 +8,18 @@ PAGES.home = {
     UI.spikyAll(root);
     this.renderBoard(root);
     this.renderFounder(root);
-    // refresh the founders' board + specials from the cloud, then redraw
-    if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-board')) this.renderFounder(root); });
+    // refresh the live specials + banner color from the cloud, then redraw
+    if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-special')) this.renderFounder(root); });
+
+    // Founders (Asher & Jinghe) get a button to their tools — no master password.
+    const founderBtn = root.querySelector('#home-founder');
+    if (founderBtn) {
+      founderBtn.hidden = !UI.isFounder();
+      if (!founderBtn.dataset.wired) {
+        founderBtn.dataset.wired = '1';
+        founderBtn.addEventListener('click', () => UI.openFounderTools(() => PAGES.home.init(root)));
+      }
+    }
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
@@ -65,37 +75,23 @@ PAGES.home = {
     }
   },
 
-  // The "Message from the Founders" board + any live "special" banner.
+  // The live "special" banner (e.g. "2× MONEY for Frog Keeper"), in whatever
+  // color the founders picked.
   renderFounder(root) {
     const banner = root.querySelector('#founder-special');
-    const board = root.querySelector('#founder-board');
-    const msgs = root.querySelector('#founder-msgs');
-    if (!banner || !board || !msgs) return;
-
+    if (!banner) return;
     const active = Founder.activeSpecials();
     if (active.length) {
+      const color = (Founder.banner && Founder.banner.color) || '';
+      const bg = color ? ` style="background:${esc(color)}"` : '';
       banner.hidden = false;
       banner.innerHTML = active.map(s => {
         const job = JOBS[s.jobId];
         const mins = Math.max(0, Math.round((s.until - Date.now()) / 60000));
         const left = mins >= 120 ? Math.round(mins / 60) + ' hrs' : mins >= 60 ? '1 hr' : mins + ' min';
-        return `<div class="founder-special-row">🎉 <b>${s.mult}× MONEY</b> for <b>${esc(job ? job.name : s.jobId)}</b> ${job ? job.emoji : ''} — ${left} left!</div>`;
+        return `<div class="founder-special-row"${bg}>🎉 <b>${s.mult}× MONEY</b> for <b>${esc(job ? job.name : s.jobId)}</b> ${job ? job.emoji : ''} — ${left} left!</div>`;
       }).join('');
     } else { banner.hidden = true; banner.innerHTML = ''; }
-
-    const list = Founder.messages || [];
-    if (list.length) {
-      board.hidden = false;
-      msgs.innerHTML = list.slice(0, 8).map(m => {
-        const warn = m.kind === 'warning';
-        const when = new Date(m.at || 0);
-        const stamp = (m.at && isFinite(when.getTime())) ? when.toLocaleString() : '';
-        return `<div class="founder-msg${warn ? ' warn' : ''}">
-          <div class="founder-msg-head"><b>${warn ? '⚠️ ' : ''}${esc(m.from)}</b><span class="founder-msg-when">${esc(stamp)}</span></div>
-          <div class="founder-msg-text">${esc(m.text)}</div>
-        </div>`;
-      }).join('');
-    } else { board.hidden = true; }
   },
 
   // A little "top players" preview on the title screen. Only appears when

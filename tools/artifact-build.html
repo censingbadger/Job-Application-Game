@@ -1266,19 +1266,10 @@ u { text-decoration-thickness: 3px; }
 @keyframes founder-pulse { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg) scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .founder-special-row { animation: none; } }
 
-.founder-board { width: 100%; max-width: 440px; margin: 22px auto 4px; text-align: left; }
-.founder-board-title { text-align: center; font-family: var(--font-display); font-size: 20px; letter-spacing: 1px; margin: 0 0 12px; }
-.founder-msgs { display: grid; gap: 10px; }
-.founder-msg {
-  background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2);
-  padding: 9px 12px; box-shadow: 2px 2px 0 var(--paper-shadow);
-}
-.founder-msg.warn { background: var(--danger-light); border-color: var(--danger); }
-.founder-msg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; margin-bottom: 3px; }
-.founder-msg-when { font-size: 11px; color: var(--pencil); font-weight: 400; }
-.founder-msg-text { font-size: 15px; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
+.home-founder { margin: 16px auto 0; font-size: 15px; }
 .fc-card { background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2); padding: 10px 12px; box-shadow: 2px 2px 0 var(--paper-shadow); }
-.fc-author.picked { background: var(--money-light); box-shadow: 0 0 0 2.5px var(--money); }
+.fc-color { border: 2.5px solid var(--ink); border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; }
+.fc-color.picked { box-shadow: 0 0 0 3px var(--ink); }
 
 @media (max-width: 560px) {
   .lb-row { gap: 10px; padding: 9px 12px; }
@@ -1374,10 +1365,7 @@ u { text-decoration-thickness: 3px; }
 
       <div class="founder-special" id="founder-special" hidden></div>
 
-      <section class="founder-board" id="founder-board" hidden>
-        <h3 class="founder-board-title" data-spiky>📢 MESSAGE FROM THE FOUNDERS</h3>
-        <div class="founder-msgs" id="founder-msgs"></div>
-      </section>
+      <button class="btn home-founder" id="home-founder" type="button" hidden>📢 Founder tools</button>
 
       <section class="home-board" id="home-board" hidden>
         <h3 class="home-board-title" data-spiky>🏆 TOP PLAYERS</h3>
@@ -2501,29 +2489,28 @@ const Cloud = {
 };
 
 /* ============================================================
-   FOUNDER — the two bosses (Asher & Jinghe) can post messages to a
-   "Message from the Founders" board everyone sees, and start a real
-   "special" (e.g. double money for Frogkeepers today) that actually
-   boosts that job's pay while it's live. Both live in the cloud so
-   every player gets them.
+   FOUNDER — the two bosses (Asher & Jinghe) can start a real "special"
+   (e.g. double money for Frogkeepers today) that actually boosts that
+   job's pay while it's live, and pick the color of the special banner.
+   Both live in the cloud so every player gets them.
    ============================================================ */
 const Founder = {
-  messages: [],   // cached [{ at, from, text, kind }]  (kind: 'message' | 'warning' | 'special')
-  specials: [],   // cached [{ jobId, mult, until, at }]
+  specials: [],           // cached [{ jobId, mult, until, at }]
+  banner: { color: '' },  // cached special-banner color ('' = default)
 
-  _msgUrl() { return Cloud.base() ? `${Cloud.base()}/founderMessages.json` : null; },
   _specialUrl() { return Cloud.base() ? `${Cloud.base()}/founderSpecials.json` : null; },
+  _bannerUrl() { return Cloud.base() ? `${Cloud.base()}/founderBanner.json` : null; },
 
-  // Pull the board + specials from the cloud into the caches (best-effort).
+  // Pull the live specials + banner color from the cloud (best-effort).
   async load() {
     if (!Cloud.on()) return;
     try {
-      const [m, s] = await Promise.all([
-        Cloud._fetch(this._msgUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+      const [s, b] = await Promise.all([
         Cloud._fetch(this._specialUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+        Cloud._fetch(this._bannerUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
-      if (Array.isArray(m)) this.messages = m;
       if (Array.isArray(s)) this.specials = s;
+      if (b && typeof b === 'object' && typeof b.color === 'string') this.banner = b;
     } catch (e) { /* offline — keep whatever we had */ }
   },
 
@@ -2539,18 +2526,8 @@ const Founder = {
     return s && s.mult > 0 ? s.mult : 1;
   },
 
-  // Post a message to the board (newest first, keep the last 20).
-  async post(from, text, kind) {
-    if (!Cloud.on()) return false;
-    const msg = { at: Date.now(), from: String(from || 'Founders').slice(0, 20), text: String(text || '').slice(0, 200), kind: kind || 'message' };
-    this.messages.unshift(msg);
-    this.messages = this.messages.slice(0, 20);
-    try { const r = await Cloud._fetch(this._msgUrl(), { method: 'PUT', body: JSON.stringify(this.messages) }, 8000); return r.ok; }
-    catch (e) { return false; }
-  },
-
-  // Start (or replace) a special for a job. Also announces it on the board.
-  async setSpecial(jobId, mult, until, from) {
+  // Start (or replace) a special for a job.
+  async setSpecial(jobId, mult, until) {
     if (!Cloud.on()) return false;
     const now = Date.now();
     this.specials = this.specials.filter(s => s && s.until > now && s.jobId !== jobId);
@@ -2565,6 +2542,14 @@ const Founder = {
     if (!Cloud.on()) return false;
     this.specials = this.specials.filter(s => s && s.jobId !== jobId);
     try { const r = await Cloud._fetch(this._specialUrl(), { method: 'PUT', body: JSON.stringify(this.specials) }, 8000); return r.ok; }
+    catch (e) { return false; }
+  },
+
+  // Set the special-banner color ('' resets to the default yellow).
+  async setBanner(color) {
+    if (!Cloud.on()) return false;
+    this.banner = { color: String(color || '') };
+    try { const r = await Cloud._fetch(this._bannerUrl(), { method: 'PUT', body: JSON.stringify(this.banner) }, 8000); return r.ok; }
     catch (e) { return false; }
   },
 };
@@ -2610,6 +2595,11 @@ const GROWNUP_HASH = 'pfxmkiu';
 // reset it (no grown-up needed). Answers are matched loosely (trimmed + lower-case).
 const SECRET_QUESTIONS = ['Favorite animal?', 'Favorite color?', 'Favorite food?', 'A secret word'];
 
+// Signed in as one of these, you get the Founder tools (money specials +
+// banner color) WITHOUT the grown-up master password. (Kept separate from the
+// leaderboard's founder-BADGE list, which is a different thing.)
+const FOUNDER_TOOLS_NAMES = ['asher', 'ash', 'jinghe', 'jing'];
+
 // ---- page boot & navigation ----------------------------------
 // The game works two ways:
 //  - as separate .html pages (links navigate normally)
@@ -2618,7 +2608,7 @@ let currentPage = null;
 
 function Boot() {
   State.load();
-  if (Cloud.on()) Founder.load();   // pull the founders' board + live specials
+  if (Cloud.on()) Founder.load();   // pull the live money specials + banner color
   if (window.SINGLE_FILE) {
     document.addEventListener('click', e => {
       const link = e.target.closest('a[data-nav]');
@@ -3212,78 +3202,86 @@ const UI = {
       box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
     };
 
-    // 5) founder tools: post to the board + start a real money special --
-    const endOfToday = () => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); };
-    const founderConsole = async () => {
-      box.innerHTML = `<h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2><p class="signin-note">Loading the board…</p>`;
-      UI.spikyAll(box);
-      await Founder.load();
-      const jobs = Object.keys(JOBS).sort((a, b) => JOBS[a].name.localeCompare(JOBS[b].name));
-      const render = () => {
-        const active = Founder.activeSpecials();
-        box.innerHTML = `
-          <h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2>
-          <div class="fc-wrap" style="text-align:left;max-width:360px;margin:0 auto;display:grid;gap:14px">
-            <div class="fc-card">
-              <p class="signin-note" style="margin:0 0 6px"><b>✍️ Post to the board</b></p>
-              <div style="display:flex;gap:6px;margin-bottom:6px">
-                <button type="button" class="btn fc-author picked" data-from="Asher" style="flex:1">Asher</button>
-                <button type="button" class="btn fc-author" data-from="Jinghe" style="flex:1">Jinghe</button>
-              </div>
-              <textarea id="fc-text" class="signin-input" rows="2" maxlength="200" placeholder="Type a message to all players..." style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
-              <label style="display:flex;align-items:center;gap:6px;font-size:.85em;margin:6px 0"><input type="checkbox" id="fc-warn"> ⚠️ Make it a warning</label>
-              <button class="btn btn-go" id="fc-post" style="width:100%">Post message</button>
-            </div>
-            <div class="fc-card">
-              <p class="signin-note" style="margin:0 0 6px"><b>🎉 Start a money special</b></p>
-              <select id="fc-job" class="signin-input" style="width:100%;box-sizing:border-box;margin-bottom:6px">${jobs.map(id => `<option value="${id}">${esc(JOBS[id].name)}</option>`).join('')}</select>
-              <div style="display:flex;gap:6px;margin-bottom:6px">
-                <select id="fc-mult" class="signin-input" style="flex:1;min-width:0"><option value="2">2× money</option><option value="3">3× money</option><option value="5">5× money</option></select>
-                <select id="fc-dur" class="signin-input" style="flex:1;min-width:0"><option value="today">rest of today</option><option value="1">1 hour</option><option value="3">3 hours</option><option value="168">1 week</option></select>
-              </div>
-              <button class="btn btn-go" id="fc-special" style="width:100%">Start it + announce</button>
-            </div>
-            ${active.length ? `<div class="fc-card"><p class="signin-note" style="margin:0 0 6px"><b>Running specials</b></p>${active.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0"><span>${esc((JOBS[s.jobId] || {}).name || s.jobId)} — <b>${s.mult}×</b></span><button class="btn fc-endspecial" data-job="${esc(s.jobId)}" style="font-size:.8em">End now</button></div>`).join('')}</div>` : ''}
-          </div>
-          <button class="btn signin-pass-back" type="button" style="margin-top:12px">← back</button>`;
-        UI.spikyAll(box);
-        let from = 'Asher';
-        box.querySelectorAll('.fc-author').forEach(b => b.addEventListener('click', () => {
-          box.querySelectorAll('.fc-author').forEach(x => x.classList.remove('picked'));
-          b.classList.add('picked'); from = b.dataset.from;
-        }));
-        box.querySelector('#fc-post').addEventListener('click', async () => {
-          const ta = box.querySelector('#fc-text');
-          const text = ta.value.trim();
-          if (!text) { UI._shake(ta); return; }
-          const warn = box.querySelector('#fc-warn').checked;
-          const ok = await Founder.post(from, text, warn ? 'warning' : 'message');
-          UI.toast(ok ? `Posted as ${from}` : 'Saved — will sync when online', warn ? '⚠️' : '📢');
-          render();
-        });
-        box.querySelector('#fc-special').addEventListener('click', async () => {
-          const jobId = box.querySelector('#fc-job').value;
-          const mult = Number(box.querySelector('#fc-mult').value);
-          const dv = box.querySelector('#fc-dur').value;
-          const until = dv === 'today' ? endOfToday() : Date.now() + Number(dv) * 3600000;
-          const jobName = (JOBS[jobId] || {}).name || jobId;
-          await Founder.setSpecial(jobId, mult, until, from);
-          await Founder.post(from, `${mult}× money for ${jobName} — grab it while it lasts!`, 'special');
-          UI.toast(`${mult}× ${jobName} is LIVE!`, '🎉');
-          UI.confetti(14);
-          render();
-        });
-        box.querySelectorAll('.fc-endspecial').forEach(b => b.addEventListener('click', async () => {
-          await Founder.clearSpecial(b.dataset.job);
-          UI.toast('Special ended', '🛑');
-          render();
-        }));
-        box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
-      };
-      render();
-    };
+    // 5) founder tools — the parent (with the master password) can open them too.
+    const founderConsole = () => UI.founderTools(box, showList);
 
     askMaster(false);
+  },
+
+  // True when the signed-in player is one of the founders (Asher / Jinghe).
+  isFounder() {
+    const name = State.data && State.data.name;
+    return !!name && FOUNDER_TOOLS_NAMES.includes(Profiles.key(name));
+  },
+
+  // Open the founder tools in their own pop-up — used by a founder's home
+  // button, so no master password is needed. onDone() runs when they close it.
+  openFounderTools(onDone) {
+    const box = el('div', 'signin');
+    const modal = UI.openModal(box, {});
+    UI.founderTools(box, () => { modal.close(); if (onDone) onDone(); });
+  },
+
+  // FOUNDER TOOLS — start money specials (sales/events) and pick the special
+  // banner's color. Renders into `box`; `onBack` returns where you came from.
+  // Used by BOTH the grown-up admin panel and a founder's home button.
+  async founderTools(box, onBack) {
+    box.innerHTML = `<h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2><p class="signin-note">Loading…</p>`;
+    UI.spikyAll(box);
+    await Founder.load();
+    const endOfToday = () => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); };
+    const jobs = Object.keys(JOBS).sort((a, b) => JOBS[a].name.localeCompare(JOBS[b].name));
+    const COLORS = [['', 'Default'], ['#f6d55c', 'Yellow'], ['#f39ac0', 'Pink'], ['#7fc8f0', 'Blue'], ['#9ad98f', 'Green'], ['#c8a2e8', 'Purple'], ['#f0a868', 'Orange']];
+    const render = () => {
+      const active = Founder.activeSpecials();
+      const cur = (Founder.banner && Founder.banner.color) || '';
+      box.innerHTML = `
+        <h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2>
+        <div class="fc-wrap" style="text-align:left;max-width:360px;margin:0 auto;display:grid;gap:14px">
+          <div class="fc-card">
+            <p class="signin-note" style="margin:0 0 6px"><b>🎉 Start a money special (a sale!)</b></p>
+            <select id="fc-job" class="signin-input" style="width:100%;box-sizing:border-box;margin-bottom:6px">${jobs.map(id => `<option value="${id}">${esc(JOBS[id].name)}</option>`).join('')}</select>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <select id="fc-mult" class="signin-input" style="flex:1;min-width:0"><option value="2">2× money</option><option value="3">3× money</option><option value="5">5× money</option></select>
+              <select id="fc-dur" class="signin-input" style="flex:1;min-width:0"><option value="today">rest of today</option><option value="1">1 hour</option><option value="3">3 hours</option><option value="168">1 week</option></select>
+            </div>
+            <button class="btn btn-go" id="fc-special" style="width:100%">Start the special</button>
+          </div>
+          ${active.length ? `<div class="fc-card"><p class="signin-note" style="margin:0 0 6px"><b>Running specials</b></p>${active.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0"><span>${esc((JOBS[s.jobId] || {}).name || s.jobId)} — <b>${s.mult}×</b></span><button class="btn fc-endspecial" data-job="${esc(s.jobId)}" style="font-size:.8em">End now</button></div>`).join('')}</div>` : ''}
+          <div class="fc-card">
+            <p class="signin-note" style="margin:0 0 6px"><b>🎨 Banner color</b></p>
+            <div class="fc-colors" style="display:flex;flex-wrap:wrap;gap:6px">
+              ${COLORS.map(([c, name]) => `<button type="button" class="btn fc-color${c === cur ? ' picked' : ''}" data-color="${c}" title="${name}" style="width:34px;height:34px;padding:0;${c ? `background:${c}` : ''}">${c ? '' : '∅'}</button>`).join('')}
+            </div>
+            <div class="founder-special-row" style="margin-top:8px${cur ? `;background:${esc(cur)}` : ''}">🎉 <b>2× MONEY</b> preview</div>
+          </div>
+        </div>
+        <button class="btn signin-pass-back" type="button" style="margin-top:12px">← back</button>`;
+      UI.spikyAll(box);
+      box.querySelector('#fc-special').addEventListener('click', async () => {
+        const jobId = box.querySelector('#fc-job').value;
+        const mult = Number(box.querySelector('#fc-mult').value);
+        const dv = box.querySelector('#fc-dur').value;
+        const until = dv === 'today' ? endOfToday() : Date.now() + Number(dv) * 3600000;
+        const jobName = (JOBS[jobId] || {}).name || jobId;
+        await Founder.setSpecial(jobId, mult, until);
+        UI.toast(`${mult}× ${jobName} is LIVE!`, '🎉');
+        UI.confetti(14);
+        render();
+      });
+      box.querySelectorAll('.fc-endspecial').forEach(b => b.addEventListener('click', async () => {
+        await Founder.clearSpecial(b.dataset.job);
+        UI.toast('Special ended', '🛑');
+        render();
+      }));
+      box.querySelectorAll('.fc-color').forEach(b => b.addEventListener('click', async () => {
+        await Founder.setBanner(b.dataset.color);
+        UI.toast('Banner color set', '🎨');
+        render();
+      }));
+      box.querySelector('.signin-pass-back').addEventListener('click', () => { if (onBack) onBack(); });
+    };
+    render();
   },
 
   // Save the current character and go back to the "Who's playing?" screen.
@@ -3763,6 +3761,10 @@ function defineShift(spec) {
     // even, we ignore them (and flash a "no robots" warning). Real play never
     // taps a single point 12+ times a second, so honest fast tappers are fine.
     _autoClicker(x, y) {
+      // DISABLED — the guard was too sensitive and flagged honest fast tapping.
+      // (Logic kept below so it can be re-enabled/re-tuned later by removing this line.)
+      return false;
+      // eslint-disable-next-line no-unreachable
       const now = performance.now();
       if (now < this._botUntil) return true;            // still cooling down from a catch
       const taps = this._taps;
@@ -7988,8 +7990,18 @@ PAGES.home = {
     UI.spikyAll(root);
     this.renderBoard(root);
     this.renderFounder(root);
-    // refresh the founders' board + specials from the cloud, then redraw
-    if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-board')) this.renderFounder(root); });
+    // refresh the live specials + banner color from the cloud, then redraw
+    if (Cloud.on()) Founder.load().then(() => { if (root.querySelector('#founder-special')) this.renderFounder(root); });
+
+    // Founders (Asher & Jinghe) get a button to their tools — no master password.
+    const founderBtn = root.querySelector('#home-founder');
+    if (founderBtn) {
+      founderBtn.hidden = !UI.isFounder();
+      if (!founderBtn.dataset.wired) {
+        founderBtn.dataset.wired = '1';
+        founderBtn.addEventListener('click', () => UI.openFounderTools(() => PAGES.home.init(root)));
+      }
+    }
     const day = root.querySelector('#home-day');
     if (day) day.textContent = State.data.day;   // HTML already says "Day"
     const wealth = root.querySelector('#home-wealth');
@@ -8045,37 +8057,23 @@ PAGES.home = {
     }
   },
 
-  // The "Message from the Founders" board + any live "special" banner.
+  // The live "special" banner (e.g. "2× MONEY for Frog Keeper"), in whatever
+  // color the founders picked.
   renderFounder(root) {
     const banner = root.querySelector('#founder-special');
-    const board = root.querySelector('#founder-board');
-    const msgs = root.querySelector('#founder-msgs');
-    if (!banner || !board || !msgs) return;
-
+    if (!banner) return;
     const active = Founder.activeSpecials();
     if (active.length) {
+      const color = (Founder.banner && Founder.banner.color) || '';
+      const bg = color ? ` style="background:${esc(color)}"` : '';
       banner.hidden = false;
       banner.innerHTML = active.map(s => {
         const job = JOBS[s.jobId];
         const mins = Math.max(0, Math.round((s.until - Date.now()) / 60000));
         const left = mins >= 120 ? Math.round(mins / 60) + ' hrs' : mins >= 60 ? '1 hr' : mins + ' min';
-        return `<div class="founder-special-row">🎉 <b>${s.mult}× MONEY</b> for <b>${esc(job ? job.name : s.jobId)}</b> ${job ? job.emoji : ''} — ${left} left!</div>`;
+        return `<div class="founder-special-row"${bg}>🎉 <b>${s.mult}× MONEY</b> for <b>${esc(job ? job.name : s.jobId)}</b> ${job ? job.emoji : ''} — ${left} left!</div>`;
       }).join('');
     } else { banner.hidden = true; banner.innerHTML = ''; }
-
-    const list = Founder.messages || [];
-    if (list.length) {
-      board.hidden = false;
-      msgs.innerHTML = list.slice(0, 8).map(m => {
-        const warn = m.kind === 'warning';
-        const when = new Date(m.at || 0);
-        const stamp = (m.at && isFinite(when.getTime())) ? when.toLocaleString() : '';
-        return `<div class="founder-msg${warn ? ' warn' : ''}">
-          <div class="founder-msg-head"><b>${warn ? '⚠️ ' : ''}${esc(m.from)}</b><span class="founder-msg-when">${esc(stamp)}</span></div>
-          <div class="founder-msg-text">${esc(m.text)}</div>
-        </div>`;
-      }).join('');
-    } else { board.hidden = true; }
   },
 
   // A little "top players" preview on the title screen. Only appears when

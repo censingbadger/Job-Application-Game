@@ -150,29 +150,28 @@ const Cloud = {
 };
 
 /* ============================================================
-   FOUNDER — the two bosses (Asher & Jinghe) can post messages to a
-   "Message from the Founders" board everyone sees, and start a real
-   "special" (e.g. double money for Frogkeepers today) that actually
-   boosts that job's pay while it's live. Both live in the cloud so
-   every player gets them.
+   FOUNDER — the two bosses (Asher & Jinghe) can start a real "special"
+   (e.g. double money for Frogkeepers today) that actually boosts that
+   job's pay while it's live, and pick the color of the special banner.
+   Both live in the cloud so every player gets them.
    ============================================================ */
 const Founder = {
-  messages: [],   // cached [{ at, from, text, kind }]  (kind: 'message' | 'warning' | 'special')
-  specials: [],   // cached [{ jobId, mult, until, at }]
+  specials: [],           // cached [{ jobId, mult, until, at }]
+  banner: { color: '' },  // cached special-banner color ('' = default)
 
-  _msgUrl() { return Cloud.base() ? `${Cloud.base()}/founderMessages.json` : null; },
   _specialUrl() { return Cloud.base() ? `${Cloud.base()}/founderSpecials.json` : null; },
+  _bannerUrl() { return Cloud.base() ? `${Cloud.base()}/founderBanner.json` : null; },
 
-  // Pull the board + specials from the cloud into the caches (best-effort).
+  // Pull the live specials + banner color from the cloud (best-effort).
   async load() {
     if (!Cloud.on()) return;
     try {
-      const [m, s] = await Promise.all([
-        Cloud._fetch(this._msgUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+      const [s, b] = await Promise.all([
         Cloud._fetch(this._specialUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+        Cloud._fetch(this._bannerUrl(), { cache: 'no-store' }, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
-      if (Array.isArray(m)) this.messages = m;
       if (Array.isArray(s)) this.specials = s;
+      if (b && typeof b === 'object' && typeof b.color === 'string') this.banner = b;
     } catch (e) { /* offline — keep whatever we had */ }
   },
 
@@ -188,18 +187,8 @@ const Founder = {
     return s && s.mult > 0 ? s.mult : 1;
   },
 
-  // Post a message to the board (newest first, keep the last 20).
-  async post(from, text, kind) {
-    if (!Cloud.on()) return false;
-    const msg = { at: Date.now(), from: String(from || 'Founders').slice(0, 20), text: String(text || '').slice(0, 200), kind: kind || 'message' };
-    this.messages.unshift(msg);
-    this.messages = this.messages.slice(0, 20);
-    try { const r = await Cloud._fetch(this._msgUrl(), { method: 'PUT', body: JSON.stringify(this.messages) }, 8000); return r.ok; }
-    catch (e) { return false; }
-  },
-
-  // Start (or replace) a special for a job. Also announces it on the board.
-  async setSpecial(jobId, mult, until, from) {
+  // Start (or replace) a special for a job.
+  async setSpecial(jobId, mult, until) {
     if (!Cloud.on()) return false;
     const now = Date.now();
     this.specials = this.specials.filter(s => s && s.until > now && s.jobId !== jobId);
@@ -214,6 +203,14 @@ const Founder = {
     if (!Cloud.on()) return false;
     this.specials = this.specials.filter(s => s && s.jobId !== jobId);
     try { const r = await Cloud._fetch(this._specialUrl(), { method: 'PUT', body: JSON.stringify(this.specials) }, 8000); return r.ok; }
+    catch (e) { return false; }
+  },
+
+  // Set the special-banner color ('' resets to the default yellow).
+  async setBanner(color) {
+    if (!Cloud.on()) return false;
+    this.banner = { color: String(color || '') };
+    try { const r = await Cloud._fetch(this._bannerUrl(), { method: 'PUT', body: JSON.stringify(this.banner) }, 8000); return r.ok; }
     catch (e) { return false; }
   },
 };
