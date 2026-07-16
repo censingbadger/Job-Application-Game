@@ -1264,19 +1264,10 @@ u { text-decoration-thickness: 3px; }
 @keyframes founder-pulse { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg) scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .founder-special-row { animation: none; } }
 
-.founder-board { width: 100%; max-width: 440px; margin: 22px auto 4px; text-align: left; }
-.founder-board-title { text-align: center; font-family: var(--font-display); font-size: 20px; letter-spacing: 1px; margin: 0 0 12px; }
-.founder-msgs { display: grid; gap: 10px; }
-.founder-msg {
-  background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2);
-  padding: 9px 12px; box-shadow: 2px 2px 0 var(--paper-shadow);
-}
-.founder-msg.warn { background: var(--danger-light); border-color: var(--danger); }
-.founder-msg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; margin-bottom: 3px; }
-.founder-msg-when { font-size: 11px; color: var(--pencil); font-weight: 400; }
-.founder-msg-text { font-size: 15px; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
+.home-founder { margin: 16px auto 0; font-size: 15px; }
 .fc-card { background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--wobble-2); padding: 10px 12px; box-shadow: 2px 2px 0 var(--paper-shadow); }
-.fc-author.picked { background: var(--money-light); box-shadow: 0 0 0 2.5px var(--money); }
+.fc-color { border: 2.5px solid var(--ink); border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; }
+.fc-color.picked { box-shadow: 0 0 0 3px var(--ink); }
 
 @media (max-width: 560px) {
   .lb-row { gap: 10px; padding: 9px 12px; }

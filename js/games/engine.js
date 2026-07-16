@@ -216,6 +216,10 @@ function defineShift(spec) {
     // even, we ignore them (and flash a "no robots" warning). Real play never
     // taps a single point 12+ times a second, so honest fast tappers are fine.
     _autoClicker(x, y) {
+      // DISABLED — the guard was too sensitive and flagged honest fast tapping.
+      // (Logic kept below so it can be re-enabled/re-tuned later by removing this line.)
+      return false;
+      // eslint-disable-next-line no-unreachable
       const now = performance.now();
       if (now < this._botUntil) return true;            // still cooling down from a catch
       const taps = this._taps;
