@@ -672,6 +672,7 @@ const UI = {
               <button class="btn btn-go" id="fc-special" style="width:100%">Start it + announce</button>
             </div>
             ${active.length ? `<div class="fc-card"><p class="signin-note" style="margin:0 0 6px"><b>Running specials</b></p>${active.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0"><span>${esc((JOBS[s.jobId] || {}).name || s.jobId)} — <b>${s.mult}×</b></span><button class="btn fc-endspecial" data-job="${esc(s.jobId)}" style="font-size:.8em">End now</button></div>`).join('')}</div>` : ''}
+            ${Founder.messages.length ? `<div class="fc-card"><p class="signin-note" style="margin:0 0 6px"><b>🗑️ Delete a post</b></p>${Founder.messages.slice(0, 12).map(m => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(43,43,51,.1)"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.84em">${m.kind === 'warning' ? '⚠️ ' : m.kind === 'special' ? '🎉 ' : ''}<b>${esc(m.from)}:</b> ${esc(m.text)}</span><button class="btn fc-delmsg" data-at="${m.at}" style="font-size:.85em;flex-shrink:0">🗑️</button></div>`).join('')}<button class="btn fc-clearall" type="button" style="font-size:.78em;margin-top:8px">Delete ALL posts</button></div>` : ''}
           </div>
           <button class="btn signin-pass-back" type="button" style="margin-top:12px">← back</button>`;
         UI.spikyAll(box);
@@ -706,6 +707,17 @@ const UI = {
           UI.toast('Special ended', '🛑');
           render();
         }));
+        box.querySelectorAll('.fc-delmsg').forEach(b => b.addEventListener('click', async () => {
+          await Founder.deleteMessage(Number(b.dataset.at));
+          UI.toast('Post deleted', '🗑️');
+          render();
+        }));
+        const clearAll = box.querySelector('.fc-clearall');
+        if (clearAll) clearAll.addEventListener('click', async () => {
+          await Founder.clearMessages();
+          UI.toast('All posts deleted', '🗑️');
+          render();
+        });
         box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
       };
       render();

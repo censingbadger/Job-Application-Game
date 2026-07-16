@@ -198,6 +198,22 @@ const Founder = {
     catch (e) { return false; }
   },
 
+  // Delete a board post (matched by its timestamp). Removes it for everyone.
+  async deleteMessage(at) {
+    if (!Cloud.on()) return false;
+    this.messages = this.messages.filter(m => m && m.at !== at);
+    try { const r = await Cloud._fetch(this._msgUrl(), { method: 'PUT', body: JSON.stringify(this.messages) }, 8000); return r.ok; }
+    catch (e) { return false; }
+  },
+
+  // Wipe the whole board at once.
+  async clearMessages() {
+    if (!Cloud.on()) return false;
+    this.messages = [];
+    try { const r = await Cloud._fetch(this._msgUrl(), { method: 'PUT', body: JSON.stringify([]) }, 8000); return r.ok; }
+    catch (e) { return false; }
+  },
+
   // Start (or replace) a special for a job. Also announces it on the board.
   async setSpecial(jobId, mult, until, from) {
     if (!Cloud.on()) return false;
