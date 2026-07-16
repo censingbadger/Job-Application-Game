@@ -154,8 +154,10 @@ function defineShift(spec) {
     // Earn money mid-game (a trial doesn't bank real money — it only
     // counts toward the goal), with a floating "+$" and a running total.
     earn(n) {
-      // Better equipment earns more (but not during a no-pay skill trial).
-      n = Math.floor(n * (this.trial ? 1 : State.gearMult(State.data.path.jobId)));
+      // Better equipment earns more, and a live Founder "special" can multiply
+      // a job's pay (neither applies during a no-pay skill trial).
+      const jobId = State.data.path.jobId;
+      n = Math.floor(n * (this.trial ? 1 : State.gearMult(jobId) * Founder.mult(jobId)));
       if (n <= 0) return;
       this.earned += n;
       if (!this.trial) { State.addWealth(n); State.addCareerEarnings(n); this._maybeRefreshGear(); }

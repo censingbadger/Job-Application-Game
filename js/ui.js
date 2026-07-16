@@ -46,6 +46,7 @@ let currentPage = null;
 
 function Boot() {
   State.load();
+  if (Cloud.on()) Founder.load();   // pull the founders' board + live specials
   if (window.SINGLE_FILE) {
     document.addEventListener('click', e => {
       const link = e.target.closest('a[data-nav]');
@@ -526,9 +527,11 @@ const UI = {
       box.innerHTML = `
         <h2 class="signin-title" data-spiky>🔑 GROWN-UP ADMIN</h2>
         <p class="signin-note">Tap <b>Edit</b> to change money/day/job, <b>Restore</b> to bring back a wiped character, or 🔓 to clear a password.</p>
-        <div class="grownup-list admin-list" style="text-align:left;max-width:360px;margin:0 auto;max-height:52vh;overflow:auto">${rows}</div>
-        <button class="btn signin-pass-back" type="button" style="margin-top:10px">← done</button>`;
+        <div class="grownup-list admin-list" style="text-align:left;max-width:360px;margin:0 auto;max-height:48vh;overflow:auto">${rows}</div>
+        <button class="btn admin-founder" type="button" style="margin-top:10px">📢 Founder tools (messages &amp; specials)</button>
+        <button class="btn signin-pass-back" type="button" style="margin-top:6px">← done</button>`;
       UI.spikyAll(box);
+      box.querySelector('.admin-founder').addEventListener('click', () => founderConsole());
       box.querySelectorAll('.admin-edit').forEach(b => b.addEventListener('click', () => editChar(chars[+b.dataset.i])));
       box.querySelectorAll('.admin-restore').forEach(b => b.addEventListener('click', () => restoreChar(chars[+b.dataset.i])));
       box.querySelectorAll('.admin-clear').forEach(b => b.addEventListener('click', () => {
@@ -635,6 +638,77 @@ const UI = {
         c.querySelector('#rs-no').addEventListener('click', () => conf.close());
       }));
       box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
+    };
+
+    // 5) founder tools: post to the board + start a real money special --
+    const endOfToday = () => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); };
+    const founderConsole = async () => {
+      box.innerHTML = `<h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2><p class="signin-note">Loading the board…</p>`;
+      UI.spikyAll(box);
+      await Founder.load();
+      const jobs = Object.keys(JOBS).sort((a, b) => JOBS[a].name.localeCompare(JOBS[b].name));
+      const render = () => {
+        const active = Founder.activeSpecials();
+        box.innerHTML = `
+          <h2 class="signin-title" data-spiky>📢 FOUNDER TOOLS</h2>
+          <div class="fc-wrap" style="text-align:left;max-width:360px;margin:0 auto;display:grid;gap:14px">
+            <div class="fc-card">
+              <p class="signin-note" style="margin:0 0 6px"><b>✍️ Post to the board</b></p>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <button type="button" class="btn fc-author picked" data-from="Asher" style="flex:1">Asher</button>
+                <button type="button" class="btn fc-author" data-from="Jinghe" style="flex:1">Jinghe</button>
+              </div>
+              <textarea id="fc-text" class="signin-input" rows="2" maxlength="200" placeholder="Type a message to all players..." style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+              <label style="display:flex;align-items:center;gap:6px;font-size:.85em;margin:6px 0"><input type="checkbox" id="fc-warn"> ⚠️ Make it a warning</label>
+              <button class="btn btn-go" id="fc-post" style="width:100%">Post message</button>
+            </div>
+            <div class="fc-card">
+              <p class="signin-note" style="margin:0 0 6px"><b>🎉 Start a money special</b></p>
+              <select id="fc-job" class="signin-input" style="width:100%;box-sizing:border-box;margin-bottom:6px">${jobs.map(id => `<option value="${id}">${esc(JOBS[id].name)}</option>`).join('')}</select>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <select id="fc-mult" class="signin-input" style="flex:1;min-width:0"><option value="2">2× money</option><option value="3">3× money</option><option value="5">5× money</option></select>
+                <select id="fc-dur" class="signin-input" style="flex:1;min-width:0"><option value="today">rest of today</option><option value="1">1 hour</option><option value="3">3 hours</option><option value="168">1 week</option></select>
+              </div>
+              <button class="btn btn-go" id="fc-special" style="width:100%">Start it + announce</button>
+            </div>
+            ${active.length ? `<div class="fc-card"><p class="signin-note" style="margin:0 0 6px"><b>Running specials</b></p>${active.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0"><span>${esc((JOBS[s.jobId] || {}).name || s.jobId)} — <b>${s.mult}×</b></span><button class="btn fc-endspecial" data-job="${esc(s.jobId)}" style="font-size:.8em">End now</button></div>`).join('')}</div>` : ''}
+          </div>
+          <button class="btn signin-pass-back" type="button" style="margin-top:12px">← back</button>`;
+        UI.spikyAll(box);
+        let from = 'Asher';
+        box.querySelectorAll('.fc-author').forEach(b => b.addEventListener('click', () => {
+          box.querySelectorAll('.fc-author').forEach(x => x.classList.remove('picked'));
+          b.classList.add('picked'); from = b.dataset.from;
+        }));
+        box.querySelector('#fc-post').addEventListener('click', async () => {
+          const ta = box.querySelector('#fc-text');
+          const text = ta.value.trim();
+          if (!text) { UI._shake(ta); return; }
+          const warn = box.querySelector('#fc-warn').checked;
+          const ok = await Founder.post(from, text, warn ? 'warning' : 'message');
+          UI.toast(ok ? `Posted as ${from}` : 'Saved — will sync when online', warn ? '⚠️' : '📢');
+          render();
+        });
+        box.querySelector('#fc-special').addEventListener('click', async () => {
+          const jobId = box.querySelector('#fc-job').value;
+          const mult = Number(box.querySelector('#fc-mult').value);
+          const dv = box.querySelector('#fc-dur').value;
+          const until = dv === 'today' ? endOfToday() : Date.now() + Number(dv) * 3600000;
+          const jobName = (JOBS[jobId] || {}).name || jobId;
+          await Founder.setSpecial(jobId, mult, until, from);
+          await Founder.post(from, `${mult}× money for ${jobName} — grab it while it lasts!`, 'special');
+          UI.toast(`${mult}× ${jobName} is LIVE!`, '🎉');
+          UI.confetti(14);
+          render();
+        });
+        box.querySelectorAll('.fc-endspecial').forEach(b => b.addEventListener('click', async () => {
+          await Founder.clearSpecial(b.dataset.job);
+          UI.toast('Special ended', '🛑');
+          render();
+        }));
+        box.querySelector('.signin-pass-back').addEventListener('click', () => showList());
+      };
+      render();
     };
 
     askMaster(false);
